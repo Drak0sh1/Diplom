@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Авторизация</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo">
+                <i class="fas fa-shield-alt"></i>
+                <h1>Авторизация</h1>
+                <p>Войдите в свою учетную запись</p>
+            </div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Имя пользователя</label>
+                    <input type="text" id="username" class="form-control" 
+                           placeholder="Введите логин" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Пароль</label>
+                    <div class="password-container">
+                        <input type="password" id="password" class="form-control" 
+                               placeholder="Введите пароль" required>
+                        <button type="button" class="show-password">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="error-message" id="errorMessage">
+                </div>
+                
+                <button type="submit" class="btn-primary" id="loginBtn">
+                    <span id="btnText">Войти в систему</span>
+                    <span id="loadingSpinner" class="loading" style="display: none;"></span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+</body>
+</html>
