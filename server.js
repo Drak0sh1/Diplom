@@ -18,12 +18,10 @@ const dbConfig = {
 
 let pool;
 
-// Простое хранилище сессий в памяти
 const sessions = new Map();
 
 // ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ЛОГИРОВАНИЯ ============
 
-// Функция для записи логов с учетом вашей структуры таблицы
 async function logAction(userId, actionType, details = '', module = 'system', targetType = null, targetId = null, status = 'info', ip = '', userAgent = '') {
     try {
         const connection = await pool.getConnection();
@@ -44,9 +42,8 @@ async function logAction(userId, actionType, details = '', module = 'system', ta
         
         connection.release();
         
-        // Выводим в консоль только важные логи (не API запросы)
         if (actionType !== 'api_request') {
-            console.log(`📝 Лог записан: ${actionType} - ${status}`);
+           
         }
         
     } catch (error) {
@@ -54,7 +51,6 @@ async function logAction(userId, actionType, details = '', module = 'system', ta
     }
 }
 
-// Функция для записи лога входа пользователя
 async function logLogin(userId, username, ip, userAgent, status = 'success') {
     await logAction(
         userId,
@@ -69,7 +65,6 @@ async function logLogin(userId, username, ip, userAgent, status = 'success') {
     );
 }
 
-// Функция для записи лога выхода пользователя
 async function logLogout(userId, username, ip, userAgent) {
     await logAction(
         userId,
@@ -84,7 +79,6 @@ async function logLogout(userId, username, ip, userAgent) {
     );
 }
 
-// Функция для записи лога создания пользователя
 async function logUserCreation(adminId, adminUsername, newUsername, newUserId, ip, userAgent) {
     await logAction(
         adminId,
@@ -99,7 +93,6 @@ async function logUserCreation(adminId, adminUsername, newUsername, newUserId, i
     );
 }
 
-// Функция для записи лога сброса пароля
 async function logPasswordReset(adminId, adminUsername, targetUsername, ip, userAgent) {
     await logAction(
         adminId,
@@ -122,7 +115,6 @@ async function initDatabase() {
         const connection = await pool.getConnection();
         console.log('✅ Подключение к MySQL установлено');
         
-        // Проверяем существование админа
         const [admins] = await connection.execute(`
             SELECT u.idUsers, u.name, u.password, r.name as role
             FROM Users u
@@ -143,7 +135,6 @@ async function initDatabase() {
             
             const adminId = result.insertId;
             
-            // Логируем создание администратора
             await logAction(
                 null,
                 'system_init',
@@ -165,7 +156,6 @@ async function initDatabase() {
                 console.log(`   👤 ${admin.name} (${admin.role})`);
             });
             
-            // Проверяем, что пароль работает
             const testPassword = 'admin123';
             const isValid = await bcrypt.compare(testPassword, admins[0].password);
             console.log(`   Проверка пароля 'admin123': ${isValid ? '✅ Работает' : '❌ Не работает'}`);
@@ -177,7 +167,6 @@ async function initDatabase() {
                     UPDATE Users SET password = ? WHERE name = 'admin'
                 `, [hashedPassword]);
                 
-                // Логируем сброс пароля
                 await logAction(
                     null,
                     'password_reset',
@@ -194,7 +183,6 @@ async function initDatabase() {
             }
         }
         
-        // Логируем запуск системы
         await logAction(
             null,
             'system_start',
@@ -231,7 +219,6 @@ function getClientIp(req) {
            'unknown';
 }
 
-// Middleware для проверки авторизации и логирования запросов
 app.use(async (req, res, next) => {
     const sessionId = req.cookies?.sessionId;
     const ip = getClientIp(req);
@@ -240,10 +227,7 @@ app.use(async (req, res, next) => {
     if (sessionId && sessions.has(sessionId)) {
         req.user = sessions.get(sessionId);
         
-        // Логируем запросы авторизованных пользователей (кроме статических файлов)
-        // Но логируем их как 'api_request', которые администратор не увидит
         if (!req.path.startsWith('/public/') && req.path !== '/favicon.ico') {
-            // Исключаем endpoint для логов, чтобы избежать рекурсии
             if (!req.path.startsWith('/api/admin/logs')) {
                 setTimeout(async () => {
                     try {
@@ -271,7 +255,6 @@ app.use(async (req, res, next) => {
     next();
 });
 
-// Middleware для защиты маршрутов
 function requireAuth(requiredRole = null) {
     return (req, res, next) => {
         if (!req.user) {
@@ -314,7 +297,6 @@ app.post('/api/login', async (req, res) => {
         
         console.log(`🔐 Поиск пользователя: ${username}`);
         
-        // Пробуем найти пользователя
         let users;
         try {
             [users] = await pool.execute(`
@@ -333,7 +315,6 @@ app.post('/api/login', async (req, res) => {
         } catch (dbError) {
             console.error('❌ Ошибка запроса к БД:', dbError.message);
             
-            // Логируем ошибку БД
             await logAction(
                 null,
                 'database_error',
@@ -352,7 +333,6 @@ app.post('/api/login', async (req, res) => {
         if (users.length === 0) {
             console.log(`❌ Пользователь ${username} не найден`);
             
-            // Логируем неудачную попытку входа
             await logAction(
                 null,
                 'user_login',
@@ -763,7 +743,7 @@ app.get('/api/admin/users', requireAuth('Администратор'), async (re
             ORDER BY u.idUsers
         `);
         
-        console.log(`✅ Получено ${users.length} пользователей`);
+        
         
         res.json({
             success: true,
@@ -794,6 +774,7 @@ app.get('/api/admin/users', requireAuth('Администратор'), async (re
 });
 
 // Создание пользователя (только для админа)
+// Создание пользователя (только для админа) - ИСПРАВЛЕННАЯ ВЕРСИЯ
 app.post('/api/admin/users', requireAuth('Администратор'), async (req, res) => {
     try {
         const { username, password, roleId } = req.body;
@@ -833,10 +814,16 @@ app.post('/api/admin/users', requireAuth('Администратор'), async (r
         );
         const roleName = roleData[0]?.name || 'Неизвестная роль';
         
-        // Создание пользователя
+        // ВАЖНО: Хешируем пароль с такой же конфигурацией как в вашем SQL
+        // Используем соль 10 для совместимости с вашей базой данных
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        console.log(`🔐 Пароль захеширован: ${hashedPassword.substring(0, 30)}...`);
+        
+        // Создание пользователя с хешированным паролем
         const [result] = await pool.execute(
             'INSERT INTO Users (name, password, idRoles) VALUES (?, ?, ?)',
-            [username, password, roleId]
+            [username, hashedPassword, roleId]
         );
         
         const userId = result.insertId;
@@ -1048,7 +1035,444 @@ app.get('/api/admin/roles', requireAuth('Администратор'), async (re
         });
     }
 });
+// Проверка хешей паролей (только для отладки)
+app.get('/api/debug/passwords', async (req, res) => {
+    try {
+        const [users] = await pool.execute(`
+            SELECT 
+                u.idUsers,
+                u.name,
+                u.password,
+                r.name as role,
+                CASE 
+                    WHEN u.password LIKE '$2b$%' THEN '✅ Захеширован'
+                    ELSE '❌ Не захеширован'
+                END as password_status
+            FROM Users u
+            LEFT JOIN Roles r ON u.idRoles = r.idRoles
+            ORDER BY u.idUsers
+        `);
+        
+        res.json({
+            success: true,
+            users: users,
+            total: users.length,
+            hashed: users.filter(u => u.password_status === '✅ Захеширован').length,
+            notHashed: users.filter(u => u.password_status === '❌ Не захеширован').length
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка проверки паролей:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера' 
+        });
+    }
+});
+// ============ РЕДАКТОР ЭНДПОИНТЫ ============
 
+// Получить список каталогов для редактора
+app.get('/api/editor/directories', requireAuth('Редактор'), async (req, res) => {
+    try {
+        console.log('📁 Запрос каталогов от редактора:', req.user.username);
+        
+        // Здесь будет реальная логика для каталогов
+        // Пока возвращаем заглушку
+        res.json({
+            success: true,
+            directories: [
+                { id: 1, name: 'Входящая корреспонденция', description: 'Входящие документы', documentCount: 15, isActive: true, createdAt: '01.01.2024 10:00' },
+                { id: 2, name: 'Исходящая корреспонденция', description: 'Исходящие документы', documentCount: 8, isActive: true, createdAt: '01.01.2024 10:00' },
+                { id: 3, name: 'Внутренние документы', description: 'Внутренняя документация', documentCount: 23, isActive: true, createdAt: '01.01.2024 10:00' },
+                { id: 4, name: 'Архив', description: 'Архивные документы', documentCount: 156, isActive: false, createdAt: '01.01.2024 10:00' }
+            ]
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения каталогов:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера'
+        });
+    }
+});
+
+// Получить типы документов для редактора
+app.get('/api/editor/document-types', requireAuth('Редактор'), async (req, res) => {
+    try {
+        res.json({
+            success: true,
+            types: [
+                { id: 1, name: 'Письмо', code: 'LTR', description: 'Входящие/исходящие письма', createdAt: '01.01.2024 10:00' },
+                { id: 2, name: 'Приказ', code: 'ORD', description: 'Распорядительные документы', createdAt: '01.01.2024 10:00' },
+                { id: 3, name: 'Договор', code: 'CNT', description: 'Договоры и соглашения', createdAt: '01.01.2024 10:00' },
+                { id: 4, name: 'Акт', code: 'ACT', description: 'Акты выполненных работ', createdAt: '01.01.2024 10:00' }
+            ]
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения типов документов:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера'
+        });
+    }
+});
+
+// Получить статусы документов для редактора
+app.get('/api/editor/document-statuses', requireAuth('Редактор'), async (req, res) => {
+    try {
+        res.json({
+            success: true,
+            statuses: [
+                { id: 1, name: 'Новый', color: '#4299e1', description: 'Новый документ', createdAt: '01.01.2024 10:00' },
+                { id: 2, name: 'В обработке', color: '#ed8936', description: 'Документ в обработке', createdAt: '01.01.2024 10:00' },
+                { id: 3, name: 'Завершен', color: '#48bb78', description: 'Документ обработан', createdAt: '01.01.2024 10:00' },
+                { id: 4, name: 'Отклонен', color: '#f56565', description: 'Документ отклонен', createdAt: '01.01.2024 10:00' }
+            ]
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения статусов:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера'
+        });
+    }
+});
+
+// Получить пользователей для назначения (только редакторы и пользователи)
+app.get('/api/editor/users-for-assignment', requireAuth('Редактор'), async (req, res) => {
+    try {
+        const [users] = await pool.execute(`
+            SELECT 
+                u.idUsers as id,
+                u.name,
+                r.name as role
+            FROM Users u
+            LEFT JOIN Roles r ON u.idRoles = r.idRoles
+            WHERE r.name IN ('Редактор', 'Пользователь')
+            ORDER BY u.name
+        `);
+        
+        res.json({
+            success: true,
+            users: users
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения пользователей:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера'
+        });
+    }
+});
+
+// Получить журнал контрагентов
+app.get('/api/editor/counterparties', requireAuth('Редактор'), async (req, res) => {
+    try {
+        res.json({
+            success: true,
+            counterparties: [
+                { id: 1, name: 'ООО "Ромашка"', letterCount: 12, lastLetterDate: '15.03.2024', isActive: true },
+                { id: 2, name: 'ИП Иванов И.И.', letterCount: 8, lastLetterDate: '10.03.2024', isActive: true },
+                { id: 3, name: 'ЗАО "Стройтех"', letterCount: 5, lastLetterDate: '05.03.2024', isActive: true },
+                { id: 4, name: 'АО "Энергосбыт"', letterCount: 3, lastLetterDate: '28.02.2024', isActive: false }
+            ]
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения контрагентов:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера'
+        });
+    }
+});
+
+// Получить журнал входящей корреспонденции
+app.get('/api/editor/incoming-correspondence', requireAuth('Редактор'), async (req, res) => {
+    try {
+        const { status, date } = req.query;
+        
+        // Здесь будет фильтрация по статусу и дате
+        // Пока возвращаем заглушку
+        res.json({
+            success: true,
+            correspondence: [
+                { letterId: 1001, receivedDate: '15.03.2024 10:30', statusName: 'Новый', statusColor: '#4299e1', notes: 'Срочное письмо', statusChangedDate: '15.03.2024 10:30' },
+                { letterId: 1002, receivedDate: '14.03.2024 14:20', statusName: 'В обработке', statusColor: '#ed8936', notes: 'Требуется ответ', statusChangedDate: '15.03.2024 09:15' },
+                { letterId: 1003, receivedDate: '13.03.2024 11:45', statusName: 'Завершен', statusColor: '#48bb78', notes: 'Обработано', statusChangedDate: '14.03.2024 16:30' },
+                { letterId: 1004, receivedDate: '12.03.2024 16:10', statusName: 'Новый', statusColor: '#4299e1', notes: 'Обычное письмо', statusChangedDate: '12.03.2024 16:10' }
+            ]
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения корреспонденции:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера'
+        });
+    }
+});
+
+// Назначить каталог пользователю
+app.post('/api/editor/assign', requireAuth('Редактор'), async (req, res) => {
+    try {
+        const { userId, directoryId } = req.body;
+        
+        // Здесь будет логика назначения
+        // Пока возвращаем заглушку
+        
+        await logAction(
+            req.user.userId,
+            'directory_assign',
+            `Редактор ${req.user.username} назначил доступ к каталогу ID ${directoryId} пользователю ID ${userId}`,
+            'directories',
+            'user',
+            userId,
+            'success',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.json({
+            success: true,
+            message: 'Доступ успешно назначен'
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка назначения доступа:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера'
+        });
+    }
+});
+
+// Получить список назначений
+app.get('/api/editor/assignments', requireAuth('Редактор'), async (req, res) => {
+    try {
+        // Здесь будет реальная логика
+        // Пока возвращаем заглушку
+        res.json({
+            success: true,
+            assignments: [
+                { userName: 'user1', directoryName: 'Входящая корреспонденция', assignedAt: '10.03.2024 14:30' },
+                { userName: 'user2', directoryName: 'Исходящая корреспонденция', assignedAt: '11.03.2024 10:15' },
+                { userName: 'user3', directoryName: 'Внутренние документы', assignedAt: '12.03.2024 09:45' }
+            ]
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения назначений:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера'
+        });
+    }
+});
+// В вашем сервере добавьте:
+
+// Получить все папки (каталоги)
+app.get('/api/editor/folders', requireAuth('Редактор'), async (req, res) => {
+    try {
+        const [folders] = await pool.execute(`
+            SELECT f.*, COUNT(DISTINCT uf.idUsers) as userCount
+            FROM Folder f
+            LEFT JOIN UsersFolders uf ON f.idFolder = uf.idFolders
+            GROUP BY f.idFolder
+            ORDER BY f.parentId IS NULL DESC, f.Name
+        `);
+        
+        res.json({
+            success: true,
+            folders: folders
+        });
+    } catch (error) {
+        console.error('Ошибка получения папок:', error);
+        res.status(500).json({ success: false, message: 'Ошибка сервера' });
+    }
+});
+
+// Создать папку
+app.post('/api/editor/folders', requireAuth('Редактор'), async (req, res) => {
+    try {
+        const { name, parentId } = req.body;
+        
+        const [result] = await pool.execute(
+            'INSERT INTO Folder (Name, parentId) VALUES (?, ?)',
+            [name, parentId]
+        );
+        
+        // Логируем создание
+        await logAction(
+            req.user.userId,
+            'folder_create',
+            `Создана папка: ${name} ${parentId ? '(вложенная)' : '(корневая)'}`,
+            'folders',
+            'folder',
+            result.insertId,
+            'success',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.json({
+            success: true,
+            folderId: result.insertId,
+            message: 'Папка создана'
+        });
+    } catch (error) {
+        console.error('Ошибка создания папки:', error);
+        res.status(500).json({ success: false, message: 'Ошибка сервера' });
+    }
+});
+
+// Получить файлы в папке
+app.get('/api/editor/folders/:folderId/files', requireAuth('Редактор'), async (req, res) => {
+    try {
+        const folderId = req.params.folderId;
+        
+        const [files] = await pool.execute(`
+            SELECT f.*, u.name as uploaderName
+            FROM Files f
+            LEFT JOIN Users u ON f.createdBy = u.idUsers
+            WHERE f.idFolders = ?
+            ORDER BY f.createdAt DESC
+        `, [folderId]);
+        
+        res.json({
+            success: true,
+            files: files
+        });
+    } catch (error) {
+        console.error('Ошибка получения файлов:', error);
+        res.status(500).json({ success: false, message: 'Ошибка сервера' });
+    }
+});
+
+// Получить информацию о папке и назначенных пользователях
+app.get('/api/editor/folders/:folderId/info', requireAuth('Редактор'), async (req, res) => {
+    try {
+        const folderId = req.params.folderId;
+        
+        const [folderResult] = await pool.execute(
+            'SELECT * FROM Folder WHERE idFolder = ?',
+            [folderId]
+        );
+        
+        if (folderResult.length === 0) {
+            return res.json({ success: false, message: 'Папка не найдена' });
+        }
+        
+        const folder = folderResult[0];
+        
+        // Получаем родительскую папку
+        let parentFolder = null;
+        if (folder.parentId) {
+            const [parentResult] = await pool.execute(
+                'SELECT * FROM Folder WHERE idFolder = ?',
+                [folder.parentId]
+            );
+            parentFolder = parentResult[0];
+        }
+        
+        // Получаем назначенных пользователей
+        const [users] = await pool.execute(`
+            SELECT u.idUsers as userId, u.name, uf.permission
+            FROM UsersFolders uf
+            JOIN Users u ON uf.idUsers = u.idUsers
+            WHERE uf.idFolders = ?
+        `, [folderId]);
+        
+        res.json({
+            success: true,
+            folder: folder,
+            parentFolder: parentFolder,
+            assignedUsers: users
+        });
+    } catch (error) {
+        console.error('Ошибка получения информации о папке:', error);
+        res.status(500).json({ success: false, message: 'Ошибка сервера' });
+    }
+});
+
+// Назначить пользователей папке
+app.post('/api/editor/folders/assign', requireAuth('Редактор'), async (req, res) => {
+    try {
+        const { folderId, userIds } = req.body;
+        
+        // Удаляем старые назначения
+        await pool.execute(
+            'DELETE FROM UsersFolders WHERE idFolders = ?',
+            [folderId]
+        );
+        
+        // Добавляем новые назначения
+        for (const userId of userIds) {
+            await pool.execute(
+                'INSERT INTO UsersFolders (idUsers, idFolders, permission) VALUES (?, ?, ?)',
+                [userId, folderId, 'READ']
+            );
+        }
+        
+        // Логируем назначение
+        await logAction(
+            req.user.userId,
+            'folder_assign',
+            `Назначено ${userIds.length} пользователей папке ID: ${folderId}`,
+            'folders',
+            'folder',
+            folderId,
+            'success',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.json({
+            success: true,
+            message: 'Пользователи назначены'
+        });
+    } catch (error) {
+        console.error('Ошибка назначения пользователей:', error);
+        res.status(500).json({ success: false, message: 'Ошибка сервера' });
+    }
+});
+
+// Отозвать доступ у пользователя
+app.post('/api/editor/folders/unassign', requireAuth('Редактор'), async (req, res) => {
+    try {
+        const { userId, folderId } = req.body;
+        
+        await pool.execute(
+            'DELETE FROM UsersFolders WHERE idUsers = ? AND idFolders = ?',
+            [userId, folderId]
+        );
+        
+        // Логируем отзыв доступа
+        await logAction(
+            req.user.userId,
+            'folder_unassign',
+            `Отозван доступ у пользователя ID: ${userId} к папке ID: ${folderId}`,
+            'folders',
+            'folder',
+            folderId,
+            'warning',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.json({
+            success: true,
+            message: 'Доступ отозван'
+        });
+    } catch (error) {
+        console.error('Ошибка отзыва доступа:', error);
+        res.status(500).json({ success: false, message: 'Ошибка сервера' });
+    }
+});
 // ============ API ДЛЯ ЛОГОВ ============
 
 /// Получить логи с пагинацией и фильтрами (только для админа) - БЕЗ API запросов
@@ -1071,10 +1495,7 @@ app.get('/api/admin/logs', requireAuth('Администратор'), async (req
         const limitNum = parseInt(limit, 10);
         const offset = (pageNum - 1) * limitNum;
         
-        console.log(`📊 Параметры: page=${pageNum}, limit=${limitNum}, offset=${offset}`);
         
-        // Базовый запрос с JOIN для получения имени пользователя
-        // ИСКЛЮЧАЕМ API запросы (actionType != 'api_request')
         let sql = `
             SELECT 
                 l.idLogs,
@@ -1133,8 +1554,6 @@ app.get('/api/admin/logs', requireAuth('Администратор'), async (req
         // Сортируем по дате (последние сначала)
         sql += ` ORDER BY l.createdAt DESC`;
         
-        console.log('📝 SQL запрос (без пагинации):', sql);
-        console.log('📝 Параметры (до LIMIT):', params);
         
         // Сначала выполняем запрос для получения данных с пагинацией
         // 🔐 гарантируем числа
@@ -1144,8 +1563,6 @@ const safeOffset = Number(offset);
 // ❗ LIMIT / OFFSET ВСТАВЛЯЕМ НАПРЯМУЮ
 const dataSql = sql + ` LIMIT ${safeLimit} OFFSET ${safeOffset}`;
 
-console.log('📝 Полный SQL запрос:', dataSql);
-console.log('📝 Параметры:', params);
 
 // ⚠️ params БЕЗ limit/offset
 const [logs] = await pool.execute(dataSql, params);
@@ -1191,8 +1608,6 @@ const [logs] = await pool.execute(dataSql, params);
             countSql += ` AND DATE(l.createdAt) <= ?`;
         }
         
-        console.log('📝 COUNT SQL:', countSql);
-        console.log('📝 COUNT параметры:', countParams);
         
         const [countResult] = await pool.execute(countSql, countParams);
         const total = countResult[0]?.total || 0;
@@ -1233,9 +1648,6 @@ const [logs] = await pool.execute(dataSql, params);
             infoLogs: stats[0]?.infoLogs || 0
         };
         
-        console.log(`✅ Получено ${logs.length} записей (без API запросов), всего: ${total}`);
-        console.log('📊 Статистика:', statsData);
-        
         res.json({
             success: true,
             logs: logs,
@@ -1259,7 +1671,7 @@ const [logs] = await pool.execute(dataSql, params);
         });
     }
 });
-// Простой endpoint для проверки структуры БД
+
 app.get('/api/debug/logs', async (req, res) => {
     try {
         console.log('🔍 Проверка структуры БД...');
@@ -1357,7 +1769,6 @@ app.get('/api/test-db', async (req, res) => {
     }
 });
 // Тестовый endpoint для логов без авторизации
-// Тестовый endpoint для логов без авторизации - тоже скрываем API запросы
 app.get('/api/test-logs', async (req, res) => {
     try {
         console.log('🔧 Тестовый запрос логов без авторизации');
@@ -1587,14 +1998,48 @@ app.get('/logs', requireAuth('Администратор'), (req, res) => {
 
 // Страница редактора
 app.get('/editor', requireAuth('Редактор'), (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'editor.html'));
+    res.sendFile(path.join(__dirname, 'public','editor', 'editor.html'));
 });
 
 // Страница пользователя
 app.get('/dashboard', requireAuth(), (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
+// ============ МАРШРУТЫ ДЛЯ РЕДАКТОРА ============
 
+// Главная страница редактора (дашборд)
+app.get('/editor', requireAuth('Редактор'), (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'editor', 'editor.html'));
+});
+
+// Справочник каталогов
+app.get('/editor/directories', requireAuth('Редактор'), (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'editor', 'directories.html'));
+});
+
+// Управление назначениями
+app.get('/editor/assignments', requireAuth('Редактор'), (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'editor', 'assignments.html'));
+});
+
+// Журнал контрагентов
+app.get('/editor/counterparties', requireAuth('Редактор'), (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'editor', 'counterparties.html'));
+});
+
+// Журнал входящей корреспонденции
+app.get('/editor/correspondence', requireAuth('Редактор'), (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'editor', 'correspondence.html'));
+});
+
+// API для проверки роли редактора (общее)
+app.get('/api/editor/check-access', requireAuth('Редактор'), (req, res) => {
+    res.json({
+        success: true,
+        user: req.user,
+        message: 'Доступ разрешен'
+    });
+});
 // ============ ЗАПУСК СЕРВЕРА ============
 
 async function startServer() {
