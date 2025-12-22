@@ -485,57 +485,182 @@ app.get('/api/user', (req, res) => {
 });
 
 // Сброс пароля администратора
-app.post('/api/reset-admin', async (req, res) => {
+app.post('/api/reset-admin', requireAuth('Администратор'), async (req, res) => {
     try {
         const { newPassword = 'admin123' } = req.body;
+        const adminId = req.user.userId;
+        const adminUsername = req.user.username;
         const ip = getClientIp(req);
         const userAgent = req.headers['user-agent'] || '';
         
+        console.log(`🔑 Запрос сброса пароля администратора от: ${adminUsername} (ID: ${adminId})`);
+        
+        // Валидация пароля
+        if (!newPassword || newPassword.trim() === '') {
+            console.log('❌ Пустой пароль');
+            
+            await logAction(
+                adminId,
+                'admin_reset',
+                `Попытка сброса пароля администратора с пустым паролем`,
+                'system',
+                'user',
+                null,
+                'failed',
+                ip,
+                userAgent
+            );
+            
+            return res.json({
+                success: false,
+                message: 'Пароль не может быть пустым'
+            });
+        }
+        
+        if (newPassword.length < 4) {
+            console.log('❌ Слишком короткий пароль');
+            
+            await logAction(
+                adminId,
+                'admin_reset',
+                `Попытка сброса пароля администратора с слишком коротким паролем (${newPassword.length} символов)`,
+                'system',
+                'user',
+                null,
+                'failed',
+                ip,
+                userAgent
+            );
+            
+            return res.json({
+                success: false,
+                message: 'Пароль должен содержать минимум 4 символа'
+            });
+        }
+        
+        // Хешируем пароль
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         
-        await pool.execute(`
-            UPDATE Users SET password = ? WHERE name = 'admin'
-        `, [hashedPassword]);
+        // Получаем ID администратора для лога
+        const [adminData] = await pool.execute(
+            "SELECT idUsers FROM Users WHERE name = 'admin'"
+        );
         
-        console.log(`✅ Пароль администратора сброшен на: ${newPassword}`);
+        const targetAdminId = adminData[0]?.idUsers || null;
         
-        // Логируем сброс пароля администратора
-        if (req.user) {
-            await logPasswordReset(req.user.userId, req.user.username, 'admin', ip, userAgent);
-        } else {
+        // Обновляем пароль администратора
+        const [result] = await pool.execute(
+            "UPDATE Users SET password = ? WHERE name = 'admin'",
+            [hashedPassword]
+        );
+        
+        if (result.affectedRows === 0) {
+            console.log('❌ Администратор не найден в БД');
+            
             await logAction(
-                null,
-                'password_reset',
-                `Сброс пароля администратора на: ${newPassword}`,
+                adminId,
+                'admin_reset',
+                `Ошибка: пользователь 'admin' не найден в базе данных`,
+                'system',
                 'user',
-                'user',
                 null,
+                'failed',
+                ip,
+                userAgent
+            );
+            
+            return res.json({
+                success: false,
+                message: 'Администратор не найден'
+            });
+        }
+        
+        console.log(`✅ Пароль администратора успешно сброшен`);
+        
+        // Логируем успешный сброс пароля
+        await logAction(
+            adminId,
+            'admin_reset',
+            `Администратор ${adminUsername} сбросил пароль учетной записи 'admin'`,
+            'system',
+            'user',
+            targetAdminId,
+            'warning', // warning потому что это критическое действие
+            ip,
+            userAgent
+        );
+        
+        // Также создаем более детальный лог о критическом действии
+        await logAction(
+            adminId,
+            'critical_action',
+            `КРИТИЧЕСКОЕ ДЕЙСТВИЕ: Сброс пароля администратора. Новый пароль: ${newPassword}`,
+            'security',
+            'user',
+            targetAdminId,
+            'warning',
+            ip,
+            userAgent
+        );
+        
+        // Проверяем, не сбрасывает ли администратор свой собственный пароль
+        const [currentAdminData] = await pool.execute(
+            'SELECT name FROM Users WHERE idUsers = ?',
+            [adminId]
+        );
+        
+        const currentAdminName = currentAdminData[0]?.name || 'Неизвестно';
+        
+        if (currentAdminName === 'admin') {
+            // Дополнительное логирование для случая самосброса
+            await logAction(
+                adminId,
+                'admin_self_reset',
+                `АДМИНИСТРАТОР СБРОСИЛ СВОЙ СОБСТВЕННЫЙ ПАРОЛЬ: ${adminUsername} сбросил свой собственный пароль`,
+                'security',
+                'user',
+                adminId,
                 'warning',
                 ip,
                 userAgent
             );
         }
         
+        // Записываем в отдельную таблицу для аудита (если существует)
+        try {
+            await pool.execute(
+                `INSERT INTO SecurityAudit (userId, action, details, ipAddress, userAgent) 
+                 VALUES (?, ?, ?, ?, ?)`,
+                [adminId, 'admin_password_reset', `Пароль администратора сброшен на новый`, ip, userAgent]
+            );
+        } catch (auditError) {
+            // Игнорируем ошибку, если таблицы нет
+            console.log('ℹ️ Таблица SecurityAudit не существует, пропускаем аудит');
+        }
+        
         res.json({
             success: true,
-            message: `Пароль администратора сброшен на: ${newPassword}`,
+            message: `Пароль администратора успешно сброшен`,
             credentials: {
                 username: 'admin',
                 password: newPassword
-            }
+            },
+            warning: 'Сохраните новые учетные данные в безопасном месте!',
+            securityNote: 'Это действие было записано в журнал безопасности'
         });
         
     } catch (error) {
-        console.error('❌ Ошибка сброса пароля:', error);
+        console.error('❌ Ошибка сброса пароля администратора:', error);
         
         // Логируем ошибку
         const ip = getClientIp(req);
         const userAgent = req.headers['user-agent'] || '';
+        
         await logAction(
             req.user?.userId || null,
-            'password_reset',
+            'admin_reset',
             `Ошибка сброса пароля администратора: ${error.message}`,
-            'user',
+            'system',
             'user',
             null,
             'failed',
@@ -545,10 +670,28 @@ app.post('/api/reset-admin', async (req, res) => {
         
         res.status(500).json({
             success: false,
-            message: 'Ошибка сброса пароля'
+            message: 'Ошибка сервера при сбросе пароля',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 });
+
+// Вспомогательная функция для логирования сброса паролей (если еще нет)
+async function logPasswordReset(adminId, adminUsername, targetUsername, ip, userAgent) {
+    try {
+        const [result] = await pool.execute(
+            `INSERT INTO Logs (idUsers, actionType, details, module, targetType, targetId, status, ipAddress, userAgent) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [adminId, 'password_reset', 
+             `Администратор ${adminUsername} сбросил пароль пользователя ${targetUsername}`, 
+             'users', 'user', null, 'warning', ip, userAgent]
+        );
+        return result.insertId;
+    } catch (error) {
+        console.error('❌ Ошибка записи лога сброса пароля:', error);
+        return null;
+    }
+}
 
 // Выход
 app.post('/api/logout', async (req, res) => {
@@ -607,6 +750,8 @@ app.get('/api/users', async (req, res) => {
 // Получить всех пользователей (только для админа)
 app.get('/api/admin/users', requireAuth('Администратор'), async (req, res) => {
     try {
+        console.log('🔄 Запрос списка пользователей от администратора:', req.user.username);
+        
         const [users] = await pool.execute(`
             SELECT 
                 u.idUsers,
@@ -618,6 +763,8 @@ app.get('/api/admin/users', requireAuth('Администратор'), async (re
             ORDER BY u.idUsers
         `);
         
+        console.log(`✅ Получено ${users.length} пользователей`);
+        
         res.json({
             success: true,
             users: users
@@ -626,98 +773,256 @@ app.get('/api/admin/users', requireAuth('Администратор'), async (re
     } catch (error) {
         console.error('❌ Ошибка получения пользователей:', error);
         
+        // Логируем ошибку
+        await logAction(
+            req.user.userId,
+            'user_list',
+            `Ошибка получения списка пользователей: ${error.message}`,
+            'users',
+            'user',
+            null,
+            'failed',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
         res.status(500).json({ 
             success: false, 
-            message: 'Ошибка сервера' 
+            message: 'Ошибка сервера при получении списка пользователей' 
         });
     }
 });
 
-// Создать пользователя (только для админа)
+// Создание пользователя (только для админа)
 app.post('/api/admin/users', requireAuth('Администратор'), async (req, res) => {
     try {
         const { username, password, roleId } = req.body;
-        const ip = getClientIp(req);
-        const userAgent = req.headers['user-agent'] || '';
         
-        console.log(`\n🆕 Создание пользователя: ${username}`);
+        console.log(`📝 Создание пользователя: ${username}, роль ID: ${roleId}`);
         
-        if (!username || !password || !roleId) {
-            return res.json({ 
-                success: false, 
-                message: 'Заполните все поля' 
-            });
-        }
-        
-        // Проверяем, существует ли пользователь
+        // Проверка существующего пользователя
         const [existingUsers] = await pool.execute(
             'SELECT idUsers FROM Users WHERE name = ?',
             [username]
         );
         
         if (existingUsers.length > 0) {
-            // Логируем попытку создания существующего пользователя
+            // Логируем неудачную попытку создания
             await logAction(
                 req.user.userId,
                 'user_create',
-                `Попытка создать уже существующего пользователя: ${username}`,
+                `Неудачная попытка создания пользователя: ${username} (пользователь уже существует)`,
+                'users',
                 'user',
-                'user',
-                existingUsers[0].idUsers,
-                'warning',
-                ip,
-                userAgent
+                null,
+                'failed',
+                getClientIp(req),
+                req.headers['user-agent'] || ''
             );
             
-            return res.json({ 
-                success: false, 
-                message: 'Пользователь с таким именем уже существует' 
+            return res.json({
+                success: false,
+                message: 'Пользователь с таким именем уже существует'
             });
         }
         
-        // Хэшируем пароль
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // Получаем название роли для лога
+        const [roleData] = await pool.execute(
+            'SELECT name FROM Roles WHERE idRoles = ?',
+            [roleId]
+        );
+        const roleName = roleData[0]?.name || 'Неизвестная роль';
         
-        // Создаем пользователя
-        const [result] = await pool.execute(`
-            INSERT INTO Users (name, password, idRoles) 
-            VALUES (?, ?, ?)
-        `, [username, hashedPassword, roleId]);
+        // Создание пользователя
+        const [result] = await pool.execute(
+            'INSERT INTO Users (name, password, idRoles) VALUES (?, ?, ?)',
+            [username, password, roleId]
+        );
         
-        const newUserId = result.insertId;
+        const userId = result.insertId;
         
-        console.log(`✅ Пользователь ${username} создан успешно`);
+        console.log(`✅ Пользователь создан: ${username}, ID: ${userId}, Роль: ${roleName}`);
         
-        // Логируем создание пользователя
-        await logUserCreation(req.user.userId, req.user.username, username, newUserId, ip, userAgent);
+        // Логируем успешное создание пользователя
+        await logAction(
+            req.user.userId,
+            'user_create',
+            `Создан пользователь: ${username} (ID: ${userId}, Роль: ${roleName})`,
+            'users',
+            'user',
+            userId,
+            'success',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        // Получаем созданного пользователя для ответа
+        const [newUser] = await pool.execute(`
+            SELECT u.idUsers, u.name, r.name as role, DATE_FORMAT(u.createdAt, '%d.%m.%Y %H:%i') as createdAt
+            FROM Users u 
+            LEFT JOIN Roles r ON u.idRoles = r.idRoles 
+            WHERE u.idUsers = ?
+        `, [userId]);
         
         res.json({
             success: true,
             message: 'Пользователь создан успешно',
-            userId: newUserId
+            userId: userId,
+            user: newUser[0]
         });
         
     } catch (error) {
         console.error('❌ Ошибка создания пользователя:', error);
         
-        // Логируем ошибку создания пользователя
-        const ip = getClientIp(req);
-        const userAgent = req.headers['user-agent'] || '';
+        // Логируем ошибку создания
         await logAction(
             req.user?.userId || null,
             'user_create',
-            `Ошибка создания пользователя ${req.body?.username || 'unknown'}: ${error.message}`,
-            'user',
+            `Ошибка создания пользователя: ${error.message}`,
+            'users',
             'user',
             null,
             'failed',
-            ip,
-            userAgent
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера при создании пользователя'
+        });
+    }
+});
+
+// Удаление пользователя (только для админа)
+app.delete('/api/admin/users/:id', requireAuth('Администратор'), async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const adminId = req.user.userId;
+        const adminUsername = req.user.username;
+        
+        console.log(`🗑️ Запрос на удаление пользователя ID: ${userId} от администратора: ${adminUsername}`);
+        
+        // Сначала получим информацию о пользователе для лога
+        const [userData] = await pool.execute(
+            'SELECT u.idUsers, u.name, r.name as role FROM Users u LEFT JOIN Roles r ON u.idRoles = r.idRoles WHERE u.idUsers = ?',
+            [userId]
+        );
+        
+        if (userData.length === 0) {
+            // Логируем попытку удаления несуществующего пользователя
+            await logAction(
+                adminId,
+                'user_delete',
+                `Попытка удаления несуществующего пользователя (ID: ${userId})`,
+                'users',
+                'user',
+                userId,
+                'failed',
+                getClientIp(req),
+                req.headers['user-agent'] || ''
+            );
+            
+            return res.json({ 
+                success: false, 
+                message: 'Пользователь не найден' 
+            });
+        }
+        
+        const userName = userData[0].name;
+        const userRole = userData[0].role || 'Неизвестная роль';
+        
+        // Проверка: нельзя удалить самого себя
+        if (parseInt(userId) === parseInt(adminId)) {
+            // Логируем попытку самозачистки
+            await logAction(
+                adminId,
+                'user_delete',
+                `Попытка самозачистки: администратор ${adminUsername} пытался удалить себя`,
+                'users',
+                'user',
+                userId,
+                'warning',
+                getClientIp(req),
+                req.headers['user-agent'] || ''
+            );
+            
+            return res.json({ 
+                success: false, 
+                message: 'Вы не можете удалить себя' 
+            });
+        }
+        
+        // Удаляем пользователя
+        const [result] = await pool.execute(
+            'DELETE FROM Users WHERE idUsers = ?',
+            [userId]
+        );
+        
+        if (result.affectedRows > 0) {
+            console.log(`✅ Пользователь удален: ${userName} (ID: ${userId})`);
+            
+            // Логируем успешное удаление
+            await logAction(
+                adminId,
+                'user_delete',
+                `Удален пользователь: ${userName} (ID: ${userId}, Роль: ${userRole})`,
+                'users',
+                'user',
+                userId,
+                'success',
+                getClientIp(req),
+                req.headers['user-agent'] || ''
+            );
+            
+            res.json({ 
+                success: true, 
+                message: 'Пользователь удален',
+                deletedUser: { 
+                    id: userId, 
+                    name: userName, 
+                    role: userRole 
+                }
+            });
+        } else {
+            // Логируем ошибку удаления
+            await logAction(
+                adminId,
+                'user_delete',
+                `Ошибка при удалении пользователя ${userName} (ID: ${userId})`,
+                'users',
+                'user',
+                userId,
+                'failed',
+                getClientIp(req),
+                req.headers['user-agent'] || ''
+            );
+            
+            res.json({ 
+                success: false, 
+                message: 'Ошибка при удалении пользователя' 
+            });
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка удаления пользователя:', error);
+        
+        // Логируем ошибку
+        await logAction(
+            req.user.userId,
+            'user_delete',
+            `Ошибка сервера при удалении пользователя: ${error.message}`,
+            'users',
+            'user',
+            req.params.id,
+            'failed',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
         );
         
         res.status(500).json({ 
             success: false, 
-            message: 'Ошибка сервера' 
+            message: 'Ошибка сервера при удалении пользователя' 
         });
     }
 });
@@ -1312,6 +1617,9 @@ async function startServer() {
             console.log('├─ GET  /api/user           - информация о пользователе');
             console.log('├─ POST /api/logout         - выход из системы');
             console.log('├─ POST /api/reset-admin    - сброс пароля администратора');
+            console.log('├─ GET  /api/admin/users    - список пользователей (админ)');
+            console.log('├─ POST /api/admin/users    - создание пользователя (админ)');
+            console.log('├─ DELETE /api/admin/users/:id - удаление пользователя (админ)');
             console.log('├─ GET  /api/admin/logs     - журнал действий (админ)');
             console.log('├─ GET  /logs               - страница журнала действий');
             console.log('└─ GET  /admin              - админ-панель');

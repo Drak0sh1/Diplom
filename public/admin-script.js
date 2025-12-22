@@ -230,7 +230,7 @@ class AdminPanel {
                     </thead>
                     <tbody>
                         ${users.map((user, index) => `
-                            <tr class="${index % 2 === 0 ? 'even' : 'odd'}">
+                            <tr class="${index % 2 === 0 ? 'even' : 'odd'}" id="user-row-${user.idUsers}">
                                 <td>${user.idUsers}</td>
                                 <td>
                                     <div class="user-cell">
@@ -249,10 +249,11 @@ class AdminPanel {
                                 </td>
                                 <td>${user.createdAt || 'Не указана'}</td>
                                 <td>
-                                    <button class="btn-action" title="Редактировать">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn-action btn-action-danger" title="Удалить">
+                                    <button class="btn-action btn-action-danger delete-user-btn" 
+                                            data-user-id="${user.idUsers}"
+                                            data-user-name="${this.escapeHtml(user.name)}"
+                                            data-user-role="${this.escapeHtml(user.role)}"
+                                            title="Удалить">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </td>
@@ -286,6 +287,107 @@ class AdminPanel {
                 </div>
             </div>
         `;
+
+        // Добавляем обработчики для кнопок удаления
+        this.bindDeleteButtons();
+    }
+
+    bindDeleteButtons() {
+        // Обработчики для кнопок удаления
+        const deleteButtons = document.querySelectorAll('.delete-user-btn');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                const userId = button.getAttribute('data-user-id');
+                const userName = button.getAttribute('data-user-name');
+                const userRole = button.getAttribute('data-user-role');
+                this.handleDeleteUser(userId, userName, userRole);
+            });
+        });
+    }
+
+    async handleDeleteUser(userId, userName, userRole) {
+        // Подтверждение удаления
+        if (!confirm(`Вы уверены, что хотите удалить пользователя "${userName}"?`)) {
+            return;
+        }
+
+        // Дополнительное подтверждение для администратора
+        if (userRole === 'Администратор') {
+            const confirmAdmin = confirm('Вы пытаетесь удалить администратора. Это действие может быть опасным. Продолжить?');
+            if (!confirmAdmin) {
+                return;
+            }
+        }
+
+        const userRow = document.getElementById(`user-row-${userId}`);
+        const deleteBtn = userRow.querySelector('.delete-user-btn');
+        const originalHtml = deleteBtn.innerHTML;
+        deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        deleteBtn.disabled = true;
+
+        try {
+            const response = await fetch(`/api/admin/users/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showMessage(`Пользователь "${userName}" удален успешно!`, 'success');
+                
+                // Лог уже записан на сервере, ничего не делаем
+                
+                // Скрываем строку с пользователем
+                userRow.style.opacity = '0.5';
+                userRow.style.textDecoration = 'line-through';
+                
+                // Удаляем строку из таблицы через 1 секунду
+                setTimeout(() => {
+                    userRow.remove();
+                    
+                    // Обновляем статистику
+                    this.updateUserSummary();
+                }, 1000);
+            } else {
+                this.showMessage(result.message || 'Ошибка удаления пользователя', 'error');
+                deleteBtn.innerHTML = originalHtml;
+                deleteBtn.disabled = false;
+            }
+            
+        } catch (error) {
+            console.error('Ошибка удаления пользователя:', error);
+            this.showMessage('Ошибка подключения к серверу', 'error');
+            deleteBtn.innerHTML = originalHtml;
+            deleteBtn.disabled = false;
+        }
+    }
+
+    updateUserSummary() {
+        const usersSection = document.getElementById('usersSection');
+        const tableRows = usersSection.querySelectorAll('tbody tr');
+        
+        const totalUsers = tableRows.length;
+        const adminCount = Array.from(tableRows).filter(row => {
+            const roleBadge = row.querySelector('.role-badge');
+            return roleBadge && roleBadge.textContent.trim() === 'Администратор';
+        }).length;
+        
+        const editorCount = Array.from(tableRows).filter(row => {
+            const roleBadge = row.querySelector('.role-badge');
+            return roleBadge && roleBadge.textContent.trim() === 'Редактор';
+        }).length;
+        
+        // Обновляем счетчики в summary
+        const summaryCards = usersSection.querySelectorAll('.users-summary .count');
+        if (summaryCards.length >= 3) {
+            summaryCards[0].textContent = totalUsers;
+            summaryCards[1].textContent = adminCount;
+            summaryCards[2].textContent = editorCount;
+        }
     }
 
     async createUser(event) {
@@ -329,6 +431,8 @@ class AdminPanel {
             
             if (result.success) {
                 this.showMessage(`Пользователь "${username}" создан успешно!`, 'success');
+                // Лог уже записан на сервере, ничего не делаем
+                
                 form.reset();
                 this.loadUsers(); // Обновляем список пользователей
             } else {
@@ -381,6 +485,8 @@ class AdminPanel {
             
             if (result.success) {
                 this.showMessage(`✅ Пароль администратора сброшен на: ${newPassword}`, 'success');
+                // Лог уже записан на сервере, ничего не делаем
+                
                 console.log('Новые учетные данные:', result.credentials);
                 
                 // Показываем учетные данные в alert
@@ -446,6 +552,7 @@ class AdminPanel {
 
     async logout() {
         try {
+            // Логирование выхода происходит на сервере в middleware logout
             await fetch('/api/logout', { method: 'POST' });
             window.location.href = '/';
         } catch (error) {
