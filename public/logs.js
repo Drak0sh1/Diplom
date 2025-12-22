@@ -18,10 +18,72 @@ class LogsPage {
     async init() {
         console.log('🔄 Инициализация страницы журнала...');
         await this.checkAccess();
+        await this.checkDatabaseStructure(); // Добавьте эту строку
         this.bindEvents();
         await this.loadLogs();
     }
+    // Вспомогательные методы для форматирования
+getActionDescription(log) {
+    // Переводим типы действий на русский
+    const actionMap = {
+        'user_login': 'Вход в систему',
+        'user_logout': 'Выход из системы',
+        'user_create': 'Создание пользователя',
+        'password_reset': 'Сброс пароля',
+        'file_upload': 'Загрузка файла',
+        'file_delete': 'Удаление файла',
+        'file_download': 'Скачивание файла',
+        'folder_create': 'Создание папки',
+        'folder_delete': 'Удаление папки',
+        'permission_change': 'Изменение прав доступа',
+        'role_change': 'Изменение роли',
+        'system_start': 'Запуск системы',
+        'system_stop': 'Остановка системы',
+        'api_request': 'API запрос',
+        'database_error': 'Ошибка базы данных',
+        'log_cleanup': 'Очистка журнала',
+        'user_update': 'Обновление пользователя'
+    };
+    
+    return actionMap[log.actionType] || log.actionType || 'Неизвестное действие';
+}
 
+getModuleText(module) {
+    const moduleMap = {
+        'auth': 'Авторизация',
+        'user': 'Пользователи',
+        'file': 'Файлы',
+        'folder': 'Папки',
+        'system': 'Система',
+        'log': 'Журнал',
+        'api': 'API'
+    };
+    
+    return moduleMap[module] || module || 'system';
+}
+
+truncateText(text, maxLength) {
+    if (!text || typeof text !== 'string') return '';
+    if (text.length <= maxLength) return text;
+    
+    return text.substring(0, maxLength) + '...';
+}
+    async checkDatabaseStructure() {
+        try {
+            console.log('🔍 Проверяем структуру БД...');
+            const response = await fetch('/api/debug/logs');
+            const data = await response.json();
+            
+            if (data.success) {
+                console.log('✅ Структура БД в порядке:', data.columns);
+            } else {
+                console.error('❌ Проблема с БД:', data.message);
+                this.showMessage('Проблема с базой данных. Проверьте консоль.', 'error');
+            }
+        } catch (error) {
+            console.error('❌ Ошибка проверки БД:', error);
+        }
+    }
     async checkAccess() {
         try {
             const response = await fetch('/api/user');
@@ -273,69 +335,77 @@ class LogsPage {
                 </div>
             `;
             
-            // 1. Сначала проверяем авторизацию
-            console.log('1. Проверяем авторизацию...');
-            const authResponse = await fetch('/api/user');
-            console.log('Статус авторизации:', authResponse.status);
-            
-            if (!authResponse.ok) {
+            // Сначала проверяем авторизацию
+            const authCheck = await fetch('/api/check-auth');
+            if (!authCheck.ok) {
                 this.showMessage('Требуется авторизация. Перенаправляем на вход...', 'error');
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 2000);
+                setTimeout(() => window.location.href = '/', 2000);
                 return;
             }
             
-            const authData = await authResponse.json();
-            console.log('Данные пользователя:', authData);
+            // Простой запрос для начала
+            const url = `/api/admin/logs?page=${this.currentPage}&limit=10`;
+            console.log('📨 Запрос по URL:', url);
             
-            // 2. Пробуем тестовый endpoint
-            console.log('2. Тестируем API...');
-            const testResponse = await fetch('/api/test-logs');
-            console.log('Тестовый запрос статус:', testResponse.status);
+            const response = await fetch(url);
+            console.log('📨 Статус ответа:', response.status);
             
-            const contentType = testResponse.headers.get('content-type');
-            console.log('Content-Type:', contentType);
-            
-            let testData;
-            if (contentType && contentType.includes('application/json')) {
-                testData = await testResponse.json();
-                console.log('Тестовые данные:', testData);
-            } else {
-                const text = await testResponse.text();
-                console.log('Ответ не JSON:', text.substring(0, 200));
-                throw new Error('Сервер возвращает HTML вместо JSON');
+            if (response.status === 500) {
+                const errorText = await response.text();
+                console.error('❌ Ошибка 500:', errorText);
+                
+                // Пробуем тестовый endpoint
+                await this.testDatabaseConnection();
+                return;
             }
             
-            // 3. Загружаем основные логи
-            console.log('3. Загружаем основные логи...');
-            const response = await fetch('/api/admin/logs');
-            console.log('Основной запрос статус:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error: ${response.status}`);
+            }
             
-            const mainContentType = response.headers.get('content-type');
-            console.log('Основной Content-Type:', mainContentType);
+            const result = await response.json();
+            console.log('📊 Данные получены:', result);
             
-            if (mainContentType && mainContentType.includes('application/json')) {
-                const result = await response.json();
-                console.log('Основные данные:', result);
-                
-                if (result.success) {
-                    this.renderLogs(result);
-                } else {
-                    this.showMessage(result.message || 'Ошибка загрузки', 'error');
-                    this.showEmptyLogs();
-                }
+            if (result.success) {
+                this.renderLogs(result);
             } else {
-                const html = await response.text();
-                console.error('Сервер вернул HTML:', html.substring(0, 500));
-                this.showMessage('Ошибка: сервер возвращает HTML страницу вместо данных', 'error');
+                this.showMessage(result.message || 'Ошибка загрузки', 'error');
                 this.showEmptyLogs();
             }
             
         } catch (error) {
-            console.error('Ошибка загрузки:', error);
+            console.error('❌ Ошибка загрузки:', error);
             this.showMessage(`Ошибка: ${error.message}`, 'error');
             this.showEmptyLogs();
+        }
+    }
+    
+    async testDatabaseConnection() {
+        try {
+            console.log('🔧 Тестируем подключение к БД...');
+            
+            // Пробуем простой запрос
+            const testResponse = await fetch('/api/test-logs');
+            const testData = await testResponse.json();
+            console.log('📊 Тестовые данные:', testData);
+            
+            if (testData.success) {
+                // Если тестовый запрос работает, пробуем более простой запрос к логам
+                const simpleResponse = await fetch('/api/admin/logs?page=1&limit=5');
+                const simpleData = await simpleResponse.json();
+                console.log('📊 Упрощенные данные:', simpleData);
+                
+                if (simpleData.success) {
+                    this.renderLogs(simpleData);
+                } else {
+                    this.showMessage('Проблема с запросом логов. Пожалуйста, проверьте консоль.', 'error');
+                }
+            } else {
+                this.showMessage('Проблема с подключением к базе данных', 'error');
+            }
+        } catch (testError) {
+            console.error('❌ Ошибка тестирования:', testError);
+            this.showMessage('Критическая ошибка подключения к базе данных', 'error');
         }
     }
     
@@ -347,13 +417,13 @@ class LogsPage {
         const logsContent = document.getElementById('logsContent');
         
         // Обновляем счетчики
-        document.getElementById('totalLogs').textContent = stats.totalLogs || result.total || 0;
+        document.getElementById('totalLogs').textContent = stats.totalLogs || 0;
         document.getElementById('successLogs').textContent = stats.successLogs || 0;
         document.getElementById('failedLogs').textContent = stats.failedLogs || 0;
         document.getElementById('uniqueUsers').textContent = stats.uniqueUsers || 0;
         
         // Рассчитываем количество страниц
-        this.totalPages = pagination.pages || Math.ceil((result.total || 0) / this.pageSize) || 1;
+        this.totalPages = pagination.pages || 1;
         this.currentPage = pagination.page || this.currentPage;
         
         if (!logs || logs.length === 0) {
@@ -366,27 +436,20 @@ class LogsPage {
                 <table class="logs-table">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Дата и время</th>
-                            <th>Действие</th>
-                            <th>Пользователь</th>
-                            <th>Модуль</th>
-                            <th>Статус</th>
-                            <th>IP адрес</th>
-                            <th>Действия</th>
+                            <th style="width: 150px;">Дата и время</th>
+                            <th style="width: 120px;">Пользователь</th>
+                            <th style="width: 40%;">Действие</th>
+                            <th style="width: 100px;">Статус</th>
+                            <th style="width: 100px;">Модуль</th>
+                            <th style="width: 80px;">Детали</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${logs.map(log => `
+                        ${logs.map(log => {
+                            const actionDescription = this.getActionDescription(log);
+                            return `
                             <tr>
-                                <td>${log.idLogs || log.id}</td>
-                                <td>${this.formatDateTime(log.timestamp || log.createdAt)}</td>
-                                <td>
-                                    <div class="log-action-cell">
-                                        <strong>${log.actionType || 'Неизвестное действие'}</strong>
-                                        ${log.targetType ? `<small>(${log.targetType})</small>` : ''}
-                                    </div>
-                                </td>
+                                <td class="nowrap">${log.date || this.formatDateTime(log.createdAt)}</td>
                                 <td>
                                     ${log.userName ? `
                                         <div class="log-user">
@@ -397,10 +460,11 @@ class LogsPage {
                                         </div>
                                     ` : '<span class="system-label">Система</span>'}
                                 </td>
-                                <td>
-                                    <span class="log-module ${log.module || 'system'}">
-                                        ${log.module || 'system'}
-                                    </span>
+                                <td class="action-cell">
+                                    <div class="log-action-cell">
+                                        <strong>${actionDescription}</strong>
+                                        ${log.details ? `<div class="details-preview">${this.truncateText(log.details, 100)}</div>` : ''}
+                                    </div>
                                 </td>
                                 <td>
                                     <span class="log-status ${log.status || 'info'}">
@@ -409,7 +473,9 @@ class LogsPage {
                                     </span>
                                 </td>
                                 <td>
-                                    <code class="ip-address">${log.ipAddress || 'N/A'}</code>
+                                    <span class="log-module ${log.module || 'system'}">
+                                        ${this.getModuleText(log.module)}
+                                    </span>
                                 </td>
                                 <td>
                                     <button class="btn-action" onclick="window.logsPage.showDetails(${JSON.stringify(log).replace(/"/g, '&quot;').replace(/'/g, '&apos;')})" title="Показать детали">
@@ -417,93 +483,8 @@ class LogsPage {
                                     </button>
                                 </td>
                             </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
-        
-        this.renderPagination();
-    }
-
-    renderLogs(result) {
-        const logs = result.logs || [];
-        const stats = result.stats || {};
-        const total = result.total || 0;
-        
-        const logsContent = document.getElementById('logsContent');
-        
-        // Обновляем счетчики
-        document.getElementById('totalLogs').textContent = stats.totalLogs || total || 0;
-        document.getElementById('successLogs').textContent = stats.successLogs || 0;
-        document.getElementById('failedLogs').textContent = stats.failedLogs || 0;
-        document.getElementById('uniqueUsers').textContent = stats.uniqueUsers || 0;
-        
-        // Рассчитываем количество страниц
-        this.totalPages = Math.ceil(total / this.pageSize) || 1;
-        
-        if (!logs || logs.length === 0) {
-            this.showEmptyLogs();
-            return;
-        }
-        
-        logsContent.innerHTML = `
-            <div class="logs-table-container">
-                <table class="logs-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Дата и время</th>
-                            <th>Действие</th>
-                            <th>Пользователь</th>
-                            <th>Модуль</th>
-                            <th>Статус</th>
-                            <th>IP адрес</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${logs.map(log => `
-                            <tr>
-                                <td>${log.idLogs}</td>
-                                <td>${this.formatDateTime(log.timestamp || log.createdAt)}</td>
-                                <td>
-                                    <div class="log-action-cell">
-                                        <strong>${log.actionType || 'Неизвестное действие'}</strong>
-                                        ${log.targetType ? `<small>(${log.targetType})</small>` : ''}
-                                    </div>
-                                </td>
-                                <td>
-                                    ${log.userName ? `
-                                        <div class="log-user">
-                                            <div class="user-avatar-small">
-                                                ${log.userName.charAt(0).toUpperCase()}
-                                            </div>
-                                            <span>${log.userName}</span>
-                                        </div>
-                                    ` : '<span class="system-label">Система</span>'}
-                                </td>
-                                <td>
-                                    <span class="log-module ${log.module || 'system'}">
-                                        ${log.module || 'system'}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="log-status ${log.status || 'info'}">
-                                        <i class="fas ${this.getStatusIcon(log.status)}"></i>
-                                        ${this.getStatusText(log.status)}
-                                    </span>
-                                </td>
-                                <td>
-                                    <code class="ip-address">${log.ipAddress || 'N/A'}</code>
-                                </td>
-                                <td>
-                                    <button class="btn-action" onclick="window.logsPage.showDetails(${JSON.stringify(log).replace(/"/g, '&quot;')})" title="Показать детали">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </tbody>
                 </table>
             </div>
@@ -516,66 +497,63 @@ class LogsPage {
         const modal = document.getElementById('detailsModal');
         const modalBody = document.getElementById('modalBody');
         
-        let details = '';
-        try {
-            if (log.details && typeof log.details === 'string') {
-                const parsedDetails = JSON.parse(log.details);
-                details = JSON.stringify(parsedDetails, null, 2);
-            } else if (log.details) {
-                details = JSON.stringify(log.details, null, 2);
+        // Форматируем детали
+        let details = log.details || '';
+        if (details && typeof details === 'string') {
+            try {
+                // Пробуем разобрать JSON
+                const parsed = JSON.parse(details);
+                details = JSON.stringify(parsed, null, 2);
+            } catch (e) {
+                // Если не JSON, оставляем как есть
             }
-        } catch (e) {
-            details = log.details || 'Нет деталей';
+        }
+        
+        // Форматируем целевой объект
+        let targetInfo = '';
+        if (log.targetType && log.targetId) {
+            targetInfo = `Объект: ${this.getTargetTypeText(log.targetType)} (ID: ${log.targetId})`;
         }
         
         modalBody.innerHTML = `
             <div class="log-details-grid">
                 <div class="detail-item">
-                    <label>ID записи:</label>
-                    <span>${log.idLogs}</span>
+                    <label><i class="far fa-calendar-alt"></i> Дата и время:</label>
+                    <span class="detail-value">${log.date || this.formatDateTime(log.createdAt)}</span>
                 </div>
                 <div class="detail-item">
-                    <label>Дата и время:</label>
-                    <span>${this.formatDateTime(log.timestamp || log.createdAt)}</span>
+                    <label><i class="fas fa-user"></i> Пользователь:</label>
+                    <span class="detail-value">${log.userName || 'Система'}</span>
                 </div>
                 <div class="detail-item">
-                    <label>Действие:</label>
-                    <span class="action-type">${log.actionType || 'Неизвестно'}</span>
+                    <label><i class="fas fa-bolt"></i> Действие:</label>
+                    <span class="detail-value action-type">${this.getActionDescription(log)}</span>
                 </div>
                 <div class="detail-item">
-                    <label>Пользователь:</label>
-                    <span>${log.userName || 'Система'}</span>
+                    <label><i class="fas fa-cube"></i> Модуль:</label>
+                    <span class="detail-value log-module ${log.module || 'system'}">
+                        ${this.getModuleText(log.module)}
+                    </span>
                 </div>
                 <div class="detail-item">
-                    <label>Статус:</label>
-                    <span class="log-status ${log.status || 'info'}">
+                    <label><i class="fas fa-tag"></i> Статус:</label>
+                    <span class="log-status ${log.status || 'info'} detail-value">
                         <i class="fas ${this.getStatusIcon(log.status)}"></i>
                         ${this.getStatusText(log.status)}
                     </span>
                 </div>
+                ${targetInfo ? `
                 <div class="detail-item">
-                    <label>Модуль:</label>
-                    <span class="log-module ${log.module || 'system'}">${log.module || 'system'}</span>
+                    <label><i class="fas fa-bullseye"></i> Цель действия:</label>
+                    <span class="detail-value">${targetInfo}</span>
                 </div>
-                <div class="detail-item">
-                    <label>Тип цели:</label>
-                    <span>${log.targetType || 'Нет'}</span>
-                </div>
-                <div class="detail-item">
-                    <label>ID цели:</label>
-                    <span>${log.targetId || 'Нет'}</span>
-                </div>
-                <div class="detail-item">
-                    <label>IP адрес:</label>
-                    <code>${log.ipAddress || 'N/A'}</code>
-                </div>
-                <div class="detail-item">
-                    <label>User Agent:</label>
-                    <code class="user-agent">${log.userAgent || 'N/A'}</code>
-                </div>
+                ` : ''}
                 <div class="detail-item full-width">
-                    <label>Детали:</label>
-                    <pre class="details-content">${details}</pre>
+                    <label><i class="fas fa-info-circle"></i> Описание:</label>
+                    <div class="details-content">
+                        ${details ? `<pre>${details}</pre>` : 
+                        '<p class="no-details">Нет дополнительной информации</p>'}
+                    </div>
                 </div>
             </div>
         `;
@@ -588,6 +566,20 @@ class LogsPage {
                 this.closeModal();
             }
         });
+    }
+    
+    getTargetTypeText(targetType) {
+        const targetMap = {
+            'user': 'Пользователь',
+            'file': 'Файл',
+            'folder': 'Папка',
+            'system': 'Система',
+            'role': 'Роль',
+            'log': 'Запись журнала',
+            'session': 'Сессия'
+        };
+        
+        return targetMap[targetType] || targetType;
     }
 
     closeModal() {
@@ -672,10 +664,26 @@ class LogsPage {
     }
 
     formatDateTime(dateString) {
-        if (!dateString || dateString === 'Дата неизвестна') return 'N/A';
+        if (!dateString) return 'Не указано';
+        
         try {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return 'Некорректная дата';
+            // Пробуем разные форматы дат
+            let date;
+            
+            if (typeof dateString === 'string' && dateString.includes('.')) {
+                // Формат DD.MM.YYYY HH:mm:ss
+                const [datePart, timePart] = dateString.split(' ');
+                const [day, month, year] = datePart.split('.');
+                const [hours, minutes, seconds] = timePart.split(':');
+                date = new Date(year, month - 1, day, hours, minutes, seconds);
+            } else {
+                // ISO формат или timestamp
+                date = new Date(dateString);
+            }
+            
+            if (isNaN(date.getTime())) {
+                return dateString;
+            }
             
             return date.toLocaleDateString('ru-RU', {
                 day: '2-digit',
@@ -689,22 +697,6 @@ class LogsPage {
             console.error('Ошибка форматирования даты:', e);
             return dateString;
         }
-    }
-
-    showEmptyLogs() {
-        const logsContent = document.getElementById('logsContent');
-        logsContent.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-clipboard"></i>
-                <h3>Записи не найдены</h3>
-                <p>По заданным фильтрам записей не найдено.</p>
-                <button class="btn-primary" onclick="window.logsPage.resetFilters()" style="margin-top: 20px;">
-                    <i class="fas fa-redo"></i> Сбросить фильтры
-                </button>
-            </div>
-        `;
-        
-        document.getElementById('pagination').innerHTML = '';
     }
 
     async exportLogs() {
