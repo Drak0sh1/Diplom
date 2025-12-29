@@ -1,6 +1,8 @@
 class AdminPanel {
     constructor() {
         this.currentUser = null;
+        this.allUsers = [];
+        this.currentFilter = 'all';
         this.init();
     }
 
@@ -29,6 +31,7 @@ class AdminPanel {
             
             this.showAdminPanel(userData);
             this.loadRoles();
+            this.loadUsers();
             
         } catch (error) {
             console.error('Ошибка проверки доступа:', error);
@@ -39,8 +42,22 @@ class AdminPanel {
     showAdminPanel(userData) {
         const container = document.getElementById('adminContainer');
         container.innerHTML = `
+            <!-- Шапка проекта -->
+            <div class="project-header">
+                <div class="project-info">
+                    <i class="fas fa-archive"></i>
+                    <div>
+                        <h1>Система контроля версий документов</h1>
+                        <p>Панель администратора для управления пользователями и системой</p>
+                    </div>
+                </div>
+                <div class="project-version">
+                    <span class="version-badge">v1.0</span>
+                </div>
+            </div>
+
             <div class="header">
-                <h1><i class="fas fa-users-cog"></i> Панель администратора</h1>
+                <h2><i class="fas fa-users-cog"></i> Управление пользователями</h2>
                 <div class="user-info">
                     <div class="user-avatar">
                         ${userData.username.charAt(0).toUpperCase()}
@@ -57,9 +74,22 @@ class AdminPanel {
 
             <div id="messages"></div>
 
+            <!-- Статистика пользователей -->
+            <div class="stats-section" id="statsSection">
+                <div class="loading-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Загрузка статистики...</p>
+                </div>
+            </div>
+
             <div class="main-content">
                 <div class="card">
-                    <h2><i class="fas fa-users"></i> Управление пользователями</h2>
+                    <div class="card-header">
+                        <h2><i class="fas fa-users"></i> Управление пользователями</h2>
+                        <button class="btn-primary btn-sm" id="refreshUsersBtn">
+                            <i class="fas fa-sync-alt"></i> Обновить
+                        </button>
+                    </div>
                     
                     <div class="users-section" id="usersSection">
                         <div class="loading-state">
@@ -70,7 +100,9 @@ class AdminPanel {
                 </div>
 
                 <div class="card">
-                    <h2><i class="fas fa-user-plus"></i> Создание пользователя</h2>
+                    <div class="card-header">
+                        <h2><i class="fas fa-user-plus"></i> Создание пользователя</h2>
+                    </div>
                     
                     <form id="createUserForm">
                         <div class="form-group">
@@ -98,33 +130,57 @@ class AdminPanel {
                         </button>
                     </form>
                     
-                    <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
-                        <h3 style="color: #4a5568; margin-bottom: 15px; font-size: 18px;">
-                            <i class="fas fa-history"></i> Журнал действий
-                        </h3>
-                        
-                        <button class="btn-primary" id="goToLogsBtn" style="background: #805ad5; margin-bottom: 10px; width: 100%;">
+                    <div class="system-actions">
+                        <h3><i class="fas fa-history"></i> Журнал действий</h3>
+                        <button class="btn-secondary" id="goToLogsBtn">
                             <i class="fas fa-clipboard-list"></i> Перейти в журнал действий
                         </button>
-                        
-                        <h3 style="color: #4a5568; margin: 25px 0 15px 0; font-size: 18px;">
-                            <i class="fas fa-cog"></i> Системные функции
-                        </h3>
-                        
-                        <button class="btn-primary" id="refreshUsersBtn" style="background: #4299e1; margin-bottom: 10px; width: 100%;">
-                            <i class="fas fa-sync-alt"></i> Обновить список пользователей
-                        </button>
-                        
-                        <button class="btn-danger" id="resetAdminBtn" style="width: 100%;">
-                            <i class="fas fa-key"></i> Сбросить пароль администратора
-                        </button>
                     </div>
+                </div>
+            </div>
+
+            <!-- Модальное окно редактирования -->
+            <div class="modal-overlay" id="editModal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-edit"></i> Редактировать пользователя</h3>
+                        <button class="close-btn" id="closeModalBtn">&times;</button>
+                    </div>
+                    <form id="editUserForm">
+                        <input type="hidden" id="editUserId">
+                        
+                        <div class="form-group">
+                            <label for="editUsername"><i class="fas fa-user"></i> Имя пользователя</label>
+                            <input type="text" id="editUsername" class="form-control" 
+                                   placeholder="Введите новый логин" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="editPassword"><i class="fas fa-lock"></i> Пароль</label>
+                            <input type="password" id="editPassword" class="form-control" 
+                                   placeholder="Оставьте пустым, если не меняете">
+                            <small class="form-text">Минимум 4 символа</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="editRole"><i class="fas fa-user-tag"></i> Роль</label>
+                            <select id="editRole" class="form-control" required>
+                                <option value="">Выберите роль...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="modal-footer">
+                            <button type="button" class="btn-secondary" id="cancelEditBtn">Отмена</button>
+                            <button type="submit" class="btn-primary" id="saveEditBtn">
+                                <i class="fas fa-save"></i> Сохранить изменения
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         `;
 
         this.bindEvents();
-        this.loadUsers();
     }
 
     bindEvents() {
@@ -137,7 +193,11 @@ class AdminPanel {
         // Обработчики системных функций
         document.getElementById('refreshUsersBtn')?.addEventListener('click', () => this.loadUsers());
         document.getElementById('goToLogsBtn')?.addEventListener('click', () => this.goToLogs());
-        document.getElementById('resetAdminBtn')?.addEventListener('click', () => this.resetAdminPassword());
+
+        // Обработчики модального окна
+        document.getElementById('closeModalBtn')?.addEventListener('click', () => this.hideEditModal());
+        document.getElementById('cancelEditBtn')?.addEventListener('click', () => this.hideEditModal());
+        document.getElementById('editUserForm')?.addEventListener('submit', (e) => this.updateUser(e));
     }
 
     // Метод для перехода на страницу логов
@@ -160,17 +220,15 @@ class AdminPanel {
             const response = await fetch('/api/admin/users');
             
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ Ошибка HTTP:', response.status, response.statusText);
                 throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
             }
             
             const result = await response.json();
             
-            console.log('📊 Ответ от сервера:', result);
-            
             if (result.success) {
                 console.log(`✅ Загружено ${result.users.length} пользователей`);
+                this.allUsers = result.users;
+                this.renderStats(result.users);
                 this.renderUsers(result.users);
             } else {
                 console.error('❌ Ошибка в ответе сервера:', result);
@@ -191,14 +249,19 @@ class AdminPanel {
             const result = await response.json();
             
             const roleSelect = document.getElementById('role');
+            const editRoleSelect = document.getElementById('editRole');
             
             if (result.success && result.roles) {
-                roleSelect.innerHTML = '<option value="">Выберите роль...</option>' + 
+                const options = '<option value="">Выберите роль...</option>' + 
                     result.roles.map(role => `
                         <option value="${role.idRoles}">${role.name}</option>
                     `).join('');
+                
+                roleSelect.innerHTML = options;
+                editRoleSelect.innerHTML = options;
             } else {
                 roleSelect.innerHTML = '<option value="">Ошибка загрузки ролей</option>';
+                editRoleSelect.innerHTML = '<option value="">Ошибка загрузки ролей</option>';
             }
             
         } catch (error) {
@@ -206,10 +269,89 @@ class AdminPanel {
         }
     }
 
+    renderStats(users) {
+        const statsSection = document.getElementById('statsSection');
+        
+        const totalUsers = users.length;
+        const admins = users.filter(u => u.role === 'Администратор').length;
+        const editors = users.filter(u => u.role === 'Редактор').length;
+        const regularUsers = users.filter(u => u.role === 'Пользователь').length;
+        
+        statsSection.innerHTML = `
+            <div class="stats-grid">
+                <div class="stat-card ${this.currentFilter === 'all' ? 'active' : ''}" data-filter="all">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Все пользователи</h3>
+                        <div class="stat-number">${totalUsers}</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card ${this.currentFilter === 'Администратор' ? 'active' : ''}" data-filter="Администратор">
+                    <div class="stat-icon">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Администраторы</h3>
+                        <div class="stat-number">${admins}</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card ${this.currentFilter === 'Редактор' ? 'active' : ''}" data-filter="Редактор">
+                    <div class="stat-icon">
+                        <i class="fas fa-user-edit"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Редакторы</h3>
+                        <div class="stat-number">${editors}</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card ${this.currentFilter === 'Пользователь' ? 'active' : ''}" data-filter="Пользователь">
+                    <div class="stat-icon">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Пользователи</h3>
+                        <div class="stat-number">${regularUsers}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Добавляем обработчики для фильтрации
+        const statCards = document.querySelectorAll('.stat-card');
+        statCards.forEach(card => {
+            card.addEventListener('click', () => {
+                const filter = card.getAttribute('data-filter');
+                this.filterUsers(filter);
+            });
+        });
+    }
+
+    filterUsers(filter) {
+        this.currentFilter = filter;
+        
+        // Обновляем активный класс
+        document.querySelectorAll('.stat-card').forEach(card => {
+            card.classList.remove('active');
+        });
+        document.querySelector(`.stat-card[data-filter="${filter}"]`)?.classList.add('active');
+        
+        // Фильтруем пользователей
+        let filteredUsers = this.allUsers;
+        
+        if (filter !== 'all') {
+            filteredUsers = this.allUsers.filter(user => user.role === filter);
+        }
+        
+        this.renderUsers(filteredUsers);
+    }
+
     renderUsers(users) {
         const usersSection = document.getElementById('usersSection');
-        
-        console.log('👥 Рендерим пользователей:', users);
         
         if (!users || users.length === 0) {
             this.showEmptyUsers();
@@ -249,50 +391,43 @@ class AdminPanel {
                                 </td>
                                 <td>${user.createdAt || 'Не указана'}</td>
                                 <td>
-                                    <button class="btn-action btn-action-danger delete-user-btn" 
-                                            data-user-id="${user.idUsers}"
-                                            data-user-name="${this.escapeHtml(user.name)}"
-                                            data-user-role="${this.escapeHtml(user.role)}"
-                                            title="Удалить">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    <div class="action-buttons">
+                                        <button class="btn-action btn-action-edit edit-user-btn" 
+                                                data-user-id="${user.idUsers}"
+                                                title="Редактировать">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn-action btn-action-danger delete-user-btn" 
+                                                data-user-id="${user.idUsers}"
+                                                data-user-name="${this.escapeHtml(user.name)}"
+                                                data-user-role="${this.escapeHtml(user.role)}"
+                                                title="Удалить">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
             </div>
-            
-            <div class="users-summary">
-                <div class="summary-card">
-                    <i class="fas fa-users"></i>
-                    <div>
-                        <h3>Всего пользователей</h3>
-                        <p class="count">${users.length}</p>
-                    </div>
-                </div>
-                <div class="summary-card">
-                    <i class="fas fa-user-shield"></i>
-                    <div>
-                        <h3>Администраторов</h3>
-                        <p class="count">${users.filter(u => u.role === 'Администратор').length}</p>
-                    </div>
-                </div>
-                <div class="summary-card">
-                    <i class="fas fa-user-edit"></i>
-                    <div>
-                        <h3>Редакторов</h3>
-                        <p class="count">${users.filter(u => u.role === 'Редактор').length}</p>
-                    </div>
-                </div>
-            </div>
         `;
 
-        // Добавляем обработчики для кнопок удаления
-        this.bindDeleteButtons();
+        // Добавляем обработчики для кнопок
+        this.bindActionButtons();
     }
 
-    bindDeleteButtons() {
+    bindActionButtons() {
+        // Обработчики для кнопок редактирования
+        const editButtons = document.querySelectorAll('.edit-user-btn');
+        editButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                const userId = button.getAttribute('data-user-id');
+                this.showEditModal(userId);
+            });
+        });
+
         // Обработчики для кнопок удаления
         const deleteButtons = document.querySelectorAll('.delete-user-btn');
         deleteButtons.forEach(button => {
@@ -304,6 +439,100 @@ class AdminPanel {
                 this.handleDeleteUser(userId, userName, userRole);
             });
         });
+    }
+
+    async showEditModal(userId) {
+        try {
+            // Показываем модальное окно
+            document.getElementById('editModal').style.display = 'flex';
+            
+            // Загружаем данные пользователя
+            const response = await fetch(`/api/admin/users/${userId}`);
+            const result = await response.json();
+            
+            if (result.success) {
+                const user = result.user;
+                
+                // Заполняем форму
+                document.getElementById('editUserId').value = user.idUsers;
+                document.getElementById('editUsername').value = user.name;
+                document.getElementById('editRole').value = user.idRoles;
+                
+                // Очищаем поле пароля
+                document.getElementById('editPassword').value = '';
+                
+                // Загружаем роли, если еще не загружены
+                if (document.getElementById('editRole').options.length <= 1) {
+                    await this.loadRoles();
+                }
+                
+                // Устанавливаем текущую роль
+                document.getElementById('editRole').value = user.idRoles;
+            } else {
+                this.showMessage(result.message || 'Ошибка загрузки данных пользователя', 'error');
+                this.hideEditModal();
+            }
+            
+        } catch (error) {
+            console.error('Ошибка загрузки данных пользователя:', error);
+            this.showMessage('Ошибка загрузки данных пользователя', 'error');
+            this.hideEditModal();
+        }
+    }
+
+    hideEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+        document.getElementById('editUserForm').reset();
+    }
+
+    async updateUser(event) {
+        event.preventDefault();
+        
+        const userId = document.getElementById('editUserId').value;
+        const username = document.getElementById('editUsername').value.trim();
+        const password = document.getElementById('editPassword').value.trim();
+        const roleId = document.getElementById('editRole').value;
+        
+        if (!username || !roleId) {
+            this.showMessage('Заполните все обязательные поля', 'error');
+            return;
+        }
+        
+        const saveBtn = document.getElementById('saveEditBtn');
+        const originalText = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сохранение...';
+        saveBtn.disabled = true;
+        
+        try {
+            const response = await fetch(`/api/admin/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username,
+                    password: password || undefined,
+                    roleId
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showMessage(`Пользователь "${username}" успешно обновлен!`, 'success');
+                this.hideEditModal();
+                this.loadUsers(); // Обновляем список пользователей
+            } else {
+                this.showMessage(result.message || 'Ошибка обновления пользователя', 'error');
+            }
+            
+        } catch (error) {
+            console.error('Ошибка обновления пользователя:', error);
+            this.showMessage('Ошибка подключения к серверу', 'error');
+        } finally {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+        }
     }
 
     async handleDeleteUser(userId, userName, userRole) {
@@ -339,19 +568,12 @@ class AdminPanel {
             if (result.success) {
                 this.showMessage(`Пользователь "${userName}" удален успешно!`, 'success');
                 
-                // Лог уже записан на сервере, ничего не делаем
+                // Удаляем пользователя из массива
+                this.allUsers = this.allUsers.filter(u => u.idUsers != userId);
                 
-                // Скрываем строку с пользователем
-                userRow.style.opacity = '0.5';
-                userRow.style.textDecoration = 'line-through';
-                
-                // Удаляем строку из таблицы через 1 секунду
-                setTimeout(() => {
-                    userRow.remove();
-                    
-                    // Обновляем статистику
-                    this.updateUserSummary();
-                }, 1000);
+                // Обновляем статистику и список
+                this.renderStats(this.allUsers);
+                this.filterUsers(this.currentFilter);
             } else {
                 this.showMessage(result.message || 'Ошибка удаления пользователя', 'error');
                 deleteBtn.innerHTML = originalHtml;
@@ -366,35 +588,8 @@ class AdminPanel {
         }
     }
 
-    updateUserSummary() {
-        const usersSection = document.getElementById('usersSection');
-        const tableRows = usersSection.querySelectorAll('tbody tr');
-        
-        const totalUsers = tableRows.length;
-        const adminCount = Array.from(tableRows).filter(row => {
-            const roleBadge = row.querySelector('.role-badge');
-            return roleBadge && roleBadge.textContent.trim() === 'Администратор';
-        }).length;
-        
-        const editorCount = Array.from(tableRows).filter(row => {
-            const roleBadge = row.querySelector('.role-badge');
-            return roleBadge && roleBadge.textContent.trim() === 'Редактор';
-        }).length;
-        
-        // Обновляем счетчики в summary
-        const summaryCards = usersSection.querySelectorAll('.users-summary .count');
-        if (summaryCards.length >= 3) {
-            summaryCards[0].textContent = totalUsers;
-            summaryCards[1].textContent = adminCount;
-            summaryCards[2].textContent = editorCount;
-        }
-    }
-
     async createUser(event) {
         event.preventDefault();
-        
-        const form = event.target;
-        const btn = form.querySelector('.btn-primary');
         
         const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value.trim();
@@ -410,9 +605,10 @@ class AdminPanel {
             return false;
         }
         
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
-        btn.disabled = true;
+        const createBtn = document.getElementById('createBtn');
+        const originalText = createBtn.innerHTML;
+        createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
+        createBtn.disabled = true;
         
         try {
             const response = await fetch('/api/admin/users', {
@@ -431,9 +627,7 @@ class AdminPanel {
             
             if (result.success) {
                 this.showMessage(`Пользователь "${username}" создан успешно!`, 'success');
-                // Лог уже записан на сервере, ничего не делаем
-                
-                form.reset();
+                document.getElementById('createUserForm').reset();
                 this.loadUsers(); // Обновляем список пользователей
             } else {
                 this.showMessage(result.message || 'Ошибка создания пользователя', 'error');
@@ -443,8 +637,8 @@ class AdminPanel {
             console.error('Ошибка создания пользователя:', error);
             this.showMessage('Ошибка подключения к серверу', 'error');
         } finally {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
+            createBtn.innerHTML = originalText;
+            createBtn.disabled = false;
         }
         
         return false;
@@ -485,11 +679,7 @@ class AdminPanel {
             
             if (result.success) {
                 this.showMessage(`✅ Пароль администратора сброшен на: ${newPassword}`, 'success');
-                // Лог уже записан на сервере, ничего не делаем
                 
-                console.log('Новые учетные данные:', result.credentials);
-                
-                // Показываем учетные данные в alert
                 alert(`Пароль администратора успешно сброшен!\n\nЛогин: ${result.credentials.username}\nПароль: ${result.credentials.password}\n\nСкопируйте эти данные!`);
             } else {
                 this.showMessage(result.message || 'Ошибка сброса пароля', 'error');
@@ -515,7 +705,6 @@ class AdminPanel {
         `;
     }
 
-    // Вспомогательная функция для экранирования HTML
     escapeHtml(text) {
         if (!text) return '';
         const div = document.createElement('div');
@@ -527,7 +716,6 @@ class AdminPanel {
         const messagesDiv = document.getElementById('messages');
         if (!messagesDiv) return;
         
-        // Удаляем старые уведомления
         const oldNotifications = messagesDiv.querySelectorAll('.notification');
         oldNotifications.forEach(notification => notification.remove());
         
@@ -542,7 +730,6 @@ class AdminPanel {
         
         messagesDiv.appendChild(notification);
         
-        // Автоматическое скрытие через 5 секунд
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.remove();
@@ -552,7 +739,6 @@ class AdminPanel {
 
     async logout() {
         try {
-            // Логирование выхода происходит на сервере в middleware logout
             await fetch('/api/logout', { method: 'POST' });
             window.location.href = '/';
         } catch (error) {
@@ -564,6 +750,20 @@ class AdminPanel {
     showErrorPage(message) {
         const container = document.getElementById('adminContainer');
         container.innerHTML = `
+            <!-- Шапка проекта -->
+            <div class="project-header">
+                <div class="project-info">
+                    <i class="fas fa-archive"></i>
+                    <div>
+                        <h1>Система контроля версий документов</h1>
+                        <p>Панель администратора</p>
+                    </div>
+                </div>
+                <div class="project-version">
+                    <span class="version-badge">v1.0</span>
+                </div>
+            </div>
+
             <div class="error-message">
                 <h2><i class="fas fa-exclamation-triangle"></i> Ошибка</h2>
                 <p>${message}</p>
@@ -572,7 +772,6 @@ class AdminPanel {
     }
 }
 
-// Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     window.adminPanel = new AdminPanel();
 });

@@ -862,3 +862,129 @@ body {
         text-align: center;
     }
 }
+/* Стили для активных фильтров */
+.active-filters {
+    background: #e3f2fd;
+    border: 1px solid #90caf9;
+    border-radius: 8px;
+    padding: 12px 20px;
+    margin-bottom: 20px;
+}
+
+.filters-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #1565c0;
+    font-size: 14px;
+}
+
+.filters-info i {
+    font-size: 16px;
+}
+
+.clear-filters-btn {
+    background: #f8f9fa;
+    border: 1px solid #dc3545;
+    color: #dc3545;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    transition: all 0.3s ease;
+}
+
+.clear-filters-btn:hover {
+    background: #dc3545;
+    color: white;
+}
+
+/* Улучшение отображения фильтров */
+.filters-container {
+    margin-bottom: 25px;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Стили для фильтров в таблице */
+.logs-table .filtered-row {
+    background-color: #fff3cd !important;
+    border-left: 3px solid #ffc107;
+}
+
+/* Стили для статистики с фильтрами */
+.filtered-stats {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.filtered-stat {
+    background: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+}
+
+.filtered-stat strong {
+    color: #495057;
+}
+
+/* Стили для состояния без данных */
+.empty-state.filtered {
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+}
+
+.empty-state.filtered i {
+    color: #6c757d;
+}
+
+.empty-state.filtered p {
+    color: #6c757d;
+    font-size: 16px;
+}
+
+/* Улучшение формы фильтров */
+.filter-group {
+    position: relative;
+}
+
+.filter-group .form-control {
+    padding-right: 40px;
+}
+
+.filter-group .clear-field {
+    position: absolute;
+    right: 10px;
+    top: 35px;
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.filter-group .clear-field:hover {
+    opacity: 1;
+    color: #dc3545;
+}

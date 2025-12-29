@@ -743,8 +743,6 @@ app.get('/api/admin/users', requireAuth('Администратор'), async (re
             ORDER BY u.idUsers
         `);
         
-        
-        
         res.json({
             success: true,
             users: users
@@ -772,9 +770,44 @@ app.get('/api/admin/users', requireAuth('Администратор'), async (re
         });
     }
 });
+app.get('/api/admin/users/:id', requireAuth('Администратор'), async (req, res) => {
+    try {
+        const userId = req.params.id;
+        
+        const [user] = await pool.execute(`
+            SELECT 
+                u.idUsers,
+                u.name,
+                u.idRoles,
+                r.name as role,
+                DATE_FORMAT(u.createdAt, '%d.%m.%Y %H:%i') as createdAt
+            FROM Users u
+            LEFT JOIN Roles r ON u.idRoles = r.idRoles
+            WHERE u.idUsers = ?
+        `, [userId]);
+        
+        if (user.length === 0) {
+            return res.json({
+                success: false,
+                message: 'Пользователь не найден'
+            });
+        }
+        
+        res.json({
+            success: true,
+            user: user[0]
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения данных пользователя:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера' 
+        });
+    }
+});
 
-// Создание пользователя (только для админа)
-// Создание пользователя (только для админа) - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// Создание пользователя (только для админа) - УЖЕ ЕСТЬ
 app.post('/api/admin/users', requireAuth('Администратор'), async (req, res) => {
     try {
         const { username, password, roleId } = req.body;
@@ -877,6 +910,160 @@ app.post('/api/admin/users', requireAuth('Администратор'), async (r
         res.status(500).json({
             success: false,
             message: 'Ошибка сервера при создании пользователя'
+        });
+    }
+});
+
+// Обновить пользователя (только для админа) - ДОБАВИТЬ ЭТОТ
+app.put('/api/admin/users/:id', requireAuth('Администратор'), async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const { username, password, roleId } = req.body;
+        const ip = getClientIp(req);
+        const userAgent = req.headers['user-agent'] || '';
+        
+        console.log(`✏️ Редактирование пользователя ID: ${userId}, данные:`, req.body);
+        
+        // Проверяем существование пользователя
+        const [userData] = await pool.execute(
+            'SELECT u.idUsers, u.name FROM Users u WHERE u.idUsers = ?',
+            [userId]
+        );
+        
+        if (userData.length === 0) {
+            await logAction(
+                req.user.userId,
+                'user_update',
+                `Попытка редактирования несуществующего пользователя (ID: ${userId})`,
+                'users',
+                'user',
+                userId,
+                'failed',
+                ip,
+                userAgent
+            );
+            
+            return res.json({ 
+                success: false, 
+                message: 'Пользователь не найден' 
+            });
+        }
+        
+        const oldUsername = userData[0].name;
+        let updateFields = [];
+        let params = [];
+        
+        // Обновляем имя пользователя, если оно изменилось
+        if (username && username !== oldUsername) {
+            // Проверяем уникальность нового имени
+            const [existingUsers] = await pool.execute(
+                'SELECT idUsers FROM Users WHERE name = ? AND idUsers != ?',
+                [username, userId]
+            );
+            
+            if (existingUsers.length > 0) {
+                await logAction(
+                    req.user.userId,
+                    'user_update',
+                    `Попытка изменения имени пользователя ${oldUsername} на уже существующее: ${username}`,
+                    'users',
+                    'user',
+                    userId,
+                    'failed',
+                    ip,
+                    userAgent
+                );
+                
+                return res.json({
+                    success: false,
+                    message: 'Пользователь с таким именем уже существует'
+                });
+            }
+            
+            updateFields.push('name = ?');
+            params.push(username);
+        }
+        
+        // Обновляем пароль, если он предоставлен
+        if (password && password.trim() !== '') {
+            if (password.length < 4) {
+                return res.json({
+                    success: false,
+                    message: 'Пароль должен содержать минимум 4 символа'
+                });
+            }
+            
+            const hashedPassword = await bcrypt.hash(password, 10);
+            updateFields.push('password = ?');
+            params.push(hashedPassword);
+        }
+        
+        // Обновляем роль, если она изменилась
+        if (roleId) {
+            updateFields.push('idRoles = ?');
+            params.push(roleId);
+        }
+        
+        // Если нет изменений
+        if (updateFields.length === 0) {
+            return res.json({
+                success: false,
+                message: 'Нет данных для обновления'
+            });
+        }
+        
+        // Выполняем обновление
+        params.push(userId);
+        const sql = `UPDATE Users SET ${updateFields.join(', ')} WHERE idUsers = ?`;
+        
+        await pool.execute(sql, params);
+        
+        // Получаем обновленные данные пользователя
+        const [updatedUser] = await pool.execute(`
+            SELECT u.idUsers, u.name, r.name as role, DATE_FORMAT(u.createdAt, '%d.%m.%Y %H:%i') as createdAt
+            FROM Users u 
+            LEFT JOIN Roles r ON u.idRoles = r.idRoles 
+            WHERE u.idUsers = ?
+        `, [userId]);
+        
+        // Логируем успешное обновление
+        await logAction(
+            req.user.userId,
+            'user_update',
+            `Администратор ${req.user.username} обновил пользователя ${oldUsername} -> ${username || oldUsername}`,
+            'users',
+            'user',
+            userId,
+            'success',
+            ip,
+            userAgent
+        );
+        
+        res.json({
+            success: true,
+            message: 'Пользователь успешно обновлен',
+            user: updatedUser[0]
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка обновления пользователя:', error);
+        
+        // Логируем ошибку
+        await logAction(
+            req.user.userId,
+            'user_update',
+            `Ошибка обновления пользователя: ${error.message}`,
+            'users',
+            'user',
+            req.params.id,
+            'failed',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера при обновлении пользователя'
         });
     }
 });
@@ -1035,49 +1222,13 @@ app.get('/api/admin/roles', requireAuth('Администратор'), async (re
         });
     }
 });
-// Проверка хешей паролей (только для отладки)
-app.get('/api/debug/passwords', async (req, res) => {
-    try {
-        const [users] = await pool.execute(`
-            SELECT 
-                u.idUsers,
-                u.name,
-                u.password,
-                r.name as role,
-                CASE 
-                    WHEN u.password LIKE '$2b$%' THEN '✅ Захеширован'
-                    ELSE '❌ Не захеширован'
-                END as password_status
-            FROM Users u
-            LEFT JOIN Roles r ON u.idRoles = r.idRoles
-            ORDER BY u.idUsers
-        `);
-        
-        res.json({
-            success: true,
-            users: users,
-            total: users.length,
-            hashed: users.filter(u => u.password_status === '✅ Захеширован').length,
-            notHashed: users.filter(u => u.password_status === '❌ Не захеширован').length
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка проверки паролей:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Ошибка сервера' 
-        });
-    }
-});
+
 // ============ РЕДАКТОР ЭНДПОИНТЫ ============
 
 // Получить список каталогов для редактора
 app.get('/api/editor/directories', requireAuth('Редактор'), async (req, res) => {
     try {
-        console.log('📁 Запрос каталогов от редактора:', req.user.username);
-        
-        // Здесь будет реальная логика для каталогов
-        // Пока возвращаем заглушку
+       
         res.json({
             success: true,
             directories: [
@@ -1672,132 +1823,6 @@ const [logs] = await pool.execute(dataSql, params);
     }
 });
 
-app.get('/api/debug/logs', async (req, res) => {
-    try {
-        console.log('🔍 Проверка структуры БД...');
-        
-        // Проверяем существование таблицы
-        const [tables] = await pool.execute("SHOW TABLES LIKE 'Logs'");
-        
-        if (tables.length === 0) {
-            return res.json({
-                success: false,
-                message: 'Таблица Logs не существует',
-                tables: await pool.execute("SHOW TABLES")
-            });
-        }
-        
-        // Показываем структуру таблицы
-        const [columns] = await pool.execute("SHOW COLUMNS FROM Logs");
-        
-        // Пробуем простой запрос
-        const [testData] = await pool.execute("SELECT idLogs, actionType FROM Logs LIMIT 5");
-        
-        res.json({
-            success: true,
-            tableExists: true,
-            columns: columns,
-            testData: testData,
-            sampleQuery: "SELECT idLogs, actionType FROM Logs LIMIT 5"
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка проверки БД:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Ошибка проверки БД',
-            error: error.message
-        });
-    }
-});
-// Тестовый endpoint для проверки соединения с БД
-app.get('/api/test-db', async (req, res) => {
-    try {
-        console.log('🔧 Тестируем подключение к БД...');
-        
-        // Проверяем таблицы
-        const [tables] = await pool.execute("SHOW TABLES");
-        console.log('📋 Таблицы в БД:', tables);
-        
-        // Проверяем таблицу Logs
-        const [logsColumns] = await pool.execute("SHOW COLUMNS FROM Logs");
-        console.log('📋 Столбцы таблицы Logs:', logsColumns);
-        
-        // Пробуем простой запрос к Logs
-        const [logsCount] = await pool.execute("SELECT COUNT(*) as count FROM Logs");
-        console.log('📊 Количество записей в Logs:', logsCount[0].count);
-        
-        // Пробуем запрос с JOIN
-        const [testLogs] = await pool.execute(`
-            SELECT l.idLogs, l.actionType, u.name as userName 
-            FROM Logs l 
-            LEFT JOIN Users u ON l.idUsers = u.idUsers 
-            LIMIT 5
-        `);
-        console.log('📊 Тестовые логи:', testLogs);
-        
-        // Пробуем запрос с LIMIT и OFFSET как числа
-        const limitNum = 5;
-        const offsetNum = 0;
-        const [testLogsWithLimit] = await pool.execute(`
-            SELECT idLogs, actionType 
-            FROM Logs 
-            LIMIT ${limitNum} OFFSET ${offsetNum}
-        `);
-        console.log('📊 Логи с LIMIT:', testLogsWithLimit);
-        
-        res.json({
-            success: true,
-            tables: tables,
-            logsColumns: logsColumns,
-            logsCount: logsCount[0].count,
-            testLogs: testLogs,
-            testLogsWithLimit: testLogsWithLimit,
-            message: 'Подключение к БД работает'
-        });
-        
-    } catch (error) {
-        console.error('❌ Ошибка тестирования БД:', error.message);
-        console.error('Stack trace:', error.stack);
-        
-        res.status(500).json({
-            success: false,
-            message: 'Ошибка подключения к БД',
-            error: error.message,
-            errorCode: error.code
-        });
-    }
-});
-// Тестовый endpoint для логов без авторизации
-app.get('/api/test-logs', async (req, res) => {
-    try {
-        console.log('🔧 Тестовый запрос логов без авторизации');
-        
-        // Простейший запрос - ИСКЛЮЧАЕМ API запросы
-        const [logs] = await pool.execute(`
-            SELECT idLogs, actionType, status, createdAt 
-            FROM Logs 
-            WHERE actionType != 'api_request'
-            ORDER BY createdAt DESC 
-            LIMIT 5
-        `);
-        
-        res.json({
-            success: true,
-            logs: logs,
-            total: logs.length,
-            message: 'Тестовый запрос выполнен успешно'
-        });
-        
-    } catch (error) {
-        console.error('❌ Тестовый запрос не удался:', error.message);
-        res.json({
-            success: false,
-            message: 'Тестовый запрос не удался',
-            error: error.message
-        });
-    }
-});
 // Получить статистику по логам (только для админа)
 app.get('/api/admin/logs/stats', requireAuth('Администратор'), async (req, res) => {
     try {
@@ -1851,8 +1876,7 @@ app.get('/api/admin/logs/stats', requireAuth('Администратор'), asyn
 });
 // Проверка авторизации отдельно
 app.get('/api/check-auth', (req, res) => {
-    console.log('🔐 Проверка авторизации');
-    
+   
     if (req.user) {
         res.json({
             success: true,
@@ -2054,20 +2078,6 @@ async function startServer() {
             console.log('📊 База данных: MySQL (Project)');
             console.log('📝 Система логирования: АКТИВНА');
             console.log('⏰ Время запуска:', new Date().toLocaleTimeString());
-            console.log('');
-            console.log('🚀 API эндпоинты для тестирования:');
-            console.log('├─ GET  /api/test-db        - проверка подключения к БД');
-            console.log('├─ GET  /api/users          - список пользователей');
-            console.log('├─ POST /api/login          - авторизация');
-            console.log('├─ GET  /api/user           - информация о пользователе');
-            console.log('├─ POST /api/logout         - выход из системы');
-            console.log('├─ POST /api/reset-admin    - сброс пароля администратора');
-            console.log('├─ GET  /api/admin/users    - список пользователей (админ)');
-            console.log('├─ POST /api/admin/users    - создание пользователя (админ)');
-            console.log('├─ DELETE /api/admin/users/:id - удаление пользователя (админ)');
-            console.log('├─ GET  /api/admin/logs     - журнал действий (админ)');
-            console.log('├─ GET  /logs               - страница журнала действий');
-            console.log('└─ GET  /admin              - админ-панель');
             console.log('════════════════════════════════════════════════════════');
         });
     } catch (error) {

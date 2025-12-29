@@ -113,8 +113,22 @@ truncateText(text, maxLength) {
     showLogsPage(userData) {
         const container = document.getElementById('adminContainer');
         container.innerHTML = `
+            <!-- Шапка проекта -->
+            <div class="project-header">
+                <div class="project-info">
+                    <i class="fas fa-archive"></i>
+                    <div>
+                        <h1>Система контроля версий документов</h1>
+                        <p>Журнал действий системы и аудит операций</p>
+                    </div>
+                </div>
+                <div class="project-version">
+                    <span class="version-badge">v1.0</span>
+                </div>
+            </div>
+
             <div class="header">
-                <h1><i class="fas fa-clipboard-list"></i> Журнал действий системы</h1>
+                <h2><i class="fas fa-clipboard-list"></i> Журнал действий системы</h2>
                 <div class="user-info">
                     <div class="user-avatar">
                         ${userData.username.charAt(0).toUpperCase()}
@@ -250,7 +264,7 @@ truncateText(text, maxLength) {
 
         this.initFilters();
     }
-
+    
     initFilters() {
         // Устанавливаем сегодняшнюю дату как дату "по"
         const today = new Date().toISOString().split('T')[0];
@@ -278,8 +292,36 @@ truncateText(text, maxLength) {
                 this.loadLogs();
             }
         });
-    }
+document.querySelectorAll('.form-control').forEach(input => {
+    input.addEventListener('input', () => {
+        if (input.value) {
+            this.addClearButton(input);
+        }
+    });
+});
 
+
+    }
+    // Метод для добавления кнопки очистки в поле
+addClearButton(input) {
+    const existingClear = input.parentNode.querySelector('.clear-field');
+    if (existingClear) return;
+    
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'clear-field';
+    clearBtn.innerHTML = '<i class="fas fa-times"></i>';
+    clearBtn.title = 'Очистить поле';
+    
+    clearBtn.addEventListener('click', () => {
+        input.value = '';
+        clearBtn.remove();
+        // Автоматически применяем фильтры
+        setTimeout(() => this.applyFilters(), 300);
+    });
+    
+    input.parentNode.appendChild(clearBtn);
+}
     toggleFilters() {
         const filtersContainer = document.getElementById('filtersContainer');
         const isVisible = filtersContainer.style.display === 'block';
@@ -322,10 +364,33 @@ truncateText(text, maxLength) {
         this.currentPage = 1;
         this.loadLogs();
     }
-
+    showEmptyLogs() {
+        const logsContent = document.getElementById('logsContent');
+        
+        if (this.hasActiveFilters()) {
+            logsContent.innerHTML = `
+                <div class="empty-state filtered">
+                    <i class="fas fa-filter"></i>
+                    <h3>Нет записей по выбранным фильтрам</h3>
+                    <p>Попробуйте изменить условия фильтрации или сбросить фильтры.</p>
+                    <button class="btn-secondary" onclick="window.logsPage.resetFilters()" style="margin-top: 15px;">
+                        <i class="fas fa-redo"></i> Сбросить фильтры
+                    </button>
+                </div>
+            `;
+        } else {
+            logsContent.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-clipboard-list"></i>
+                    <h3>Журнал действий пуст</h3>
+                    <p>В системе пока нет зарегистрированных действий.</p>
+                </div>
+            `;
+        }
+    }
     async loadLogs() {
         try {
-            console.log('🔄 Начинаем загрузку журнала...');
+            console.log('🔄 Начинаем загрузку журнала с фильтрами...');
             
             const logsContent = document.getElementById('logsContent');
             logsContent.innerHTML = `
@@ -343,8 +408,24 @@ truncateText(text, maxLength) {
                 return;
             }
             
-            // Простой запрос для начала
-            const url = `/api/admin/logs?page=${this.currentPage}&limit=10`;
+            // Собираем параметры запроса с фильтрами
+            const params = new URLSearchParams({
+                page: this.currentPage,
+                limit: this.pageSize,
+                search: this.filters.search,
+                status: this.filters.status,
+                module: this.filters.module,
+                user: this.filters.user,
+                dateFrom: this.filters.dateFrom,
+                dateTo: this.filters.dateTo
+            });
+            
+            // Удаляем пустые параметры
+            for (const [key, value] of params.entries()) {
+                if (!value) params.delete(key);
+            }
+            
+            const url = `/api/admin/logs?${params.toString()}`;
             console.log('📨 Запрос по URL:', url);
             
             const response = await fetch(url);
@@ -354,7 +435,7 @@ truncateText(text, maxLength) {
                 const errorText = await response.text();
                 console.error('❌ Ошибка 500:', errorText);
                 
-                // Пробуем тестовый endpoint
+                // Пробуем тестовый endpoint без фильтров
                 await this.testDatabaseConnection();
                 return;
             }
@@ -368,6 +449,11 @@ truncateText(text, maxLength) {
             
             if (result.success) {
                 this.renderLogs(result);
+                
+                // Показываем примененные фильтры
+                if (this.hasActiveFilters()) {
+                    this.showActiveFiltersInfo();
+                }
             } else {
                 this.showMessage(result.message || 'Ошибка загрузки', 'error');
                 this.showEmptyLogs();
@@ -377,6 +463,60 @@ truncateText(text, maxLength) {
             console.error('❌ Ошибка загрузки:', error);
             this.showMessage(`Ошибка: ${error.message}`, 'error');
             this.showEmptyLogs();
+        }
+    }
+    
+    // Проверка, есть ли активные фильтры
+    hasActiveFilters() {
+        return Object.values(this.filters).some(value => 
+            value && value.toString().trim() !== ''
+        );
+    }
+    
+    // Показываем информацию об активных фильтрах
+    showActiveFiltersInfo() {
+        const activeFilters = [];
+        
+        if (this.filters.search) activeFilters.push(`Поиск: "${this.filters.search}"`);
+        if (this.filters.status) activeFilters.push(`Статус: ${this.getStatusText(this.filters.status)}`);
+        if (this.filters.module) activeFilters.push(`Модуль: ${this.getModuleText(this.filters.module)}`);
+        if (this.filters.user) activeFilters.push(`Пользователь: "${this.filters.user}"`);
+        if (this.filters.dateFrom) activeFilters.push(`Дата с: ${this.formatDate(this.filters.dateFrom)}`);
+        if (this.filters.dateTo) activeFilters.push(`Дата по: ${this.formatDate(this.filters.dateTo)}`);
+        
+        if (activeFilters.length > 0) {
+            const filterInfo = document.createElement('div');
+            filterInfo.className = 'active-filters';
+            filterInfo.innerHTML = `
+                <div class="filters-info">
+                    <i class="fas fa-filter"></i>
+                    <span>Применены фильтры: ${activeFilters.join(', ')}</span>
+                    <button class="clear-filters-btn" onclick="window.logsPage.resetFilters()">
+                        <i class="fas fa-times"></i> Очистить все
+                    </button>
+                </div>
+            `;
+            
+            const logsContent = document.getElementById('logsContent');
+            logsContent.insertBefore(filterInfo, logsContent.firstChild);
+        }
+    }
+    
+    // Форматирование даты для отображения
+    formatDate(dateString) {
+        if (!dateString) return '';
+        
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            
+            return date.toLocaleDateString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        } catch (e) {
+            return dateString;
         }
     }
     
@@ -795,6 +935,20 @@ truncateText(text, maxLength) {
     showErrorPage(message) {
         const container = document.getElementById('adminContainer');
         container.innerHTML = `
+            <!-- Шапка проекта -->
+            <div class="project-header">
+                <div class="project-info">
+                    <i class="fas fa-archive"></i>
+                    <div>
+                        <h1>Система контроля версий документов</h1>
+                        <p>Журнал действий системы</p>
+                    </div>
+                </div>
+                <div class="project-version">
+                    <span class="version-badge">v1.0</span>
+                </div>
+            </div>
+
             <div class="error-message">
                 <h2><i class="fas fa-exclamation-triangle"></i> Ошибка доступа</h2>
                 <p>${message}</p>

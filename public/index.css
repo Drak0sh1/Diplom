@@ -186,3 +186,67 @@ body {
         font-size: 24px;
     }
 }
+/* Стили для шапки на странице авторизации */
+.login-project-header {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    color: white;
+    padding: 15px 30px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    animation: slideDown 0.5s ease-out;
+}
+
+.login-project-header .project-info h1 {
+    font-size: 22px;
+    margin: 0 0 3px 0;
+}
+
+.login-project-header .project-info p {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.login-project-header .project-info i {
+    font-size: 36px;
+    width: 50px;
+    height: 50px;
+}
+
+.login-container {
+    margin-top: 110px; /* Отступ для фиксированной шапки */
+    min-height: calc(100vh - 110px);
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .login-project-header {
+        padding: 12px 20px;
+    }
+    
+    .login-project-header .project-info h1 {
+        font-size: 18px;
+    }
+    
+    .login-project-header .project-info p {
+        font-size: 12px;
+    }
+    
+    .login-container {
+        margin-top: 90px;
+        min-height: calc(100vh - 90px);
+    }
+}
