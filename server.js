@@ -2029,41 +2029,7 @@ app.get('/editor', requireAuth('Редактор'), (req, res) => {
 app.get('/dashboard', requireAuth(), (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
-// ============ МАРШРУТЫ ДЛЯ РЕДАКТОРА ============
 
-// Главная страница редактора (дашборд)
-app.get('/editor', requireAuth('Редактор'), (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'editor', 'editor.html'));
-});
-
-// Справочник каталогов
-app.get('/editor/directories', requireAuth('Редактор'), (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'editor', 'directories.html'));
-});
-
-// Управление назначениями
-app.get('/editor/assignments', requireAuth('Редактор'), (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'editor', 'assignments.html'));
-});
-
-// Журнал контрагентов
-app.get('/editor/counterparties', requireAuth('Редактор'), (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'editor', 'counterparties.html'));
-});
-
-// Журнал входящей корреспонденции
-app.get('/editor/correspondence', requireAuth('Редактор'), (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'editor', 'correspondence.html'));
-});
-
-// API для проверки роли редактора (общее)
-app.get('/api/editor/check-access', requireAuth('Редактор'), (req, res) => {
-    res.json({
-        success: true,
-        user: req.user,
-        message: 'Доступ разрешен'
-    });
-});
 // ============ ЗАПУСК СЕРВЕРА ============
 
 async function startServer() {

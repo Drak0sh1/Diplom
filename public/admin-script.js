@@ -42,147 +42,168 @@ class AdminPanel {
     showAdminPanel(userData) {
         const container = document.getElementById('adminContainer');
         container.innerHTML = `
-            <!-- Шапка проекта -->
-            <div class="project-header">
-                <div class="project-info">
-                    <i class="fas fa-archive"></i>
-                    <div>
-                        <h1>Система контроля версий документов</h1>
-                        <p>Панель администратора для управления пользователями и системой</p>
-                    </div>
-                </div>
-                <div class="project-version">
-                    <span class="version-badge">v1.0</span>
-                </div>
-            </div>
+            
 
-            <div class="header">
-                <h2><i class="fas fa-users-cog"></i> Управление пользователями</h2>
-                <div class="user-info">
-                    <div class="user-avatar">
-                        ${userData.username.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                        <strong>${userData.username}</strong><br>
-                        <small>${userData.role}</small>
-                    </div>
-                    <button class="logout-btn" id="logoutBtn">
-                        <i class="fas fa-sign-out-alt"></i> Выйти
-                    </button>
-                </div>
-            </div>
-
-            <div id="messages"></div>
-
-            <!-- Статистика пользователей -->
-            <div class="stats-section" id="statsSection">
-                <div class="loading-state">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <p>Загрузка статистики...</p>
-                </div>
-            </div>
-
-            <div class="main-content">
-                <div class="card">
-                    <div class="card-header">
-                        <h2><i class="fas fa-users"></i> Управление пользователями</h2>
-                        <button class="btn-primary btn-sm" id="refreshUsersBtn">
-                            <i class="fas fa-sync-alt"></i> Обновить
-                        </button>
-                    </div>
-                    
-                    <div class="users-section" id="usersSection">
-                        <div class="loading-state">
-                            <i class="fas fa-spinner fa-spin"></i>
-                            <p>Загрузка пользователей...</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h2><i class="fas fa-user-plus"></i> Создание пользователя</h2>
-                    </div>
-                    
-                    <form id="createUserForm">
-                        <div class="form-group">
-                            <label for="username"><i class="fas fa-user"></i> Имя пользователя</label>
-                            <input type="text" id="username" class="form-control" 
-                                   placeholder="Введите логин" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="password"><i class="fas fa-lock"></i> Пароль</label>
-                            <input type="password" id="password" class="form-control" 
-                                   placeholder="Введите пароль" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="role"><i class="fas fa-user-tag"></i> Роль</label>
-                            <select id="role" class="form-control" required>
-                                <option value="">Выберите роль...</option>
-                            </select>
-                        </div>
-                        
-                        <button type="submit" class="btn-primary" id="createBtn">
-                            <i class="fas fa-plus-circle"></i>
-                            <span>Создать пользователя</span>
-                        </button>
-                    </form>
-                    
-                    <div class="system-actions">
-                        <h3><i class="fas fa-history"></i> Журнал действий</h3>
-                        <button class="btn-secondary" id="goToLogsBtn">
-                            <i class="fas fa-clipboard-list"></i> Перейти в журнал действий
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Модальное окно редактирования -->
-            <div class="modal-overlay" id="editModal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-edit"></i> Редактировать пользователя</h3>
-                        <button class="close-btn" id="closeModalBtn">&times;</button>
-                    </div>
-                    <form id="editUserForm">
-                        <input type="hidden" id="editUserId">
-                        
-                        <div class="form-group">
-                            <label for="editUsername"><i class="fas fa-user"></i> Имя пользователя</label>
-                            <input type="text" id="editUsername" class="form-control" 
-                                   placeholder="Введите новый логин" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="editPassword"><i class="fas fa-lock"></i> Пароль</label>
-                            <input type="password" id="editPassword" class="form-control" 
-                                   placeholder="Оставьте пустым, если не меняете">
-                            <small class="form-text">Минимум 4 символа</small>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="editRole"><i class="fas fa-user-tag"></i> Роль</label>
-                            <select id="editRole" class="form-control" required>
-                                <option value="">Выберите роль...</option>
-                            </select>
-                        </div>
-                        
-                        <div class="modal-footer">
-                            <button type="button" class="btn-secondary" id="cancelEditBtn">Отмена</button>
-                            <button type="submit" class="btn-primary" id="saveEditBtn">
-                                <i class="fas fa-save"></i> Сохранить изменения
+                    <div class="header">
+                    <h1>Система контроля версий документов</h1><br><br><br>
+                        <h2><i class="fas fa-users-cog">
+                        </i> Управление пользователями</h2>
+                        <div class="user-info">
+                            <div class="user-avatar">
+                                ${userData.username.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <strong>${userData.username}</strong><br>
+                                <small>${userData.role}</small>
+                            </div>
+                            <button class="logout-btn" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt"></i> Выйти
                             </button>
                         </div>
-                    </form>
+                    </div>
+
+                    <div id="messages"></div>
                 </div>
-            </div>
+
+                <!-- Статистика пользователей -->
+                <div class="stats-section" id="statsSection">
+                    <div class="loading-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Загрузка статистики...</p>
+                    </div>
+                </div>
+
+                <div class="main-content">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-users"></i> Управление пользователями</h2>
+                            <button class="btn-primary btn-sm" id="refreshUsersBtn">
+                                <i class="fas fa-sync-alt"></i> Обновить
+                            </button>
+                        </div>
+                        
+                        <div class="users-section" id="usersSection">
+                            <div class="loading-state">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Загрузка пользователей...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-user-plus"></i> Создание пользователя</h2>
+                        </div>
+                        
+                        <form id="createUserForm">
+                            <div class="form-group">
+                                <label for="username"><i class="fas fa-user"></i> Имя пользователя</label>
+                                <input type="text" id="username" class="form-control" 
+                                       placeholder="Введите логин" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="password"><i class="fas fa-lock"></i> Пароль</label>
+                                <input type="password" id="password" class="form-control" 
+                                       placeholder="Введите пароль" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="role"><i class="fas fa-user-tag"></i> Роль</label>
+                                <select id="role" class="form-control" required>
+                                    <option value="">Выберите роль...</option>
+                                </select>
+                            </div>
+                            
+                            <button type="submit" class="btn-primary" id="createBtn">
+                                <i class="fas fa-plus-circle"></i>
+                                <span>Создать пользователя</span>
+                            </button>
+                        </form>
+                        
+                        <div class="system-actions">
+                            <h3><i class="fas fa-history"></i> Журнал действий</h3>
+                            <button class="btn-secondary" id="goToLogsBtn">
+                                <i class="fas fa-clipboard-list"></i> Перейти в журнал действий
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Модальное окно редактирования -->
+                <div class="modal-overlay" id="editModal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3><i class="fas fa-edit"></i> Редактировать пользователя</h3>
+                            <button class="close-btn" id="closeModalBtn">&times;</button>
+                        </div>
+                        <form id="editUserForm">
+                            <input type="hidden" id="editUserId">
+                            
+                            <div class="form-group">
+                                <label for="editUsername"><i class="fas fa-user"></i> Имя пользователя</label>
+                                <input type="text" id="editUsername" class="form-control" 
+                                       placeholder="Введите новый логин" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="editPassword"><i class="fas fa-lock"></i> Пароль</label>
+                                <input type="password" id="editPassword" class="form-control" 
+                                       placeholder="Оставьте пустым, если не меняете">
+                                <small class="form-text">Минимум 4 символа</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="editRole"><i class="fas fa-user-tag"></i> Роль</label>
+                                <select id="editRole" class="form-control" required>
+                                    <option value="">Выберите роль...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="modal-footer">
+                                <button type="button" class="btn-secondary" id="cancelEditBtn">Отмена</button>
+                                <button type="submit" class="btn-primary" id="saveEditBtn">
+                                    <i class="fas fa-save"></i> Сохранить изменения
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            
         `;
 
         this.bindEvents();
     }
 
+    showErrorPage(message) {
+        const container = document.getElementById('adminContainer');
+        container.innerHTML = `
+            <div class="admin-container">
+                <div class="card">
+                    <!-- Шапка проекта перенесена в белую карточку -->
+                    <div class="project-header">
+                        <div class="project-info">
+                            <i class="fas fa-archive"></i>
+                            <div>
+                                <h1>Система контроля версий документов</h1>
+                                <p>Панель администратора</p>
+                            </div>
+                        </div>
+                        <div class="project-version">
+                            <span class="version-badge">v1.0</span>
+                        </div>
+                    </div>
+
+                    <div class="error-message">
+                        <h2><i class="fas fa-exclamation-triangle"></i> Ошибка</h2>
+                        <p>${message}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // ... остальные методы остаются без изменений ...
     bindEvents() {
         // Обработчик выхода
         document.getElementById('logoutBtn')?.addEventListener('click', () => this.logout());
@@ -200,7 +221,6 @@ class AdminPanel {
         document.getElementById('editUserForm')?.addEventListener('submit', (e) => this.updateUser(e));
     }
 
-    // Метод для перехода на страницу логов
     goToLogs() {
         window.location.href = '/logs';
     }
@@ -497,7 +517,24 @@ class AdminPanel {
             this.showMessage('Заполните все обязательные поля', 'error');
             return;
         }
+        const existingUser = this.allUsers.find(user => 
+            user.idUsers != userId && 
+            user.name.toLowerCase() === username.toLowerCase()
+        );
         
+        if (existingUser) {
+            this.showMessage(`Пользователь с именем "${username}" уже существует`, 'error');
+            
+            const editUsernameInput = document.getElementById('editUsername');
+            editUsernameInput.classList.add('error-input');
+            editUsernameInput.focus();
+            
+            setTimeout(() => {
+                editUsernameInput.classList.remove('error-input');
+            }, 3000);
+            
+            return;
+        }
         const saveBtn = document.getElementById('saveEditBtn');
         const originalText = saveBtn.innerHTML;
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сохранение...';
@@ -605,6 +642,26 @@ class AdminPanel {
             return false;
         }
         
+        // Проверяем, существует ли пользователь с таким именем
+        const existingUser = this.allUsers.find(user => 
+            user.name.toLowerCase() === username.toLowerCase()
+        );
+        
+        if (existingUser) {
+            this.showMessage(`Пользователь с именем "${username}" уже существует`, 'error');
+            
+            // Подсвечиваем поле с ошибкой
+            const usernameInput = document.getElementById('username');
+            usernameInput.classList.add('error-input');
+            usernameInput.focus();
+            
+            setTimeout(() => {
+                usernameInput.classList.remove('error-input');
+            }, 3000);
+            
+            return false;
+        }
+        
         const createBtn = document.getElementById('createBtn');
         const originalText = createBtn.innerHTML;
         createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
@@ -630,7 +687,29 @@ class AdminPanel {
                 document.getElementById('createUserForm').reset();
                 this.loadUsers(); // Обновляем список пользователей
             } else {
-                this.showMessage(result.message || 'Ошибка создания пользователя', 'error');
+                // Обрабатываем различные ошибки сервера
+                let errorMessage = 'Ошибка создания пользователя';
+                
+                if (result.message) {
+                    if (result.message.includes('уже существует') || 
+                        result.message.includes('already exists') ||
+                        result.message.includes('duplicate')) {
+                        errorMessage = `Пользователь с именем "${username}" уже существует в системе`;
+                        
+                        // Подсвечиваем поле с ошибкой
+                        const usernameInput = document.getElementById('username');
+                        usernameInput.classList.add('error-input');
+                        usernameInput.focus();
+                        
+                        setTimeout(() => {
+                            usernameInput.classList.remove('error-input');
+                        }, 3000);
+                    } else {
+                        errorMessage = result.message;
+                    }
+                }
+                
+                this.showMessage(errorMessage, 'error');
             }
             
         } catch (error) {
@@ -745,30 +824,6 @@ class AdminPanel {
             console.error('Ошибка выхода:', error);
             window.location.href = '/';
         }
-    }
-
-    showErrorPage(message) {
-        const container = document.getElementById('adminContainer');
-        container.innerHTML = `
-            <!-- Шапка проекта -->
-            <div class="project-header">
-                <div class="project-info">
-                    <i class="fas fa-archive"></i>
-                    <div>
-                        <h1>Система контроля версий документов</h1>
-                        <p>Панель администратора</p>
-                    </div>
-                </div>
-                <div class="project-version">
-                    <span class="version-badge">v1.0</span>
-                </div>
-            </div>
-
-            <div class="error-message">
-                <h2><i class="fas fa-exclamation-triangle"></i> Ошибка</h2>
-                <p>${message}</p>
-            </div>
-        `;
     }
 }
 

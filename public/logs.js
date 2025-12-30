@@ -113,155 +113,157 @@ truncateText(text, maxLength) {
     showLogsPage(userData) {
         const container = document.getElementById('adminContainer');
         container.innerHTML = `
-            <!-- Шапка проекта -->
-            <div class="project-header">
-                <div class="project-info">
-                    <i class="fas fa-archive"></i>
-                    <div>
-                        <h1>Система контроля версий документов</h1>
-                        <p>Журнал действий системы и аудит операций</p>
+            <div class="admin-container">
+                <!-- Шапка проекта -->
+                <div class="card">
+                    <div class="project-header">
+                        <div class="project-info">
+                            <div>
+                                <h1>Система контроля версий документов</h1>
+                            </div>
+                        </div>
                     </div>
+    
+                    <div class="header">
+                        <h2><i class="fas fa-clipboard-list"></i> Журнал действий системы</h2>
+                        <div class="user-info">
+                            <div class="user-avatar">
+                                ${userData.username.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <strong>${userData.username}</strong><br>
+                                <small>${userData.role}</small>
+                            </div>
+                            <button class="logout-btn" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt"></i> Выйти
+                            </button>
+                        </div>
+                    </div>
+    
+                    <div id="messages"></div>
                 </div>
-                <div class="project-version">
-                    <span class="version-badge">v1.0</span>
-                </div>
-            </div>
-
-            <div class="header">
-                <h2><i class="fas fa-clipboard-list"></i> Журнал действий системы</h2>
-                <div class="user-info">
-                    <div class="user-avatar">
-                        ${userData.username.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                        <strong>${userData.username}</strong><br>
-                        <small>${userData.role}</small>
-                    </div>
-                    <button class="logout-btn" id="logoutBtn">
-                        <i class="fas fa-sign-out-alt"></i> Выйти
+    
+                <div class="controls">
+                    <button class="control-btn back-btn" id="backBtn">
+                        <i class="fas fa-arrow-left"></i>
+                        Назад в админ-панель
+                    </button>
+                    <button class="control-btn refresh-btn" id="refreshBtn">
+                        <i class="fas fa-sync-alt"></i>
+                        Обновить журнал
+                    </button>
+                    <button class="control-btn filter-btn" id="showFiltersBtn">
+                        <i class="fas fa-filter"></i>
+                        Фильтры
+                    </button>
+                    <button class="control-btn export-btn" id="exportBtn">
+                        <i class="fas fa-download"></i>
+                        Экспорт
                     </button>
                 </div>
-            </div>
-
-            <div class="controls">
-                <button class="control-btn back-btn" id="backBtn">
-                    <i class="fas fa-arrow-left"></i>
-                    Назад в админ-панель
-                </button>
-                <button class="control-btn refresh-btn" id="refreshBtn">
-                    <i class="fas fa-sync-alt"></i>
-                    Обновить журнал
-                </button>
-                <button class="control-btn filter-btn" id="showFiltersBtn">
-                    <i class="fas fa-filter"></i>
-                    Фильтры
-                </button>
-                <button class="control-btn export-btn" id="exportBtn">
-                    <i class="fas fa-download"></i>
-                    Экспорт
-                </button>
-            </div>
-
-            <div class="filters-container" id="filtersContainer" style="display: none;">
-                <div class="filters-card">
-                    <h3><i class="fas fa-sliders-h"></i> Фильтры</h3>
-                    <div class="filters-grid">
-                        <div class="filter-group">
-                            <label for="searchFilter"><i class="fas fa-search"></i> Поиск</label>
-                            <input type="text" id="searchFilter" class="form-control" placeholder="Поиск по действию или деталям...">
+    
+                <!-- Остальной код остается без изменений -->
+                <div class="filters-container" id="filtersContainer" style="display: none;">
+                    <div class="filters-card">
+                        <h3><i class="fas fa-sliders-h"></i> Фильтры</h3>
+                        <div class="filters-grid">
+                            <div class="filter-group">
+                                <label for="searchFilter"><i class="fas fa-search"></i> Поиск</label>
+                                <input type="text" id="searchFilter" class="form-control" placeholder="Поиск по действию или деталям...">
+                            </div>
+                            <div class="filter-group">
+                                <label for="statusFilter"><i class="fas fa-tag"></i> Статус</label>
+                                <select id="statusFilter" class="form-control">
+                                    <option value="">Все статусы</option>
+                                    <option value="success">Успех</option>
+                                    <option value="failed">Ошибка</option>
+                                    <option value="warning">Предупреждение</option>
+                                    <option value="info">Информация</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="moduleFilter"><i class="fas fa-cube"></i> Модуль</label>
+                                <select id="moduleFilter" class="form-control">
+                                    <option value="">Все модули</option>
+                                    <option value="auth">Авторизация</option>
+                                    <option value="user">Пользователи</option>
+                                    <option value="system">Система</option>
+                                    <option value="log">Журнал</option>
+                                    <option value="file">Файлы</option>
+                                    <option value="folder">Папки</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="userFilter"><i class="fas fa-user"></i> Пользователь</label>
+                                <input type="text" id="userFilter" class="form-control" placeholder="Имя пользователя...">
+                            </div>
+                            <div class="filter-group">
+                                <label for="dateFromFilter"><i class="fas fa-calendar"></i> Дата с</label>
+                                <input type="date" id="dateFromFilter" class="form-control">
+                            </div>
+                            <div class="filter-group">
+                                <label for="dateToFilter"><i class="fas fa-calendar"></i> Дата по</label>
+                                <input type="date" id="dateToFilter" class="form-control">
+                            </div>
                         </div>
-                        <div class="filter-group">
-                            <label for="statusFilter"><i class="fas fa-tag"></i> Статус</label>
-                            <select id="statusFilter" class="form-control">
-                                <option value="">Все статусы</option>
-                                <option value="success">Успех</option>
-                                <option value="failed">Ошибка</option>
-                                <option value="warning">Предупреждение</option>
-                                <option value="info">Информация</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label for="moduleFilter"><i class="fas fa-cube"></i> Модуль</label>
-                            <select id="moduleFilter" class="form-control">
-                                <option value="">Все модули</option>
-                                <option value="auth">Авторизация</option>
-                                <option value="user">Пользователи</option>
-                                <option value="system">Система</option>
-                                <option value="log">Журнал</option>
-                                <option value="file">Файлы</option>
-                                <option value="folder">Папки</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label for="userFilter"><i class="fas fa-user"></i> Пользователь</label>
-                            <input type="text" id="userFilter" class="form-control" placeholder="Имя пользователя...">
-                        </div>
-                        <div class="filter-group">
-                            <label for="dateFromFilter"><i class="fas fa-calendar"></i> Дата с</label>
-                            <input type="date" id="dateFromFilter" class="form-control">
-                        </div>
-                        <div class="filter-group">
-                            <label for="dateToFilter"><i class="fas fa-calendar"></i> Дата по</label>
-                            <input type="date" id="dateToFilter" class="form-control">
-                        </div>
-                    </div>
-                    <div class="filter-actions">
-                        <button class="btn-primary" id="applyFiltersBtn">
-                            <i class="fas fa-check"></i> Применить фильтры
-                        </button>
-                        <button class="btn-secondary" id="resetFiltersBtn">
-                            <i class="fas fa-redo"></i> Сбросить фильтры
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="logs-container">
-                <div class="logs-header">
-                    <h2><i class="fas fa-history"></i> История действий</h2>
-                    <div class="logs-info">
-                        <div class="info-card">
-                            <h3>Всего записей</h3>
-                            <p id="totalLogs">0</p>
-                        </div>
-                        <div class="info-card">
-                            <h3>Успешно</h3>
-                            <p id="successLogs">0</p>
-                        </div>
-                        <div class="info-card">
-                            <h3>Ошибок</h3>
-                            <p id="failedLogs">0</p>
-                        </div>
-                        <div class="info-card">
-                            <h3>Пользователей</h3>
-                            <p id="uniqueUsers">0</p>
+                        <div class="filter-actions">
+                            <button class="btn-primary" id="applyFiltersBtn">
+                                <i class="fas fa-check"></i> Применить фильтры
+                            </button>
+                            <button class="btn-secondary" id="resetFiltersBtn">
+                                <i class="fas fa-redo"></i> Сбросить фильтры
+                            </button>
                         </div>
                     </div>
                 </div>
-
-                <div id="logsContent">
-                    <div class="loading-state">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <p>Загрузка журнала действий...</p>
+    
+                <div class="logs-container">
+                    <div class="logs-header">
+                        <h2><i class="fas fa-history"></i> История действий</h2>
+                        <div class="logs-info">
+                            <div class="info-card">
+                                <h3>Всего записей</h3>
+                                <p id="totalLogs">0</p>
+                            </div>
+                            <div class="info-card">
+                                <h3>Успешно</h3>
+                                <p id="successLogs">0</p>
+                            </div>
+                            <div class="info-card">
+                                <h3>Ошибок</h3>
+                                <p id="failedLogs">0</p>
+                            </div>
+                            <div class="info-card">
+                                <h3>Пользователей</h3>
+                                <p id="uniqueUsers">0</p>
+                            </div>
+                        </div>
                     </div>
+    
+                    <div id="logsContent">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Загрузка журнала действий...</p>
+                        </div>
+                    </div>
+    
+                    <div class="pagination" id="pagination"></div>
                 </div>
-
-                <div class="pagination" id="pagination"></div>
-            </div>
-
-            <div class="modal" id="detailsModal" style="display: none;">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-info-circle"></i> Детали записи</h3>
-                        <button class="close-btn" id="closeModalBtn">&times;</button>
-                    </div>
-                    <div class="modal-body" id="modalBody">
-                        <!-- Детали будут загружены динамически -->
+    
+                <div class="modal" id="detailsModal" style="display: none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3><i class="fas fa-info-circle"></i> Детали записи</h3>
+                            <button class="close-btn" id="closeModalBtn">&times;</button>
+                        </div>
+                        <div class="modal-body" id="modalBody">
+                            <!-- Детали будут загружены динамически -->
+                        </div>
                     </div>
                 </div>
             </div>
         `;
-
+    
         this.initFilters();
     }
     
@@ -935,23 +937,23 @@ addClearButton(input) {
     showErrorPage(message) {
         const container = document.getElementById('adminContainer');
         container.innerHTML = `
-            <!-- Шапка проекта -->
-            <div class="project-header">
-                <div class="project-info">
-                    <i class="fas fa-archive"></i>
-                    <div>
-                        <h1>Система контроля версий документов</h1>
-                        <p>Журнал действий системы</p>
+            <div class="admin-container">
+                <div class="card">
+                    <div class="project-header">
+                        <div class="project-info">
+                            <i class="fas fa-archive"></i>
+                            <div>
+                                <h1>Система контроля версий документов</h1>
+                                <p>Журнал действий системы</p>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <div class="error-message">
+                        <h2><i class="fas fa-exclamation-triangle"></i> Ошибка доступа</h2>
+                        <p>${message}</p>
                     </div>
                 </div>
-                <div class="project-version">
-                    <span class="version-badge">v1.0</span>
-                </div>
-            </div>
-
-            <div class="error-message">
-                <h2><i class="fas fa-exclamation-triangle"></i> Ошибка доступа</h2>
-                <p>${message}</p>
             </div>
         `;
     }

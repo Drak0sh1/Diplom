@@ -20,11 +20,64 @@ body {
 }
 
 .login-card {
-    background: rgba(255, 255, 255, 0.95);
+    background: white;
     border-radius: 15px;
     padding: 40px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(10px);
+}
+
+/* Стили для шапки на странице авторизации */
+.login-project-header {
+    background: transparent;
+    color: #2d3748;
+    padding: 0 0 25px 0;
+    margin-bottom: 25px;
+    border-bottom: 2px solid #f7fafc;
+    text-align: center;
+    position: static;
+    box-shadow: none;
+}
+
+.login-project-header .project-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.login-project-header .project-info i {
+    font-size: 42px;
+    color: #4299e1;
+    background: linear-gradient(135deg, #4299e1 0%, #667eea 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.login-project-header .project-info h1 {
+    font-size: 24px;
+    margin: 0 0 5px 0;
+    color: #2d3748;
+    font-weight: 600;
+}
+
+.login-project-header .project-info p {
+    font-size: 14px;
+    color: #718096;
+    margin: 0;
+}
+
+.login-project-header .project-version {
+    margin-top: 10px;
+}
+
+.login-project-header .version-badge {
+    background: #e2e8f0;
+    color: #4a5568;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
 }
 
 .logo {
@@ -38,9 +91,10 @@ body {
     margin-bottom: 15px;
 }
 
-.logo h1 {
+.logo h2 {
     color: #2d3748;
-    font-size: 28px;
+    font-size: 22px;
+    margin-bottom: 8px;
 }
 
 .logo p {
@@ -182,71 +236,11 @@ body {
         padding: 30px 20px;
     }
     
-    .logo h1 {
-        font-size: 24px;
-    }
-}
-/* Стили для шапки на странице авторизации */
-.login-project-header {
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-    color: white;
-    padding: 15px 30px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    animation: slideDown 0.5s ease-out;
-}
-
-.login-project-header .project-info h1 {
-    font-size: 22px;
-    margin: 0 0 3px 0;
-}
-
-.login-project-header .project-info p {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.85);
-}
-
-.login-project-header .project-info i {
-    font-size: 36px;
-    width: 50px;
-    height: 50px;
-}
-
-.login-container {
-    margin-top: 110px; /* Отступ для фиксированной шапки */
-    min-height: calc(100vh - 110px);
-}
-
-@keyframes slideDown {
-    from {
-        transform: translateY(-100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-@media (max-width: 768px) {
-    .login-project-header {
-        padding: 12px 20px;
-    }
-    
     .login-project-header .project-info h1 {
-        font-size: 18px;
+        font-size: 20px;
     }
     
-    .login-project-header .project-info p {
-        font-size: 12px;
-    }
-    
-    .login-container {
-        margin-top: 90px;
-        min-height: calc(100vh - 90px);
+    .logo h2 {
+        font-size: 20px;
     }
 }
