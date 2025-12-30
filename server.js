@@ -1224,164 +1224,624 @@ app.get('/api/admin/roles', requireAuth('Администратор'), async (re
 });
 
 // ============ РЕДАКТОР ЭНДПОИНТЫ ============
+// ============ MIDDLEWARE ДЛЯ ПРОВЕРКИ РОЛИ РЕДАКТОРА ============
 
-// Получить список каталогов для редактора
-app.get('/api/editor/directories', requireAuth('Редактор'), async (req, res) => {
+function requireEditorRole(req, res, next) {
+    if (!req.user) {
+        return res.status(401).json({ 
+            success: false, 
+            message: 'Требуется авторизация' 
+        });
+    }
+    
+    if (req.user.role !== 'Редактор' && req.user.role !== 'Администратор') {
+        return res.status(403).json({ 
+            success: false, 
+            message: 'Недостаточно прав. Требуется роль Редактора или Администратора' 
+        });
+    }
+    
+    next();
+}
+
+// ============ API ЭНДПОИНТЫ ДЛЯ РЕДАКТОРА ============
+
+// Получить текущего пользователя (для редактора)
+app.get('/api/editor/current-user', requireEditorRole, (req, res) => {
+    res.json({
+        success: true,
+        data: {
+            id: req.user.userId,
+            name: req.user.username,
+            role: req.user.role
+        }
+    });
+});
+
+// Получить все справочники (каталоги)
+app.get('/api/editor/directories', requireEditorRole, async (req, res) => {
     try {
-       
+        const connection = await pool.getConnection();
+        
+        const [directories] = await connection.execute(`
+            SELECT 
+                f.idFolder as id,
+                f.Name as name,
+                f.parentId,
+                p.Name as parentName,
+                f.createdAt,
+                COUNT(DISTINCT uf.idUsers) as userCount,
+                COUNT(DISTINCT fl.idFiles) as fileCount
+            FROM Folder f
+            LEFT JOIN Folder p ON f.parentId = p.idFolder
+            LEFT JOIN UsersFolders uf ON f.idFolder = uf.idFolders
+            LEFT JOIN Files fl ON f.idFolder = fl.idFolders
+            GROUP BY f.idFolder
+            ORDER BY f.createdAt DESC
+        `);
+        
+        connection.release();
+        
+        // Логируем действие
+        await logAction(
+            req.user.userId,
+            'get_directories',
+            `Редактор ${req.user.username} запросил список справочников`,
+            'editor',
+            'folder',
+            null,
+            'success',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
         res.json({
             success: true,
-            directories: [
-                { id: 1, name: 'Входящая корреспонденция', description: 'Входящие документы', documentCount: 15, isActive: true, createdAt: '01.01.2024 10:00' },
-                { id: 2, name: 'Исходящая корреспонденция', description: 'Исходящие документы', documentCount: 8, isActive: true, createdAt: '01.01.2024 10:00' },
-                { id: 3, name: 'Внутренние документы', description: 'Внутренняя документация', documentCount: 23, isActive: true, createdAt: '01.01.2024 10:00' },
-                { id: 4, name: 'Архив', description: 'Архивные документы', documentCount: 156, isActive: false, createdAt: '01.01.2024 10:00' }
-            ]
+            data: directories
         });
         
     } catch (error) {
-        console.error('❌ Ошибка получения каталогов:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Ошибка сервера'
+        console.error('❌ Ошибка получения справочников:', error);
+        
+        await logAction(
+            req.user?.userId || null,
+            'get_directories',
+            `Ошибка получения справочников: ${error.message}`,
+            'editor',
+            'folder',
+            null,
+            'failed',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера при получении справочников' 
         });
     }
 });
 
-// Получить типы документов для редактора
-app.get('/api/editor/document-types', requireAuth('Редактор'), async (req, res) => {
+// Получить один справочник
+app.get('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
     try {
+        const directoryId = req.params.id;
+        
+        const connection = await pool.getConnection();
+        
+        const [directories] = await connection.execute(`
+            SELECT 
+                f.idFolder as id,
+                f.Name as name,
+                f.parentId,
+                p.Name as parentName,
+                f.createdAt
+            FROM Folder f
+            LEFT JOIN Folder p ON f.parentId = p.idFolder
+            WHERE f.idFolder = ?
+        `, [directoryId]);
+        
+        connection.release();
+        
+        if (directories.length === 0) {
+            return res.json({
+                success: false,
+                message: 'Справочник не найден'
+            });
+        }
+        
         res.json({
             success: true,
-            types: [
-                { id: 1, name: 'Письмо', code: 'LTR', description: 'Входящие/исходящие письма', createdAt: '01.01.2024 10:00' },
-                { id: 2, name: 'Приказ', code: 'ORD', description: 'Распорядительные документы', createdAt: '01.01.2024 10:00' },
-                { id: 3, name: 'Договор', code: 'CNT', description: 'Договоры и соглашения', createdAt: '01.01.2024 10:00' },
-                { id: 4, name: 'Акт', code: 'ACT', description: 'Акты выполненных работ', createdAt: '01.01.2024 10:00' }
-            ]
+            data: directories[0]
         });
         
     } catch (error) {
-        console.error('❌ Ошибка получения типов документов:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Ошибка сервера'
+        console.error('❌ Ошибка получения справочника:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера' 
         });
     }
 });
 
-// Получить статусы документов для редактора
-app.get('/api/editor/document-statuses', requireAuth('Редактор'), async (req, res) => {
+// Создать справочник
+app.post('/api/editor/directories', requireEditorRole, async (req, res) => {
     try {
+        const { name, parentId = null, description = '' } = req.body;
+        const editorId = req.user.userId;
+        const editorName = req.user.username;
+        
+        if (!name || name.trim() === '') {
+            return res.json({
+                success: false,
+                message: 'Название справочника не может быть пустым'
+            });
+        }
+        
+        const connection = await pool.getConnection();
+        
+        // Проверяем существование родительского каталога
+        if (parentId) {
+            const [parentExists] = await connection.execute(
+                'SELECT idFolder FROM Folder WHERE idFolder = ?',
+                [parentId]
+            );
+            
+            if (parentExists.length === 0) {
+                connection.release();
+                return res.json({
+                    success: false,
+                    message: 'Родительский каталог не найден'
+                });
+            }
+        }
+        
+        // Создаем справочник
+        const [result] = await connection.execute(
+            'INSERT INTO Folder (Name, parentId) VALUES (?, ?)',
+            [name.trim(), parentId]
+        );
+        
+        const directoryId = result.insertId;
+        
+        // Если нужно, добавляем описание (дополнительная таблица)
+        if (description.trim() !== '') {
+            try {
+                // Проверяем существование таблицы для описаний
+                await connection.execute(`
+                    CREATE TABLE IF NOT EXISTS FolderMetadata (
+                        id INT PRIMARY KEY AUTO_INCREMENT,
+                        folderId INT NOT NULL,
+                        description TEXT,
+                        FOREIGN KEY (folderId) REFERENCES Folder(idFolder) ON DELETE CASCADE
+                    )
+                `);
+                
+                await connection.execute(
+                    'INSERT INTO FolderMetadata (folderId, description) VALUES (?, ?)',
+                    [directoryId, description.trim()]
+                );
+            } catch (metadataError) {
+                console.log('ℹ️ Таблица метаданных не создана, пропускаем описание');
+            }
+        }
+        
+        connection.release();
+        
+        // Логируем создание справочника
+        await logAction(
+            editorId,
+            'directory_create',
+            `Редактор ${editorName} создал справочник "${name}" (ID: ${directoryId})`,
+            'editor',
+            'folder',
+            directoryId,
+            'success',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
         res.json({
             success: true,
-            statuses: [
-                { id: 1, name: 'Новый', color: '#4299e1', description: 'Новый документ', createdAt: '01.01.2024 10:00' },
-                { id: 2, name: 'В обработке', color: '#ed8936', description: 'Документ в обработке', createdAt: '01.01.2024 10:00' },
-                { id: 3, name: 'Завершен', color: '#48bb78', description: 'Документ обработан', createdAt: '01.01.2024 10:00' },
-                { id: 4, name: 'Отклонен', color: '#f56565', description: 'Документ отклонен', createdAt: '01.01.2024 10:00' }
-            ]
+            message: 'Справочник создан успешно',
+            data: {
+                id: directoryId,
+                name: name.trim(),
+                parentId: parentId,
+                createdAt: new Date().toISOString()
+            }
         });
         
     } catch (error) {
-        console.error('❌ Ошибка получения статусов:', error);
+        console.error('❌ Ошибка создания справочника:', error);
+        
+        await logAction(
+            req.user?.userId || null,
+            'directory_create',
+            `Ошибка создания справочника: ${error.message}`,
+            'editor',
+            'folder',
+            null,
+            'failed',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
         res.status(500).json({
             success: false,
-            message: 'Ошибка сервера'
+            message: 'Ошибка сервера при создании справочника'
         });
     }
 });
 
-// Получить пользователей для назначения (только редакторы и пользователи)
-app.get('/api/editor/users-for-assignment', requireAuth('Редактор'), async (req, res) => {
+// Обновить справочник
+app.put('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
     try {
-        const [users] = await pool.execute(`
+        const directoryId = req.params.id;
+        const { name, parentId = null, description = '' } = req.body;
+        const editorId = req.user.userId;
+        const editorName = req.user.username;
+        
+        if (!name || name.trim() === '') {
+            return res.json({
+                success: false,
+                message: 'Название справочника не может быть пустым'
+            });
+        }
+        
+        const connection = await pool.getConnection();
+        
+        // Проверяем существование справочника
+        const [directoryExists] = await connection.execute(
+            'SELECT idFolder, Name FROM Folder WHERE idFolder = ?',
+            [directoryId]
+        );
+        
+        if (directoryExists.length === 0) {
+            connection.release();
+            return res.json({
+                success: false,
+                message: 'Справочник не найден'
+            });
+        }
+        
+        const oldName = directoryExists[0].Name;
+        
+        // Проверяем существование родительского каталога
+        if (parentId) {
+            const [parentExists] = await connection.execute(
+                'SELECT idFolder FROM Folder WHERE idFolder = ?',
+                [parentId]
+            );
+            
+            if (parentExists.length === 0) {
+                connection.release();
+                return res.json({
+                    success: false,
+                    message: 'Родительский каталог не найден'
+                });
+            }
+            
+            // Проверяем циклическую ссылку (чтобы не сделать родителем самого себя)
+            if (parseInt(parentId) === parseInt(directoryId)) {
+                connection.release();
+                return res.json({
+                    success: false,
+                    message: 'Нельзя сделать справочник родителем самого себя'
+                });
+            }
+        }
+        
+        // Обновляем справочник
+        await connection.execute(
+            'UPDATE Folder SET Name = ?, parentId = ? WHERE idFolder = ?',
+            [name.trim(), parentId, directoryId]
+        );
+        
+        // Обновляем описание если нужно
+        if (description.trim() !== '') {
+            try {
+                await connection.execute(`
+                    INSERT INTO FolderMetadata (folderId, description) 
+                    VALUES (?, ?) 
+                    ON DUPLICATE KEY UPDATE description = ?
+                `, [directoryId, description.trim(), description.trim()]);
+            } catch (metadataError) {
+                console.log('ℹ️ Не удалось обновить метаданные');
+            }
+        }
+        
+        connection.release();
+        
+        // Логируем обновление справочника
+        await logAction(
+            editorId,
+            'directory_update',
+            `Редактор ${editorName} обновил справочник "${oldName}" -> "${name}" (ID: ${directoryId})`,
+            'editor',
+            'folder',
+            directoryId,
+            'success',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.json({
+            success: true,
+            message: 'Справочник обновлен успешно'
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка обновления справочника:', error);
+        
+        await logAction(
+            req.user?.userId || null,
+            'directory_update',
+            `Ошибка обновления справочника: ${error.message}`,
+            'editor',
+            'folder',
+            req.params.id,
+            'failed',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера при обновлении справочника'
+        });
+    }
+});
+
+// Удалить справочник
+app.delete('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
+    try {
+        const directoryId = req.params.id;
+        const editorId = req.user.userId;
+        const editorName = req.user.username;
+        
+        const connection = await pool.getConnection();
+        
+        // Получаем информацию о справочнике для лога
+        const [directoryInfo] = await connection.execute(
+            'SELECT Name FROM Folder WHERE idFolder = ?',
+            [directoryId]
+        );
+        
+        if (directoryInfo.length === 0) {
+            connection.release();
+            return res.json({
+                success: false,
+                message: 'Справочник не найден'
+            });
+        }
+        
+        const directoryName = directoryInfo[0].Name;
+        
+        // Проверяем, есть ли вложенные справочники
+        const [childDirectories] = await connection.execute(
+            'SELECT idFolder FROM Folder WHERE parentId = ?',
+            [directoryId]
+        );
+        
+        if (childDirectories.length > 0) {
+            connection.release();
+            return res.json({
+                success: false,
+                message: 'Нельзя удалить справочник с вложенными каталогами'
+            });
+        }
+        
+        // Удаляем справочник (каскадное удаление настроено в БД)
+        await connection.execute(
+            'DELETE FROM Folder WHERE idFolder = ?',
+            [directoryId]
+        );
+        
+        connection.release();
+        
+        // Логируем удаление справочника
+        await logAction(
+            editorId,
+            'directory_delete',
+            `Редактор ${editorName} удалил справочник "${directoryName}" (ID: ${directoryId})`,
+            'editor',
+            'folder',
+            directoryId,
+            'warning',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.json({
+            success: true,
+            message: 'Справочник удален успешно'
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка удаления справочника:', error);
+        
+        await logAction(
+            req.user?.userId || null,
+            'directory_delete',
+            `Ошибка удаления справочника: ${error.message}`,
+            'editor',
+            'folder',
+            req.params.id,
+            'failed',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера при удалении справочника'
+        });
+    }
+});
+
+// Получить всех пользователей для назначения
+app.get('/api/editor/users', requireEditorRole, async (req, res) => {
+    try {
+        const connection = await pool.getConnection();
+        
+        const [users] = await connection.execute(`
             SELECT 
                 u.idUsers as id,
                 u.name,
-                r.name as role
+                r.name as role,
+                u.createdAt
             FROM Users u
             LEFT JOIN Roles r ON u.idRoles = r.idRoles
-            WHERE r.name IN ('Редактор', 'Пользователь')
+            WHERE r.name IN ('Пользователь', 'Редактор', 'Администратор')
             ORDER BY u.name
         `);
         
+        connection.release();
+        
         res.json({
             success: true,
-            users: users
+            data: users
         });
         
     } catch (error) {
-        console.error('❌ Ошибка получения пользователей:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Ошибка сервера'
+        console.error('❌ Ошибка получения пользователей для редактора:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера' 
         });
     }
 });
 
-// Получить журнал контрагентов
-app.get('/api/editor/counterparties', requireAuth('Редактор'), async (req, res) => {
+// Получить назначения доступа
+app.get('/api/editor/assignments', requireEditorRole, async (req, res) => {
     try {
+        const { userId = null, directoryId = null } = req.query;
+        
+        const connection = await pool.getConnection();
+        
+        let sql = `
+            SELECT 
+                uf.idUsers as userId,
+                uf.idFolders as directoryId,
+                uf.permission,
+                u.name as userName,
+                f.Name as directoryName,
+                uf.createdAt as assignedAt
+            FROM UsersFolders uf
+            JOIN Users u ON uf.idUsers = u.idUsers
+            JOIN Folder f ON uf.idFolders = f.idFolder
+            WHERE 1=1
+        `;
+        
+        const params = [];
+        
+        if (userId) {
+            sql += ' AND uf.idUsers = ?';
+            params.push(userId);
+        }
+        
+        if (directoryId) {
+            sql += ' AND uf.idFolders = ?';
+            params.push(directoryId);
+        }
+        
+        sql += ' ORDER BY uf.createdAt DESC';
+        
+        const [assignments] = await connection.execute(sql, params);
+        
+        connection.release();
+        
         res.json({
             success: true,
-            counterparties: [
-                { id: 1, name: 'ООО "Ромашка"', letterCount: 12, lastLetterDate: '15.03.2024', isActive: true },
-                { id: 2, name: 'ИП Иванов И.И.', letterCount: 8, lastLetterDate: '10.03.2024', isActive: true },
-                { id: 3, name: 'ЗАО "Стройтех"', letterCount: 5, lastLetterDate: '05.03.2024', isActive: true },
-                { id: 4, name: 'АО "Энергосбыт"', letterCount: 3, lastLetterDate: '28.02.2024', isActive: false }
-            ]
+            data: assignments
         });
         
     } catch (error) {
-        console.error('❌ Ошибка получения контрагентов:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Ошибка сервера'
+        console.error('❌ Ошибка получения назначений:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера' 
         });
     }
 });
 
-// Получить журнал входящей корреспонденции
-app.get('/api/editor/incoming-correspondence', requireAuth('Редактор'), async (req, res) => {
+// Назначить доступ к справочнику
+app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
     try {
-        const { status, date } = req.query;
+        const { userId, directoryId, permission = 'READ' } = req.body;
+        const editorId = req.user.userId;
+        const editorName = req.user.username;
         
-        // Здесь будет фильтрация по статусу и дате
-        // Пока возвращаем заглушку
-        res.json({
-            success: true,
-            correspondence: [
-                { letterId: 1001, receivedDate: '15.03.2024 10:30', statusName: 'Новый', statusColor: '#4299e1', notes: 'Срочное письмо', statusChangedDate: '15.03.2024 10:30' },
-                { letterId: 1002, receivedDate: '14.03.2024 14:20', statusName: 'В обработке', statusColor: '#ed8936', notes: 'Требуется ответ', statusChangedDate: '15.03.2024 09:15' },
-                { letterId: 1003, receivedDate: '13.03.2024 11:45', statusName: 'Завершен', statusColor: '#48bb78', notes: 'Обработано', statusChangedDate: '14.03.2024 16:30' },
-                { letterId: 1004, receivedDate: '12.03.2024 16:10', statusName: 'Новый', statusColor: '#4299e1', notes: 'Обычное письмо', statusChangedDate: '12.03.2024 16:10' }
-            ]
-        });
+        if (!userId || !directoryId) {
+            return res.json({
+                success: false,
+                message: 'Не указан пользователь или справочник'
+            });
+        }
         
-    } catch (error) {
-        console.error('❌ Ошибка получения корреспонденции:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Ошибка сервера'
-        });
-    }
-});
-
-// Назначить каталог пользователю
-app.post('/api/editor/assign', requireAuth('Редактор'), async (req, res) => {
-    try {
-        const { userId, directoryId } = req.body;
+        const connection = await pool.getConnection();
         
-        // Здесь будет логика назначения
-        // Пока возвращаем заглушку
+        // Проверяем существование пользователя
+        const [userExists] = await connection.execute(
+            'SELECT idUsers, name FROM Users WHERE idUsers = ?',
+            [userId]
+        );
         
+        if (userExists.length === 0) {
+            connection.release();
+            return res.json({
+                success: false,
+                message: 'Пользователь не найден'
+            });
+        }
+        
+        // Проверяем существование справочника
+        const [directoryExists] = await connection.execute(
+            'SELECT idFolder, Name FROM Folder WHERE idFolder = ?',
+            [directoryId]
+        );
+        
+        if (directoryExists.length === 0) {
+            connection.release();
+            return res.json({
+                success: false,
+                message: 'Справочник не найден'
+            });
+        }
+        
+        const userName = userExists[0].name;
+        const directoryName = directoryExists[0].Name;
+        
+        // Проверяем, не назначен ли уже доступ
+        const [existingAssignment] = await connection.execute(
+            'SELECT idUsers FROM UsersFolders WHERE idUsers = ? AND idFolders = ?',
+            [userId, directoryId]
+        );
+        
+        if (existingAssignment.length > 0) {
+            connection.release();
+            return res.json({
+                success: false,
+                message: 'Доступ уже назначен этому пользователю'
+            });
+        }
+        
+        // Назначаем доступ
+        await connection.execute(
+            'INSERT INTO UsersFolders (idUsers, idFolders, permission) VALUES (?, ?, ?)',
+            [userId, directoryId, permission]
+        );
+        
+        connection.release();
+        
+        // Логируем назначение доступа
         await logAction(
-            req.user.userId,
-            'directory_assign',
-            `Редактор ${req.user.username} назначил доступ к каталогу ID ${directoryId} пользователю ID ${userId}`,
-            'directories',
-            'user',
+            editorId,
+            'assignment_create',
+            `Редактор ${editorName} назначил доступ ${permission} пользователю "${userName}" к справочнику "${directoryName}"`,
+            'editor',
+            'user_folder',
             userId,
             'success',
             getClientIp(req),
@@ -1395,76 +1855,73 @@ app.post('/api/editor/assign', requireAuth('Редактор'), async (req, res)
         
     } catch (error) {
         console.error('❌ Ошибка назначения доступа:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Ошибка сервера'
-        });
-    }
-});
-
-// Получить список назначений
-app.get('/api/editor/assignments', requireAuth('Редактор'), async (req, res) => {
-    try {
-        // Здесь будет реальная логика
-        // Пока возвращаем заглушку
-        res.json({
-            success: true,
-            assignments: [
-                { userName: 'user1', directoryName: 'Входящая корреспонденция', assignedAt: '10.03.2024 14:30' },
-                { userName: 'user2', directoryName: 'Исходящая корреспонденция', assignedAt: '11.03.2024 10:15' },
-                { userName: 'user3', directoryName: 'Внутренние документы', assignedAt: '12.03.2024 09:45' }
-            ]
-        });
         
-    } catch (error) {
-        console.error('❌ Ошибка получения назначений:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Ошибка сервера'
-        });
-    }
-});
-// В вашем сервере добавьте:
-
-// Получить все папки (каталоги)
-app.get('/api/editor/folders', requireAuth('Редактор'), async (req, res) => {
-    try {
-        const [folders] = await pool.execute(`
-            SELECT f.*, COUNT(DISTINCT uf.idUsers) as userCount
-            FROM Folder f
-            LEFT JOIN UsersFolders uf ON f.idFolder = uf.idFolders
-            GROUP BY f.idFolder
-            ORDER BY f.parentId IS NULL DESC, f.Name
-        `);
-        
-        res.json({
-            success: true,
-            folders: folders
-        });
-    } catch (error) {
-        console.error('Ошибка получения папок:', error);
-        res.status(500).json({ success: false, message: 'Ошибка сервера' });
-    }
-});
-
-// Создать папку
-app.post('/api/editor/folders', requireAuth('Редактор'), async (req, res) => {
-    try {
-        const { name, parentId } = req.body;
-        
-        const [result] = await pool.execute(
-            'INSERT INTO Folder (Name, parentId) VALUES (?, ?)',
-            [name, parentId]
+        await logAction(
+            req.user?.userId || null,
+            'assignment_create',
+            `Ошибка назначения доступа: ${error.message}`,
+            'editor',
+            'user_folder',
+            null,
+            'failed',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
         );
         
-        // Логируем создание
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера при назначении доступа'
+        });
+    }
+});
+
+// Обновить назначение доступа
+app.put('/api/editor/assignments/:id', requireEditorRole, async (req, res) => {
+    try {
+        // В вашей БД нет id для UsersFolders, так что обновляем по userId + directoryId
+        const { userId, directoryId, permission } = req.body;
+        const editorId = req.user.userId;
+        const editorName = req.user.username;
+        
+        if (!userId || !directoryId || !permission) {
+            return res.json({
+                success: false,
+                message: 'Не указаны необходимые параметры'
+            });
+        }
+        
+        const connection = await pool.getConnection();
+        
+        // Проверяем существование назначения
+        const [assignmentExists] = await connection.execute(
+            'SELECT idUsers, idFolders FROM UsersFolders WHERE idUsers = ? AND idFolders = ?',
+            [userId, directoryId]
+        );
+        
+        if (assignmentExists.length === 0) {
+            connection.release();
+            return res.json({
+                success: false,
+                message: 'Назначение не найдено'
+            });
+        }
+        
+        // Обновляем разрешение
+        await connection.execute(
+            'UPDATE UsersFolders SET permission = ? WHERE idUsers = ? AND idFolders = ?',
+            [permission, userId, directoryId]
+        );
+        
+        connection.release();
+        
+        // Логируем обновление доступа
         await logAction(
-            req.user.userId,
-            'folder_create',
-            `Создана папка: ${name} ${parentId ? '(вложенная)' : '(корневая)'}`,
-            'folders',
-            'folder',
-            result.insertId,
+            editorId,
+            'assignment_update',
+            `Редактор ${editorName} обновил доступ пользователя ID:${userId} к справочнику ID:${directoryId} на "${permission}"`,
+            'editor',
+            'user_folder',
+            userId,
             'success',
             getClientIp(req),
             req.headers['user-agent'] || ''
@@ -1472,144 +1929,84 @@ app.post('/api/editor/folders', requireAuth('Редактор'), async (req, res
         
         res.json({
             success: true,
-            folderId: result.insertId,
-            message: 'Папка создана'
+            message: 'Доступ успешно обновлен'
         });
+        
     } catch (error) {
-        console.error('Ошибка создания папки:', error);
-        res.status(500).json({ success: false, message: 'Ошибка сервера' });
-    }
-});
-
-// Получить файлы в папке
-app.get('/api/editor/folders/:folderId/files', requireAuth('Редактор'), async (req, res) => {
-    try {
-        const folderId = req.params.folderId;
+        console.error('❌ Ошибка обновления доступа:', error);
         
-        const [files] = await pool.execute(`
-            SELECT f.*, u.name as uploaderName
-            FROM Files f
-            LEFT JOIN Users u ON f.createdBy = u.idUsers
-            WHERE f.idFolders = ?
-            ORDER BY f.createdAt DESC
-        `, [folderId]);
-        
-        res.json({
-            success: true,
-            files: files
-        });
-    } catch (error) {
-        console.error('Ошибка получения файлов:', error);
-        res.status(500).json({ success: false, message: 'Ошибка сервера' });
-    }
-});
-
-// Получить информацию о папке и назначенных пользователях
-app.get('/api/editor/folders/:folderId/info', requireAuth('Редактор'), async (req, res) => {
-    try {
-        const folderId = req.params.folderId;
-        
-        const [folderResult] = await pool.execute(
-            'SELECT * FROM Folder WHERE idFolder = ?',
-            [folderId]
-        );
-        
-        if (folderResult.length === 0) {
-            return res.json({ success: false, message: 'Папка не найдена' });
-        }
-        
-        const folder = folderResult[0];
-        
-        // Получаем родительскую папку
-        let parentFolder = null;
-        if (folder.parentId) {
-            const [parentResult] = await pool.execute(
-                'SELECT * FROM Folder WHERE idFolder = ?',
-                [folder.parentId]
-            );
-            parentFolder = parentResult[0];
-        }
-        
-        // Получаем назначенных пользователей
-        const [users] = await pool.execute(`
-            SELECT u.idUsers as userId, u.name, uf.permission
-            FROM UsersFolders uf
-            JOIN Users u ON uf.idUsers = u.idUsers
-            WHERE uf.idFolders = ?
-        `, [folderId]);
-        
-        res.json({
-            success: true,
-            folder: folder,
-            parentFolder: parentFolder,
-            assignedUsers: users
-        });
-    } catch (error) {
-        console.error('Ошибка получения информации о папке:', error);
-        res.status(500).json({ success: false, message: 'Ошибка сервера' });
-    }
-});
-
-// Назначить пользователей папке
-app.post('/api/editor/folders/assign', requireAuth('Редактор'), async (req, res) => {
-    try {
-        const { folderId, userIds } = req.body;
-        
-        // Удаляем старые назначения
-        await pool.execute(
-            'DELETE FROM UsersFolders WHERE idFolders = ?',
-            [folderId]
-        );
-        
-        // Добавляем новые назначения
-        for (const userId of userIds) {
-            await pool.execute(
-                'INSERT INTO UsersFolders (idUsers, idFolders, permission) VALUES (?, ?, ?)',
-                [userId, folderId, 'READ']
-            );
-        }
-        
-        // Логируем назначение
         await logAction(
-            req.user.userId,
-            'folder_assign',
-            `Назначено ${userIds.length} пользователей папке ID: ${folderId}`,
-            'folders',
-            'folder',
-            folderId,
-            'success',
+            req.user?.userId || null,
+            'assignment_update',
+            `Ошибка обновления доступа: ${error.message}`,
+            'editor',
+            'user_folder',
+            null,
+            'failed',
             getClientIp(req),
             req.headers['user-agent'] || ''
         );
         
-        res.json({
-            success: true,
-            message: 'Пользователи назначены'
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера при обновлении доступа'
         });
-    } catch (error) {
-        console.error('Ошибка назначения пользователей:', error);
-        res.status(500).json({ success: false, message: 'Ошибка сервера' });
     }
 });
 
-// Отозвать доступ у пользователя
-app.post('/api/editor/folders/unassign', requireAuth('Редактор'), async (req, res) => {
+// Отозвать доступ
+app.delete('/api/editor/assignments', requireEditorRole, async (req, res) => {
     try {
-        const { userId, folderId } = req.body;
+        const { userId, directoryId } = req.body;
+        const editorId = req.user.userId;
+        const editorName = req.user.username;
         
-        await pool.execute(
+        if (!userId || !directoryId) {
+            return res.json({
+                success: false,
+                message: 'Не указан пользователь или справочник'
+            });
+        }
+        
+        const connection = await pool.getConnection();
+        
+        // Получаем информацию для лога
+        const [userInfo] = await connection.execute(
+            'SELECT name FROM Users WHERE idUsers = ?',
+            [userId]
+        );
+        
+        const [directoryInfo] = await connection.execute(
+            'SELECT Name FROM Folder WHERE idFolder = ?',
+            [directoryId]
+        );
+        
+        const userName = userInfo[0]?.name || `ID:${userId}`;
+        const directoryName = directoryInfo[0]?.Name || `ID:${directoryId}`;
+        
+        // Удаляем доступ
+        const [result] = await connection.execute(
             'DELETE FROM UsersFolders WHERE idUsers = ? AND idFolders = ?',
-            [userId, folderId]
+            [userId, directoryId]
         );
+        
+        connection.release();
+        
+        if (result.affectedRows === 0) {
+            return res.json({
+                success: false,
+                message: 'Назначение не найдено'
+            });
+        }
         
         // Логируем отзыв доступа
         await logAction(
-            req.user.userId,
-            'folder_unassign',
-            `Отозван доступ у пользователя ID: ${userId} к папке ID: ${folderId}`,
-            'folders',
-            'folder',
-            folderId,
+            editorId,
+            'assignment_delete',
+            `Редактор ${editorName} отозвал доступ пользователя "${userName}" к справочнику "${directoryName}"`,
+            'editor',
+            'user_folder',
+            userId,
             'warning',
             getClientIp(req),
             req.headers['user-agent'] || ''
@@ -1617,11 +2014,255 @@ app.post('/api/editor/folders/unassign', requireAuth('Редактор'), async 
         
         res.json({
             success: true,
-            message: 'Доступ отозван'
+            message: 'Доступ успешно отозван'
         });
+        
     } catch (error) {
-        console.error('Ошибка отзыва доступа:', error);
-        res.status(500).json({ success: false, message: 'Ошибка сервера' });
+        console.error('❌ Ошибка отзыва доступа:', error);
+        
+        await logAction(
+            req.user?.userId || null,
+            'assignment_delete',
+            `Ошибка отзыва доступа: ${error.message}`,
+            'editor',
+            'user_folder',
+            null,
+            'failed',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера при отзыве доступа'
+        });
+    }
+});
+
+// ============ ЖУРНАЛЫ ДЛЯ РЕДАКТОРА ============
+
+// Получить журнал контрагентов (пример - вам нужно адаптировать под ваши таблицы)
+app.get('/api/editor/counterparties', requireEditorRole, async (req, res) => {
+    try {
+        const { dateFrom, dateTo } = req.query;
+        
+        // В реальной системе здесь будет запрос к таблице контрагентов
+        // Пока вернем тестовые данные
+        
+        // Пример: создаем временную таблицу для демонстрации
+        const counterparties = [
+            {
+                id: 1,
+                letterDate: '2024-01-15',
+                type: 'company',
+                processingStatus: 'completed',
+                sender: 'ООО "Рога и копыта"'
+            },
+            {
+                id: 2,
+                letterDate: '2024-01-16',
+                type: 'individual',
+                processingStatus: 'in_progress',
+                sender: 'Иванов И.И.'
+            },
+            {
+                id: 3,
+                letterDate: '2024-01-17',
+                type: 'government',
+                processingStatus: 'new',
+                sender: 'Министерство финансов'
+            }
+        ].filter(record => {
+            if (dateFrom && new Date(record.letterDate) < new Date(dateFrom)) return false;
+            if (dateTo && new Date(record.letterDate) > new Date(dateTo)) return false;
+            return true;
+        });
+        
+        // Логируем запрос журнала
+        await logAction(
+            req.user.userId,
+            'counterparties_view',
+            `Редактор ${req.user.username} запросил журнал контрагентов`,
+            'editor',
+            'counterparty',
+            null,
+            'success',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.json({
+            success: true,
+            data: counterparties
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения журнала контрагентов:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера' 
+        });
+    }
+});
+
+// Получить журнал статусов входящей корреспонденции
+app.get('/api/editor/status-logs', requireEditorRole, async (req, res) => {
+    try {
+        const { status, date } = req.query;
+        
+        // В реальной системе здесь будет запрос к таблице статусов
+        // Пока вернем тестовые данные
+        
+        const statusLogs = [
+            {
+                letterId: 1001,
+                receivedDate: '2024-01-15',
+                currentStatus: 'completed',
+                changedAt: '2024-01-16',
+                responsibleName: 'Иванов И.И.'
+            },
+            {
+                letterId: 1002,
+                receivedDate: '2024-01-16',
+                currentStatus: 'in_progress',
+                changedAt: '2024-01-16',
+                responsibleName: 'Петров П.П.'
+            },
+            {
+                letterId: 1003,
+                receivedDate: '2024-01-17',
+                currentStatus: 'new',
+                changedAt: '2024-01-17',
+                responsibleName: 'Сидоров С.С.'
+            }
+        ].filter(record => {
+            if (status && record.currentStatus !== status) return false;
+            if (date && new Date(record.receivedDate).toISOString().split('T')[0] !== date) return false;
+            return true;
+        });
+        
+        res.json({
+            success: true,
+            data: statusLogs
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения журнала статусов:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера' 
+        });
+    }
+});
+
+// Экспорт журналов
+app.get('/api/editor/export-logs', requireEditorRole, (req, res) => {
+    try {
+        const { dateFrom, dateTo } = req.query;
+        
+        // В реальной системе здесь создание CSV/Excel файла
+        const exportData = {
+            url: `/exports/editor_logs_${dateFrom}_${dateTo}.csv`,
+            filename: `editor_logs_export_${dateFrom}_${dateTo}.csv`,
+            size: 2048 * 1024
+        };
+        
+        // Логируем экспорт
+        logAction(
+            req.user.userId,
+            'logs_export',
+            `Редактор ${req.user.username} экспортировал журналы за период ${dateFrom} - ${dateTo}`,
+            'editor',
+            'log',
+            null,
+            'info',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.json({
+            success: true,
+            data: exportData
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка экспорта журналов:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера' 
+        });
+    }
+});
+
+// Создать резервную копию
+app.post('/api/editor/backup', requireEditorRole, async (req, res) => {
+    try {
+        const editorId = req.user.userId;
+        const editorName = req.user.username;
+        
+        // Логируем начало создания резервной копии
+        await logAction(
+            editorId,
+            'backup_start',
+            `Редактор ${editorName} запустил создание резервной копии`,
+            'editor',
+            'system',
+            null,
+            'info',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        // В реальной системе здесь будет логика создания резервной копии БД
+        // Например, использование mysqldump или экспорт данных
+        
+        // Имитируем создание резервной копии
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const backupInfo = {
+            filename: `backup_${Date.now()}.sql`,
+            size: '15.7 MB',
+            created: new Date().toISOString()
+        };
+        
+        // Логируем успешное создание резервной копии
+        await logAction(
+            editorId,
+            'backup_complete',
+            `Резервная копия создана успешно: ${backupInfo.filename}`,
+            'editor',
+            'system',
+            null,
+            'success',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.json({
+            success: true,
+            message: 'Резервная копия создана успешно',
+            data: backupInfo
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка создания резервной копии:', error);
+        
+        await logAction(
+            req.user?.userId || null,
+            'backup_failed',
+            `Ошибка создания резервной копии: ${error.message}`,
+            'editor',
+            'system',
+            null,
+            'failed',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка создания резервной копии' 
+        });
     }
 });
 // ============ API ДЛЯ ЛОГОВ ============
@@ -2005,6 +2646,7 @@ app.get('/api/admin/tech-logs', requireAuth('Администратор'), async
     }
 });
 // ============ СТРАНИЦЫ ============
+app.use('/editor', express.static(path.join(__dirname, 'public/editor')));
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));

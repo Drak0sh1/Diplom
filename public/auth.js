@@ -25,21 +25,6 @@ class AuthSystem {
         });
     }
 
-    async checkAutoLogin() {
-        try {
-            const response = await fetch('/api/user');
-            if (response.ok) {
-                const userData = await response.json();
-                this.showNotification(`Вы уже авторизованы как ${userData.username}`, 'success');
-                
-                setTimeout(() => {
-                    this.redirectToRolePage(userData.role);
-                }, 2000);
-            }
-        } catch (error) {
-        }
-    }
-
     togglePassword() {
         const passwordInput = document.getElementById('password');
         const eyeIcon = document.querySelector('.show-password i');
