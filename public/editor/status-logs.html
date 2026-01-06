@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Статусы - Панель редактора</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Шапка -->
+        <div id="header-container"></div>
+
+        <!-- Сайдбар -->
+        <div id="sidebar-container"></div>
+
+        <!-- Основной контент -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1><i class="fas fa-tasks"></i> Журнал статусов</h1>
+                <p class="page-subtitle">Отслеживание статусов обработки документов</p>
+            </div>
+
+            <!-- Основная карточка -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-history"></i> История изменений статусов</h2>
+                    <div class="header-actions">
+                        <button class="btn-sm btn-secondary" id="exportLogs">
+                            <i class="fas fa-file-export"></i> Экспорт
+                        </button>
+                        <button class="btn-sm btn-primary" id="refreshLogs">
+                            <i class="fas fa-sync-alt"></i> Обновить
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Фильтры -->
+                <div class="search-filters">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchLogs" placeholder="Поиск по ID письма...">
+                    </div>
+                    <div class="filter-group">
+                        <select id="filterStatus" class="form-control">
+                            <option value="">Все статусы</option>
+                            <option value="new">Новый</option>
+                            <option value="in_progress">В обработке</option>
+                            <option value="review">На согласовании</option>
+                            <option value="completed">Завершён</option>
+                            <option value="archived">В архиве</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="filterResponsible" class="form-control">
+                            <option value="">Все ответственные</option>
+                            <!-- Опции будут загружены через JS -->
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <input type="date" id="filterDate" class="form-control">
+                    </div>
+                </div>
+
+                <!-- Таблица статусов -->
+                <div class="table-container">
+                    <table class="status-logs-table">
+                        <thead>
+                            <tr>
+                                <th>ID письма</th>
+                                <th>Дата поступления</th>
+                                <th>Предыдущий статус</th>
+                                <th>Новый статус</th>
+                                <th>Дата изменения</th>
+                                <th>Ответственный</th>
+                                <th>Комментарий</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statusLogsTable">
+                            <!-- Данные будут загружены через JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Пагинация -->
+                <div class="pagination">
+                    <button class="pagination-btn" id="prevPage" disabled>
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span class="pagination-info" id="pageInfo">Страница 1 из 1</span>
+                    <button class="pagination-btn" id="nextPage" disabled>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Детальное модальное окно -->
+        <div class="modal-overlay" id="detailsModal">
+            <div class="modal-content wide-modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-info-circle"></i> Детальная информация</h3>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body" id="detailsContent">
+                    <!-- Содержимое будет загружено через JS -->
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" id="closeDetailsBtn">Закрыть</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Уведомления -->
+        <div id="messages"></div>
+    </div>
+
+    <script src="api.js"></script>
+    <script src="script.js"></script>
+    <script src="status-logs.js"></script>
+    <script>
+        // Загрузка компонентов
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('components/header.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('header-container').innerHTML = data;
+                    initHeader();
+                });
+            
+            fetch('components/sidebar.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('sidebar-container').innerHTML = data;
+                    initSidebar();
+                });
+        });
+
+        function initHeader() {
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function() {
+                    if (confirm('Вы уверены, что хотите выйти?')) {
+                        window.location.href = '../index.html';
+                    }
+                });
+            }
+        }
+
+        function initSidebar() {
+            const navItems = document.querySelectorAll('.sidebar-nav a');
+            navItems.forEach(item => {
+                if (item.getAttribute('href') === 'status-logs.html') {
+                    item.classList.add('active');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

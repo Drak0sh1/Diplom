@@ -1270,8 +1270,9 @@ app.get('/api/editor/directories', requireEditorRole, async (req, res) => {
                 f.parentId,
                 p.Name as parentName,
                 f.createdAt,
+                f.status,
                 COUNT(DISTINCT uf.idUsers) as userCount,
-                COUNT(DISTINCT fl.idFiles) as fileCount
+                COUNT(DISTINCT fl.idFiles) as recordCount
             FROM Folder f
             LEFT JOIN Folder p ON f.parentId = p.idFolder
             LEFT JOIN UsersFolders uf ON f.idFolder = uf.idFolders
@@ -1335,7 +1336,9 @@ app.get('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
                 f.Name as name,
                 f.parentId,
                 p.Name as parentName,
-                f.createdAt
+                f.createdAt,
+                f.status,
+                f.description
             FROM Folder f
             LEFT JOIN Folder p ON f.parentId = p.idFolder
             WHERE f.idFolder = ?
@@ -1367,7 +1370,7 @@ app.get('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
 // Создать справочник
 app.post('/api/editor/directories', requireEditorRole, async (req, res) => {
     try {
-        const { name, parentId = null, description = '' } = req.body;
+        const { name, parentId = null, description = '', status = 'active' } = req.body;
         const editorId = req.user.userId;
         const editorName = req.user.username;
         
@@ -1396,35 +1399,13 @@ app.post('/api/editor/directories', requireEditorRole, async (req, res) => {
             }
         }
         
-        // Создаем справочник
+        // Создаем справочник с статусом и описанием
         const [result] = await connection.execute(
-            'INSERT INTO Folder (Name, parentId) VALUES (?, ?)',
-            [name.trim(), parentId]
+            'INSERT INTO Folder (Name, parentId, status, description) VALUES (?, ?, ?, ?)',
+            [name.trim(), parentId, status, description.trim()]
         );
         
         const directoryId = result.insertId;
-        
-        // Если нужно, добавляем описание (дополнительная таблица)
-        if (description.trim() !== '') {
-            try {
-                // Проверяем существование таблицы для описаний
-                await connection.execute(`
-                    CREATE TABLE IF NOT EXISTS FolderMetadata (
-                        id INT PRIMARY KEY AUTO_INCREMENT,
-                        folderId INT NOT NULL,
-                        description TEXT,
-                        FOREIGN KEY (folderId) REFERENCES Folder(idFolder) ON DELETE CASCADE
-                    )
-                `);
-                
-                await connection.execute(
-                    'INSERT INTO FolderMetadata (folderId, description) VALUES (?, ?)',
-                    [directoryId, description.trim()]
-                );
-            } catch (metadataError) {
-                console.log('ℹ️ Таблица метаданных не создана, пропускаем описание');
-            }
-        }
         
         connection.release();
         
@@ -1432,7 +1413,7 @@ app.post('/api/editor/directories', requireEditorRole, async (req, res) => {
         await logAction(
             editorId,
             'directory_create',
-            `Редактор ${editorName} создал справочник "${name}" (ID: ${directoryId})`,
+            `Редактор ${editorName} создал справочник "${name}" (ID: ${directoryId}, Статус: ${status})`,
             'editor',
             'folder',
             directoryId,
@@ -1448,6 +1429,8 @@ app.post('/api/editor/directories', requireEditorRole, async (req, res) => {
                 id: directoryId,
                 name: name.trim(),
                 parentId: parentId,
+                status: status,
+                description: description.trim(),
                 createdAt: new Date().toISOString()
             }
         });
@@ -1474,11 +1457,11 @@ app.post('/api/editor/directories', requireEditorRole, async (req, res) => {
     }
 });
 
-// Обновить справочник
+// Обновить справочник - ОБНОВЛЕННЫЙ
 app.put('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
     try {
         const directoryId = req.params.id;
-        const { name, parentId = null, description = '' } = req.body;
+        const { name, parentId = null, description = '', status = 'active' } = req.body;
         const editorId = req.user.userId;
         const editorName = req.user.username;
         
@@ -1493,7 +1476,7 @@ app.put('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
         
         // Проверяем существование справочника
         const [directoryExists] = await connection.execute(
-            'SELECT idFolder, Name FROM Folder WHERE idFolder = ?',
+            'SELECT idFolder, Name, status FROM Folder WHERE idFolder = ?',
             [directoryId]
         );
         
@@ -1506,6 +1489,7 @@ app.put('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
         }
         
         const oldName = directoryExists[0].Name;
+        const oldStatus = directoryExists[0].status;
         
         // Проверяем существование родительского каталога
         if (parentId) {
@@ -1534,30 +1518,23 @@ app.put('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
         
         // Обновляем справочник
         await connection.execute(
-            'UPDATE Folder SET Name = ?, parentId = ? WHERE idFolder = ?',
-            [name.trim(), parentId, directoryId]
+            'UPDATE Folder SET Name = ?, parentId = ?, status = ?, description = ? WHERE idFolder = ?',
+            [name.trim(), parentId, status, description.trim(), directoryId]
         );
-        
-        // Обновляем описание если нужно
-        if (description.trim() !== '') {
-            try {
-                await connection.execute(`
-                    INSERT INTO FolderMetadata (folderId, description) 
-                    VALUES (?, ?) 
-                    ON DUPLICATE KEY UPDATE description = ?
-                `, [directoryId, description.trim(), description.trim()]);
-            } catch (metadataError) {
-                console.log('ℹ️ Не удалось обновить метаданные');
-            }
-        }
         
         connection.release();
         
         // Логируем обновление справочника
+        let logMessage = `Редактор ${editorName} обновил справочник "${oldName}" -> "${name}"`;
+        if (oldStatus !== status) {
+            logMessage += ` (Статус изменен: ${oldStatus} -> ${status})`;
+        }
+        logMessage += ` (ID: ${directoryId})`;
+        
         await logAction(
             editorId,
             'directory_update',
-            `Редактор ${editorName} обновил справочник "${oldName}" -> "${name}" (ID: ${directoryId})`,
+            logMessage,
             'editor',
             'folder',
             directoryId,
@@ -1689,6 +1666,7 @@ app.get('/api/editor/users', requireEditorRole, async (req, res) => {
             SELECT 
                 u.idUsers as id,
                 u.name,
+                u.email,
                 r.name as role,
                 u.createdAt
             FROM Users u
@@ -1722,10 +1700,12 @@ app.get('/api/editor/assignments', requireEditorRole, async (req, res) => {
         
         let sql = `
             SELECT 
+                uf.idUsersFolders as id,
                 uf.idUsers as userId,
                 uf.idFolders as directoryId,
                 uf.permission,
                 u.name as userName,
+                u.email as userEmail,
                 f.Name as directoryName,
                 uf.createdAt as assignedAt
             FROM UsersFolders uf
@@ -1784,7 +1764,7 @@ app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
         
         // Проверяем существование пользователя
         const [userExists] = await connection.execute(
-            'SELECT idUsers, name FROM Users WHERE idUsers = ?',
+            'SELECT idUsers, name, email FROM Users WHERE idUsers = ?',
             [userId]
         );
         
@@ -1811,11 +1791,12 @@ app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
         }
         
         const userName = userExists[0].name;
+        const userEmail = userExists[0].email;
         const directoryName = directoryExists[0].Name;
         
         // Проверяем, не назначен ли уже доступ
         const [existingAssignment] = await connection.execute(
-            'SELECT idUsers FROM UsersFolders WHERE idUsers = ? AND idFolders = ?',
+            'SELECT idUsersFolders FROM UsersFolders WHERE idUsers = ? AND idFolders = ?',
             [userId, directoryId]
         );
         
@@ -1828,10 +1809,12 @@ app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
         }
         
         // Назначаем доступ
-        await connection.execute(
+        const [result] = await connection.execute(
             'INSERT INTO UsersFolders (idUsers, idFolders, permission) VALUES (?, ?, ?)',
             [userId, directoryId, permission]
         );
+        
+        const assignmentId = result.insertId;
         
         connection.release();
         
@@ -1850,7 +1833,13 @@ app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
         
         res.json({
             success: true,
-            message: 'Доступ успешно назначен'
+            message: 'Доступ успешно назначен',
+            data: {
+                id: assignmentId,
+                userId,
+                directoryId,
+                permission
+            }
         });
         
     } catch (error) {
@@ -1875,18 +1864,62 @@ app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
     }
 });
 
+// Получить одно назначение
+app.get('/api/editor/assignments/:id', requireEditorRole, async (req, res) => {
+    try {
+        const assignmentId = req.params.id;
+        
+        const connection = await pool.getConnection();
+        
+        const [assignments] = await connection.execute(`
+            SELECT 
+                uf.idUsersFolders as id,
+                uf.idUsers as userId,
+                uf.idFolders as directoryId,
+                uf.permission,
+                u.name as userName,
+                f.Name as directoryName
+            FROM UsersFolders uf
+            JOIN Users u ON uf.idUsers = u.idUsers
+            JOIN Folder f ON uf.idFolders = f.idFolder
+            WHERE uf.idUsersFolders = ?
+        `, [assignmentId]);
+        
+        connection.release();
+        
+        if (assignments.length === 0) {
+            return res.json({
+                success: false,
+                message: 'Назначение не найдено'
+            });
+        }
+        
+        res.json({
+            success: true,
+            data: assignments[0]
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения назначения:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера' 
+        });
+    }
+});
+
 // Обновить назначение доступа
 app.put('/api/editor/assignments/:id', requireEditorRole, async (req, res) => {
     try {
-        // В вашей БД нет id для UsersFolders, так что обновляем по userId + directoryId
-        const { userId, directoryId, permission } = req.body;
+        const assignmentId = req.params.id;
+        const { permission, expiresAt = null, notes = null } = req.body;
         const editorId = req.user.userId;
         const editorName = req.user.username;
         
-        if (!userId || !directoryId || !permission) {
+        if (!permission) {
             return res.json({
                 success: false,
-                message: 'Не указаны необходимые параметры'
+                message: 'Не указано разрешение'
             });
         }
         
@@ -1894,8 +1927,8 @@ app.put('/api/editor/assignments/:id', requireEditorRole, async (req, res) => {
         
         // Проверяем существование назначения
         const [assignmentExists] = await connection.execute(
-            'SELECT idUsers, idFolders FROM UsersFolders WHERE idUsers = ? AND idFolders = ?',
-            [userId, directoryId]
+            'SELECT idUsers, idFolders FROM UsersFolders WHERE idUsersFolders = ?',
+            [assignmentId]
         );
         
         if (assignmentExists.length === 0) {
@@ -1906,11 +1939,53 @@ app.put('/api/editor/assignments/:id', requireEditorRole, async (req, res) => {
             });
         }
         
+        const userId = assignmentExists[0].idUsers;
+        const directoryId = assignmentExists[0].idFolders;
+        
         // Обновляем разрешение
         await connection.execute(
-            'UPDATE UsersFolders SET permission = ? WHERE idUsers = ? AND idFolders = ?',
-            [permission, userId, directoryId]
+            'UPDATE UsersFolders SET permission = ? WHERE idUsersFolders = ?',
+            [permission, assignmentId]
         );
+        
+        // Если нужно, обновляем дополнительные поля
+        if (expiresAt || notes) {
+            try {
+                // Создаем таблицу для расширенных данных если не существует
+                await connection.execute(`
+                    CREATE TABLE IF NOT EXISTS AssignmentMetadata (
+                        id INT PRIMARY KEY AUTO_INCREMENT,
+                        assignmentId INT NOT NULL,
+                        expiresAt DATETIME,
+                        notes TEXT,
+                        FOREIGN KEY (assignmentId) REFERENCES UsersFolders(idUsersFolders) ON DELETE CASCADE
+                    )
+                `);
+                
+                // Проверяем существование метаданных
+                const [metadataExists] = await connection.execute(
+                    'SELECT id FROM AssignmentMetadata WHERE assignmentId = ?',
+                    [assignmentId]
+                );
+                
+                if (metadataExists.length > 0) {
+                    // Обновляем существующие метаданные
+                    await connection.execute(`
+                        UPDATE AssignmentMetadata 
+                        SET expiresAt = ?, notes = ? 
+                        WHERE assignmentId = ?
+                    `, [expiresAt, notes, assignmentId]);
+                } else {
+                    // Создаем новые метаданные
+                    await connection.execute(`
+                        INSERT INTO AssignmentMetadata (assignmentId, expiresAt, notes) 
+                        VALUES (?, ?, ?)
+                    `, [assignmentId, expiresAt, notes]);
+                }
+            } catch (metadataError) {
+                console.log('ℹ️ Ошибка при обновлении метаданных назначения:', metadataError.message);
+            }
+        }
         
         connection.release();
         
@@ -1955,39 +2030,40 @@ app.put('/api/editor/assignments/:id', requireEditorRole, async (req, res) => {
 });
 
 // Отозвать доступ
-app.delete('/api/editor/assignments', requireEditorRole, async (req, res) => {
+app.delete('/api/editor/assignments/:id', requireEditorRole, async (req, res) => {
     try {
-        const { userId, directoryId } = req.body;
+        const assignmentId = req.params.id;
         const editorId = req.user.userId;
         const editorName = req.user.username;
-        
-        if (!userId || !directoryId) {
-            return res.json({
-                success: false,
-                message: 'Не указан пользователь или справочник'
-            });
-        }
         
         const connection = await pool.getConnection();
         
         // Получаем информацию для лога
-        const [userInfo] = await connection.execute(
-            'SELECT name FROM Users WHERE idUsers = ?',
-            [userId]
-        );
+        const [assignmentInfo] = await connection.execute(`
+            SELECT uf.idUsers, uf.idFolders, u.name as userName, f.Name as directoryName
+            FROM UsersFolders uf
+            JOIN Users u ON uf.idUsers = u.idUsers
+            JOIN Folder f ON uf.idFolders = f.idFolder
+            WHERE uf.idUsersFolders = ?
+        `, [assignmentId]);
         
-        const [directoryInfo] = await connection.execute(
-            'SELECT Name FROM Folder WHERE idFolder = ?',
-            [directoryId]
-        );
+        if (assignmentInfo.length === 0) {
+            connection.release();
+            return res.json({
+                success: false,
+                message: 'Назначение не найдено'
+            });
+        }
         
-        const userName = userInfo[0]?.name || `ID:${userId}`;
-        const directoryName = directoryInfo[0]?.Name || `ID:${directoryId}`;
+        const userId = assignmentInfo[0].idUsers;
+        const directoryId = assignmentInfo[0].idFolders;
+        const userName = assignmentInfo[0].userName;
+        const directoryName = assignmentInfo[0].directoryName;
         
         // Удаляем доступ
         const [result] = await connection.execute(
-            'DELETE FROM UsersFolders WHERE idUsers = ? AND idFolders = ?',
-            [userId, directoryId]
+            'DELETE FROM UsersFolders WHERE idUsersFolders = ?',
+            [assignmentId]
         );
         
         connection.release();
@@ -2041,42 +2117,47 @@ app.delete('/api/editor/assignments', requireEditorRole, async (req, res) => {
 
 // ============ ЖУРНАЛЫ ДЛЯ РЕДАКТОРА ============
 
-// Получить журнал контрагентов (пример - вам нужно адаптировать под ваши таблицы)
+// Получить журнал контрагентов
 app.get('/api/editor/counterparties', requireEditorRole, async (req, res) => {
     try {
         const { dateFrom, dateTo } = req.query;
         
-        // В реальной системе здесь будет запрос к таблице контрагентов
-        // Пока вернем тестовые данные
+        const connection = await pool.getConnection();
         
-        // Пример: создаем временную таблицу для демонстрации
-        const counterparties = [
-            {
-                id: 1,
-                letterDate: '2024-01-15',
-                type: 'company',
-                processingStatus: 'completed',
-                sender: 'ООО "Рога и копыта"'
-            },
-            {
-                id: 2,
-                letterDate: '2024-01-16',
-                type: 'individual',
-                processingStatus: 'in_progress',
-                sender: 'Иванов И.И.'
-            },
-            {
-                id: 3,
-                letterDate: '2024-01-17',
-                type: 'government',
-                processingStatus: 'new',
-                sender: 'Министерство финансов'
-            }
-        ].filter(record => {
-            if (dateFrom && new Date(record.letterDate) < new Date(dateFrom)) return false;
-            if (dateTo && new Date(record.letterDate) > new Date(dateTo)) return false;
-            return true;
-        });
+        let sql = `
+            SELECT 
+                f.idFiles as id,
+                f.Name as subject,
+                f.createdAt as letterDate,
+                f.fileStatus as processingStatus,
+                f.priority,
+                f.idUsers as responsibleId,
+                u.name as responsibleName,
+                c.name as counterpartyName,
+                c.type as counterpartyType
+            FROM Files f
+            LEFT JOIN Users u ON f.idUsers = u.idUsers
+            LEFT JOIN Counterparties c ON f.idCounterparties = c.idCounterparties
+            WHERE 1=1
+        `;
+        
+        const params = [];
+        
+        if (dateFrom) {
+            sql += ' AND DATE(f.createdAt) >= ?';
+            params.push(dateFrom);
+        }
+        
+        if (dateTo) {
+            sql += ' AND DATE(f.createdAt) <= ?';
+            params.push(dateTo);
+        }
+        
+        sql += ' ORDER BY f.createdAt DESC';
+        
+        const [counterparties] = await connection.execute(sql, params);
+        
+        connection.release();
         
         // Логируем запрос журнала
         await logAction(
@@ -2105,41 +2186,111 @@ app.get('/api/editor/counterparties', requireEditorRole, async (req, res) => {
     }
 });
 
+// Обновить статус контрагента
+app.put('/api/editor/counterparties/:id/status', requireEditorRole, async (req, res) => {
+    try {
+        const fileId = req.params.id;
+        const { status } = req.body;
+        const editorId = req.user.userId;
+        const editorName = req.user.username;
+        
+        if (!status) {
+            return res.json({
+                success: false,
+                message: 'Не указан статус'
+            });
+        }
+        
+        const connection = await pool.getConnection();
+        
+        // Проверяем существование файла
+        const [fileExists] = await connection.execute(
+            'SELECT idFiles, Name FROM Files WHERE idFiles = ?',
+            [fileId]
+        );
+        
+        if (fileExists.length === 0) {
+            connection.release();
+            return res.json({
+                success: false,
+                message: 'Файл не найден'
+            });
+        }
+        
+        const fileName = fileExists[0].Name;
+        
+        // Обновляем статус
+        await connection.execute(
+            'UPDATE Files SET fileStatus = ? WHERE idFiles = ?',
+            [status, fileId]
+        );
+        
+        connection.release();
+        
+        // Логируем изменение статуса
+        await logAction(
+            editorId,
+            'counterparty_status_update',
+            `Редактор ${editorName} изменил статус файла "${fileName}" на "${status}"`,
+            'editor',
+            'file',
+            fileId,
+            'success',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.json({
+            success: true,
+            message: 'Статус успешно обновлен'
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка обновления статуса:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера' 
+        });
+    }
+});
+
 // Получить журнал статусов входящей корреспонденции
 app.get('/api/editor/status-logs', requireEditorRole, async (req, res) => {
     try {
         const { status, date } = req.query;
         
-        // В реальной системе здесь будет запрос к таблице статусов
-        // Пока вернем тестовые данные
+        const connection = await pool.getConnection();
         
-        const statusLogs = [
-            {
-                letterId: 1001,
-                receivedDate: '2024-01-15',
-                currentStatus: 'completed',
-                changedAt: '2024-01-16',
-                responsibleName: 'Иванов И.И.'
-            },
-            {
-                letterId: 1002,
-                receivedDate: '2024-01-16',
-                currentStatus: 'in_progress',
-                changedAt: '2024-01-16',
-                responsibleName: 'Петров П.П.'
-            },
-            {
-                letterId: 1003,
-                receivedDate: '2024-01-17',
-                currentStatus: 'new',
-                changedAt: '2024-01-17',
-                responsibleName: 'Сидоров С.С.'
-            }
-        ].filter(record => {
-            if (status && record.currentStatus !== status) return false;
-            if (date && new Date(record.receivedDate).toISOString().split('T')[0] !== date) return false;
-            return true;
-        });
+        let sql = `
+            SELECT 
+                f.idFiles as letterId,
+                f.Name as subject,
+                f.createdAt as receivedDate,
+                f.fileStatus as currentStatus,
+                f.updatedAt as changedAt,
+                u.name as responsibleName
+            FROM Files f
+            LEFT JOIN Users u ON f.idUsers = u.idUsers
+            WHERE 1=1
+        `;
+        
+        const params = [];
+        
+        if (status) {
+            sql += ' AND f.fileStatus = ?';
+            params.push(status);
+        }
+        
+        if (date) {
+            sql += ' AND DATE(f.createdAt) = ?';
+            params.push(date);
+        }
+        
+        sql += ' ORDER BY f.updatedAt DESC';
+        
+        const [statusLogs] = await connection.execute(sql, params);
+        
+        connection.release();
         
         res.json({
             success: true,
@@ -2270,7 +2421,6 @@ app.post('/api/editor/backup', requireEditorRole, async (req, res) => {
 /// Получить логи с пагинацией и фильтрами (только для админа) - БЕЗ API запросов
 app.get('/api/admin/logs', requireAuth('Администратор'), async (req, res) => {
     try {
-        console.log('📊 Запрос логов с параметрами:', req.query);
         
         const { 
             page = 1, 

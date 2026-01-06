@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Назначения - Панель редактора</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Шапка -->
+        <div id="header-container"></div>
+
+        <!-- Сайдбар -->
+        <div id="sidebar-container"></div>
+
+        <!-- Основной контент -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1><i class="fas fa-user-check"></i> Назначения прав доступа</h1>
+                <p class="page-subtitle">Распределение прав пользователей к справочникам</p>
+            </div>
+
+            <!-- Основная карточка -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-list"></i> Список назначений</h2>
+                    <div class="header-actions">
+                        <button class="btn-sm btn-secondary" id="exportAssignments">
+                            <i class="fas fa-file-export"></i> Экспорт
+                        </button>
+                        <button class="btn-sm btn-primary" id="addAssignmentBtn">
+                            <i class="fas fa-user-plus"></i> Новое назначение
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Фильтры -->
+                <div class="search-filters">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchAssignments" placeholder="Поиск по пользователю...">
+                    </div>
+                    <div class="filter-group">
+                        <select id="filterUser" class="form-control">
+                            <option value="">Все пользователи</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="filterDirectory" class="form-control">
+                            <option value="">Все справочники</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="filterPermission" class="form-control">
+                            <option value="">Все права</option>
+                            <option value="READ">Только чтение</option>
+                            <option value="WRITE">Чтение и запись</option>
+                            <option value="ADMIN">Полный доступ</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Таблица назначений -->
+                <div class="table-container">
+                    <table class="assignments-table">
+                        <thead>
+                            <tr>
+                                <th>Пользователь</th>
+                                <th>Справочник</th>
+                                <th>Права доступа</th>
+                                <th>Дата назначения</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assignmentsTable">
+                            <!-- Данные будут загружены через JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Пагинация -->
+                <div class="pagination">
+                    <button class="pagination-btn" id="prevPage" disabled>
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span class="pagination-info" id="pageInfo">Страница 1 из 1</span>
+                    <button class="pagination-btn" id="nextPage" disabled>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Форма добавления/редактирования -->
+            <div class="card" id="assignmentFormCard" style="display: none;">
+                <div class="card-header">
+                    <h2><i class="fas fa-edit"></i> <span id="formTitle">Новое назначение</span></h2>
+                    <button class="btn-sm btn-secondary" id="closeFormBtn">
+                        <i class="fas fa-times"></i> Закрыть
+                    </button>
+                </div>
+                
+                <form id="assignmentForm">
+                    <input type="hidden" id="assignmentId" value="">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="assignUser">
+                                <i class="fas fa-user"></i> Пользователь *
+                            </label>
+                            <select id="assignUser" class="form-control" required>
+                                <option value="">Выберите пользователя</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="assignDirectory">
+                                <i class="fas fa-folder"></i> Справочник *
+                            </label>
+                            <select id="assignDirectory" class="form-control" required>
+                                <option value="">Выберите справочник</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="assignPermission">
+                                <i class="fas fa-key"></i> Права доступа *
+                            </label>
+                            <select id="assignPermission" class="form-control" required>
+                                <option value="READ">Только чтение</option>
+                                <option value="WRITE">Чтение и запись</option>
+                                <option value="ADMIN">Полный доступ</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="assignExpiresAt">
+                                <i class="fas fa-calendar-times"></i> Действует до
+                            </label>
+                            <input type="date" id="assignExpiresAt" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="assignNotes">
+                            <i class="fas fa-sticky-note"></i> Примечания
+                        </label>
+                        <textarea id="assignNotes" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Сохранить
+                        </button>
+                        <button type="reset" class="btn-secondary" id="resetFormBtn">
+                            <i class="fas fa-undo"></i> Сбросить
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Статистика -->
+            <div class="stats-row">
+                <div class="stat-card-small">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #4299e1, #3182ce);">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalAssignments">0</div>
+                        <div class="stat-label">Всего назначений</div>
+                    </div>
+                </div>
+                <div class="stat-card-small">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #48bb78, #38a169);">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="activeAssignments">0</div>
+                        <div class="stat-label">Активных</div>
+                    </div>
+                </div>
+                <div class="stat-card-small">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #ed8936, #dd6b20);">
+                        <i class="fas fa-user-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="expiringAssignments">0</div>
+                        <div class="stat-label">Истекают скоро</div>
+                    </div>
+                </div>
+                <div class="stat-card-small">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #9f7aea, #805ad5);">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="adminAssignments">0</div>
+                        <div class="stat-label">Админ. доступов</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Быстрая массовая операция -->
+            <div class="card quick-action-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-bolt"></i> Быстрые действия</h2>
+                </div>
+                <div class="quick-actions-grid">
+                    <button class="quick-action-btn" id="revokeExpiredBtn">
+                        <i class="fas fa-user-slash"></i>
+                        <span>Отозвать просроченные</span>
+                    </button>
+                    <button class="quick-action-btn" id="extendAllBtn">
+                        <i class="fas fa-calendar-plus"></i>
+                        <span>Продлить все на месяц</span>
+                    </button>
+                    <button class="quick-action-btn" id="exportReportBtn">
+                        <i class="fas fa-file-excel"></i>
+                        <span>Отчет Excel</span>
+                    </button>
+                    <button class="quick-action-btn" id="refreshAllBtn">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Обновить все</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Модальное окно подтверждения -->
+        <div class="modal-overlay" id="confirmModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Подтверждение действия</h3>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirmMessage">Вы уверены, что хотите выполнить это действие?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-danger" id="confirmActionBtn">Подтвердить</button>
+                    <button class="btn-secondary" id="cancelActionBtn">Отмена</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Уведомления -->
+        <div id="messages"></div>
+    </div>
+
+    <script src="api.js"></script>
+    <script src="script.js"></script>
+    <script src="assignments.js"></script>
+    <script>
+        // Загрузка компонентов
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('components/header.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('header-container').innerHTML = data;
+                    initHeader();
+                });
+            
+            fetch('components/sidebar.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('sidebar-container').innerHTML = data;
+                    initSidebar();
+                });
+        });
+
+        function initHeader() {
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function() {
+                    if (confirm('Вы уверены, что хотите выйти?')) {
+                        window.location.href = '../index.html';
+                    }
+                });
+            }
+        }
+
+        function initSidebar() {
+            const navItems = document.querySelectorAll('.sidebar-nav a');
+            navItems.forEach(item => {
+                if (item.getAttribute('href') === 'assignments.html') {
+                    item.classList.add('active');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

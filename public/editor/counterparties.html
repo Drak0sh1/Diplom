@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Контрагенты - Панель редактора</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Шапка -->
+        <div id="header-container"></div>
+
+        <!-- Сайдбар -->
+        <div id="sidebar-container"></div>
+
+        <!-- Основной контент -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1><i class="fas fa-building"></i> Журнал контрагентов</h1>
+                <p class="page-subtitle">Управление входящей корреспонденцией от контрагентов</p>
+            </div>
+
+            <!-- Основная карточка -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-inbox"></i> Входящая корреспонденция</h2>
+                    <div class="header-actions">
+                        <button class="btn-sm btn-secondary" id="exportCounterparties">
+                            <i class="fas fa-file-export"></i> Экспорт
+                        </button>
+                        <button class="btn-sm btn-primary" id="addCounterpartyBtn">
+                            <i class="fas fa-plus"></i> Новое письмо
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Фильтры -->
+                <div class="search-filters">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchCounterparties" placeholder="Поиск по контрагенту...">
+                    </div>
+                    <div class="filter-group">
+                        <select id="filterType" class="form-control">
+                            <option value="">Все типы</option>
+                            <option value="company">Компания</option>
+                            <option value="individual">Физ. лицо</option>
+                            <option value="government">Гос. орган</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="filterStatus" class="form-control">
+                            <option value="">Все статусы</option>
+                            <option value="new">Новый</option>
+                            <option value="in_progress">В обработке</option>
+                            <option value="review">На согласовании</option>
+                            <option value="completed">Завершён</option>
+                            <option value="archived">В архиве</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="filterPriority" class="form-control">
+                            <option value="">Все приоритеты</option>
+                            <option value="low">Низкий</option>
+                            <option value="medium">Средний</option>
+                            <option value="high">Высокий</option>
+                            <option value="urgent">Срочный</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Дополнительные фильтры по дате -->
+                <div class="date-filters">
+                    <div class="filter-row">
+                        <div class="form-group">
+                            <label for="dateFrom">
+                                <i class="fas fa-calendar"></i> С даты
+                            </label>
+                            <input type="date" id="dateFrom" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="dateTo">
+                                <i class="fas fa-calendar"></i> По дату
+                            </label>
+                            <input type="date" id="dateTo" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <button class="btn-sm btn-secondary" id="applyDateFilter">
+                                <i class="fas fa-filter"></i> Применить
+                            </button>
+                            <button class="btn-sm" id="clearDateFilter" style="background: #e2e8f0;">
+                                <i class="fas fa-times"></i> Сбросить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Таблица контрагентов -->
+                <div class="table-container">
+                    <table class="counterparties-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Контрагент</th>
+                                <th>Тип</th>
+                                <th>Дата письма</th>
+                                <th>Приоритет</th>
+                                <th>Статус</th>
+                                <th>Ответственный</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="counterpartiesTable">
+                            <!-- Данные будут загружены через JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Пагинация -->
+                <div class="pagination">
+                    <button class="pagination-btn" id="prevPage" disabled>
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span class="pagination-info" id="pageInfo">Страница 1 из 1</span>
+                    <button class="pagination-btn" id="nextPage" disabled>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Статистика -->
+            <div class="stats-row">
+                <div class="stat-card-small">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #4299e1, #3182ce);">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalLetters">0</div>
+                        <div class="stat-label">Всего писем</div>
+                    </div>
+                </div>
+                <div class="stat-card-small">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #ed8936, #dd6b20);">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="newLetters">0</div>
+                        <div class="stat-label">Новых</div>
+                    </div>
+                </div>
+                <div class="stat-card-small">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #f56565, #e53e3e);">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="urgentLetters">0</div>
+                        <div class="stat-label">Срочных</div>
+                    </div>
+                </div>
+                <div class="stat-card-small">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #48bb78, #38a169);">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="completedLetters">0</div>
+                        <div class="stat-label">Обработано</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Быстрый просмотр -->
+            <div class="card quick-view-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-chart-line"></i> Активность по дням</h2>
+                </div>
+                <div class="quick-view-content" id="activityChart">
+                    <!-- График активности будет здесь -->
+                    <div class="chart-placeholder">
+                        <i class="fas fa-chart-bar"></i>
+                        <p>График активности за последние 7 дней</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Быстрые действия -->
+            <div class="card quick-action-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-bolt"></i> Быстрые действия</h2>
+                </div>
+                <div class="quick-actions-grid">
+                    <button class="quick-action-btn" id="bulkStatusBtn">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Массовая смена статуса</span>
+                    </button>
+                    <button class="quick-action-btn" id="assignResponsibleBtn">
+                        <i class="fas fa-user-tag"></i>
+                        <span>Назначить ответственных</span>
+                    </button>
+                    <button class="quick-action-btn" id="generateReportBtn">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Сформировать отчет</span>
+                    </button>
+                    <button class="quick-action-btn" id="archiveOldBtn">
+                        <i class="fas fa-archive"></i>
+                        <span>В архив (старые)</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Модальное окно изменения статуса -->
+        <div class="modal-overlay" id="statusModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-sync-alt"></i> Изменить статус</h3>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="newStatus">Новый статус</label>
+                        <select id="newStatus" class="form-control">
+                            <option value="new">Новый</option>
+                            <option value="in_progress">В обработке</option>
+                            <option value="review">На согласовании</option>
+                            <option value="completed">Завершён</option>
+                            <option value="archived">В архиве</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="statusComment">Комментарий</label>
+                        <textarea id="statusComment" class="form-control" rows="3" placeholder="Причина изменения статуса..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-primary" id="saveStatusBtn">Сохранить</button>
+                    <button class="btn-secondary" id="cancelStatusBtn">Отмена</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Уведомления -->
+        <div id="messages"></div>
+    </div>
+
+    <script src="api.js"></script>
+    <script src="script.js"></script>
+    <script src="counterparties.js"></script>
+    <script>
+        // Загрузка компонентов
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('components/header.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('header-container').innerHTML = data;
+                    initHeader();
+                });
+            
+            fetch('components/sidebar.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('sidebar-container').innerHTML = data;
+                    initSidebar();
+                });
+        });
+
+        function initHeader() {
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function() {
+                    if (confirm('Вы уверены, что хотите выйти?')) {
+                        window.location.href = '../index.html';
+                    }
+                });
+            }
+        }
+
+        function initSidebar() {
+            const navItems = document.querySelectorAll('.sidebar-nav a');
+            navItems.forEach(item => {
+                if (item.getAttribute('href') === 'counterparties.html') {
+                    item.classList.add('active');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

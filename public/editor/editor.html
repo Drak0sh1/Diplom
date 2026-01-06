@@ -3,344 +3,226 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Редактор - Управление справочниками и журналами</title>
+    <title>Справочники - Панель редактора</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="editor.css">
+    
 </head>
 <body>
     <div class="admin-container">
         <!-- Шапка -->
-        <header class="header">
-            <div class="header-left">
-                <h1>
-                    <i class="fas fa-edit"></i>
-                    Панель редактора
-                </h1>
-                <p class="header-subtitle">Управление справочниками, пользователями и журналами</p>
-            </div>
-            <div class="user-info">
-                <div class="user-avatar" id="currentUserAvatar">Е</div>
-                <div class="user-details">
-                    <span class="user-name" id="currentUserName">Редактор</span>
-                    <span class="user-role" id="currentUserRole">Роль: Редактор</span>
-                </div>
-                <button class="logout-btn" id="logoutBtn">
-                    <i class="fas fa-sign-out-alt"></i> Выход
-                </button>
-            </div>
-        </header>
+        <div id="header-container"></div>
+
+        <!-- Сайдбар -->
+        <div id="sidebar-container"></div>
 
         <!-- Основной контент -->
         <main class="main-content">
-            <!-- Левая колонка - Справочники и назначение -->
-            <div class="left-column">
-                <!-- Карточка справочников каталогов -->
-                <div class="card">
-                    <div class="card-header">
-                        <h2>
-                            <i class="fas fa-book"></i>
-                            Справочники каталогов документов
-                        </h2>
-                        <button class="btn-sm btn-primary" id="addDirectoryBtn">
-                            <i class="fas fa-plus"></i> Добавить справочник
-                        </button>
-                    </div>
-                    
-                    <div class="directories-section">
-                        <div class="table-container">
-                            <table class="directories-table">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Название справочника</th>
-                                        <th>Родительский каталог</th>
-                                        <th>Дата создания</th>
-                                        <th>Кол-во записей</th>
-                                        <th>Действия</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="directoriesTable">
-                                    <!-- Данные будут загружены через JS -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    
-                    <div class="form-section" id="directoryForm" style="display: none;">
-                        <h3>
-                            <i class="fas fa-plus-circle"></i>
-                            Добавить/Редактировать справочник
-                        </h3>
-                        <form id="directoryFormContent">
-                            <input type="hidden" id="directoryId" value="">
-                            <div class="form-group">
-                                <label for="directoryName">
-                                    <i class="fas fa-heading"></i> Название справочника
-                                </label>
-                                <input type="text" id="directoryName" class="form-control" 
-                                       placeholder="Введите название справочника" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="parentDirectory">
-                                    <i class="fas fa-folder"></i> Родительский каталог
-                                </label>
-                                <select id="parentDirectory" class="form-control">
-                                    <option value="">Без родительского каталога</option>
-                                    <!-- Опции будут загружены через JS -->
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="directoryDescription">
-                                    <i class="fas fa-align-left"></i> Описание
-                                </label>
-                                <textarea id="directoryDescription" class="form-control" 
-                                          rows="3" placeholder="Описание справочника"></textarea>
-                            </div>
-                            <div class="form-actions">
-                                <button type="submit" class="btn-primary">
-                                    <i class="fas fa-save"></i> Сохранить
-                                </button>
-                                <button type="button" class="btn-secondary" id="cancelDirectoryBtn">
-                                    <i class="fas fa-times"></i> Отмена
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Карточка назначения пользователей -->
-                <div class="card">
-                    <div class="card-header">
-                        <h2>
-                            <i class="fas fa-user-check"></i>
-                            Назначение справочников пользователям
-                        </h2>
-                    </div>
-                    
-                    <div class="assignment-section">
-                        <div class="assignment-filters">
-                            <div class="form-group">
-                                <label for="filterUser">
-                                    <i class="fas fa-user"></i> Фильтр по пользователю
-                                </label>
-                                <select id="filterUser" class="form-control">
-                                    <option value="">Все пользователи</option>
-                                    <!-- Опции будут загружены через JS -->
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="filterDirectory">
-                                    <i class="fas fa-folder"></i> Фильтр по справочнику
-                                </label>
-                                <select id="filterDirectory" class="form-control">
-                                    <option value="">Все справочники</option>
-                                    <!-- Опции будут загружены через JS -->
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="table-container">
-                            <table class="assignments-table">
-                                <thead>
-                                    <tr>
-                                        <th>Пользователь</th>
-                                        <th>Справочник</th>
-                                        <th>Разрешение</th>
-                                        <th>Дата назначения</th>
-                                        <th>Действия</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="assignmentsTable">
-                                    <!-- Данные будут загружены через JS -->
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <div class="add-assignment" id="addAssignmentForm">
-                            <h3>
-                                <i class="fas fa-link"></i>
-                                Назначить доступ
-                            </h3>
-                            <form id="assignmentForm">
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="assignUser">Пользователь</label>
-                                        <select id="assignUser" class="form-control" required>
-                                            <option value="">Выберите пользователя</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="assignDirectory">Справочник</label>
-                                        <select id="assignDirectory" class="form-control" required>
-                                            <option value="">Выберите справочник</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="assignPermission">Разрешение</label>
-                                        <select id="assignPermission" class="form-control">
-                                            <option value="READ">Только чтение</option>
-                                            <option value="WRITE">Чтение и запись</option>
-                                            <option value="ADMIN">Полный доступ</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn-primary">
-                                    <i class="fas fa-user-plus"></i> Назначить доступ
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
+            <div class="page-header">
+                <h1><i class="fas fa-book"></i> Справочники каталогов документов</h1>
+                <p class="page-subtitle">Управление иерархией каталогов и справочников</p>
             </div>
 
-            <!-- Правая колонка - Журналы -->
-            <div class="right-column">
-                <!-- Карточка журнала контрагентов -->
-                <div class="card">
-                    <div class="card-header">
-                        <h2>
-                            <i class="fas fa-building"></i>
-                            Журнал контрагентов
-                        </h2>
-                        <div class="log-controls">
-                            <button class="btn-sm btn-secondary" id="refreshCounterparties">
-                                <i class="fas fa-sync-alt"></i> Обновить
+            <!-- Управление справочниками -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-list"></i> Список справочников</h2>
+                    <div class="header-actions">
+                        <div class="btn-group">
+                            <div class="view-toggle">
+                                <button class="view-toggle-btn active" id="tableViewBtn" data-view="table">
+                                    <i class="fas fa-table"></i> Таблица
+                                </button>
+                                <button class="view-toggle-btn" id="treeViewBtn" data-view="tree">
+                                    <i class="fas fa-sitemap"></i> Дерево
+                                </button>
+                            </div>
+                            <button class="btn-sm btn-primary" id="addDirectoryBtn">
+                                <i class="fas fa-plus"></i> Добавить справочник
                             </button>
                         </div>
                     </div>
-                    
-                    <div class="log-filters">
-                        <div class="filter-row">
-                            <div class="form-group">
-                                <label for="counterpartyDateFrom">
-                                    <i class="fas fa-calendar"></i> С даты
-                                </label>
-                                <input type="date" id="counterpartyDateFrom" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label for="counterpartyDateTo">
-                                    <i class="fas fa-calendar"></i> По дату
-                                </label>
-                                <input type="date" id="counterpartyDateTo" class="form-control">
-                            </div>
+                </div>
+
+                <!-- Представление в виде таблицы -->
+                <div id="tableView" class="table-view">
+                    <!-- Обновленные фильтры - перенесены наверх -->
+                    <div class="search-filters">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchDirectories" placeholder="Поиск по названию...">
+                        </div>
+                        <div class="filter-group">
+                            <select id="filterByParent" class="form-control">
+                                <option value="">Все родительские каталоги</option>
+                            </select>
+                        </div>
+                        <!-- Кнопки фильтров по статусам -->
+                        <div class="status-filters">
+                            <button class="status-filter-btn active" data-status="all">
+                                <i class="fas fa-layer-group"></i> Все
+                            </button>
+                            <button class="status-filter-btn" data-status="active">
+                                <i class="fas fa-check-circle"></i> Активные
+                            </button>
+                            <button class="status-filter-btn" data-status="inactive">
+                                <i class="fas fa-pause-circle"></i> Неактивные
+                            </button>
+                            <button class="status-filter-btn" data-status="archived">
+                                <i class="fas fa-archive"></i> Архив
+                            </button>
                         </div>
                     </div>
-                    
+
+                    <!-- Таблица справочников -->
                     <div class="table-container">
-                        <table class="counterparties-table">
+                        <table class="directories-table">
                             <thead>
                                 <tr>
                                     <th>ID</th>
-                                    <th>Дата письма</th>
-                                    <th>Тип контрагента</th>
-                                    <th>Статус обработки</th>
+                                    <th>Название</th>
+                                    <th>Родительский каталог</th>
+                                    <th>Дата создания</th>
+                                    <th>Пользователей</th>
+                                    <th>Файлов</th>
+                                    <th>Статус</th>
                                     <th>Действия</th>
                                 </tr>
                             </thead>
-                            <tbody id="counterpartiesTable">
-                                <!-- Данные будут загружены через JS -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Карточка журнала статусов -->
-                <div class="card">
-                    <div class="card-header">
-                        <h2>
-                            <i class="fas fa-tasks"></i>
-                            Журнал статусов входящей корреспонденции
-                        </h2>
-                        <div class="log-controls">
-                            <button class="btn-sm btn-secondary" id="refreshStatusLogs">
-                                <i class="fas fa-sync-alt"></i> Обновить
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="log-filters">
-                        <div class="filter-row">
-                            <div class="form-group">
-                                <label for="statusFilter">
-                                    <i class="fas fa-filter"></i> Статус
-                                </label>
-                                <select id="statusFilter" class="form-control">
-                                    <option value="">Все статусы</option>
-                                    <option value="new">Новый</option>
-                                    <option value="in_progress">В обработке</option>
-                                    <option value="completed">Завершён</option>
-                                    <option value="archived">В архиве</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="statusDate">
-                                    <i class="fas fa-calendar"></i> За дату
-                                </label>
-                                <input type="date" id="statusDate" class="form-control">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="table-container">
-                        <table class="status-log-table">
-                            <thead>
+                            <tbody id="directoriesTable">
                                 <tr>
-                                    <th>ID письма</th>
-                                    <th>Дата поступления</th>
-                                    <th>Текущий статус</th>
-                                    <th>Изменён</th>
-                                    <th>Ответственный</th>
+                                    <td colspan="8" class="loading-state" id="loadingState">
+                                        <i class="fas fa-spinner"></i>
+                                        <h3>Загрузка каталогов...</h3>
+                                        <p>Пожалуйста, подождите</p>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody id="statusLogTable">
-                                <!-- Данные будут загружены через JS -->
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Пагинация -->
+                    <div class="pagination">
+                        <button class="pagination-btn" id="prevPage" disabled>
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span class="pagination-info" id="pageInfo">Страница 1 из 1</span>
+                        <button class="pagination-btn" id="nextPage" disabled>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Карточка быстрых действий -->
-                <div class="card quick-actions">
-                    <h2>
-                        <i class="fas fa-bolt"></i>
-                        Быстрые действия
-                    </h2>
-                    <div class="actions-grid">
-                        <button class="action-btn" id="exportLogsBtn">
-                            <i class="fas fa-file-export"></i>
-                            <span>Экспорт журналов</span>
+                <!-- Представление в виде дерева -->
+                <div id="treeView" class="tree-view-container">
+                    <!-- Хлебные крошки для навигации по дереву -->
+                    <div id="treePath" class="tree-path" style="display: none;">
+                        <div class="tree-breadcrumb">
+                            <span class="tree-back-btn" onclick="directoriesPage.navigateToParent()">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span class="tree-path-item" onclick="directoriesPage.navigateToRoot()">Корень</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tree-actions">
+                        <button class="btn-sm btn-secondary" id="expandAllBtn">
+                            <i class="fas fa-expand-alt"></i> Развернуть все
                         </button>
-                        <button class="action-btn" id="backupBtn">
-                            <i class="fas fa-database"></i>
-                            <span>Резервная копия</span>
+                        <button class="btn-sm btn-secondary" id="collapseAllBtn">
+                            <i class="fas fa-compress-alt"></i> Свернуть все
                         </button>
-                        <button class="action-btn" id="clearFiltersBtn">
-                            <i class="fas fa-filter"></i>
-                            <span>Очистить фильтры</span>
+                        <button class="btn-sm btn-secondary" id="refreshTreeBtn">
+                            <i class="fas fa-sync"></i> Обновить
                         </button>
-                        <button class="action-btn" id="helpBtn">
-                            <i class="fas fa-question-circle"></i>
-                            <span>Справка</span>
+                        <button class="btn-sm btn-secondary" id="showAllBtn">
+                            <i class="fas fa-eye"></i> Показать все
                         </button>
+                    </div>
+                    <div class="tree-view" id="treeViewContent">
+                        <div class="empty-tree" id="emptyTree">
+                            <i class="fas fa-tree"></i>
+                            <h3>Дерево каталогов пусто</h3>
+                            <p>Создайте первый каталог для отображения иерархии</p>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Форма добавления/редактирования -->
+            <div class="card" id="directoryFormCard" style="display: none;">
+                <div class="card-header">
+                    <h2><i class="fas fa-edit"></i> <span id="formTitle">Добавить справочник</span></h2>
+                    <button class="btn-sm btn-secondary" id="closeFormBtn">
+                        <i class="fas fa-times"></i> Закрыть
+                    </button>
+                </div>
+                
+                <form id="directoryForm">
+                    <input type="hidden" id="directoryId" value="">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="directoryName">
+                                <i class="fas fa-heading"></i> Название справочника *
+                            </label>
+                            <input type="text" id="directoryName" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="parentDirectory">
+                                <i class="fas fa-folder"></i> Родительский каталог
+                            </label>
+                            <select id="parentDirectory" class="form-control">
+                                <option value="">Корневой уровень</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="directoryDescription">
+                            <i class="fas fa-align-left"></i> Описание
+                        </label>
+                        <textarea id="directoryDescription" class="form-control" rows="4"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="directoryStatus">
+                            <i class="fas fa-toggle-on"></i> Статус
+                        </label>
+                        <select id="directoryStatus" class="form-control">
+                            <option value="active">Активный</option>
+                            <option value="inactive">Неактивный</option>
+                            <option value="archived">В архиве</option>
+                        </select>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Сохранить
+                        </button>
+                        <button type="reset" class="btn-secondary" id="resetFormBtn">
+                            <i class="fas fa-undo"></i> Сбросить
+                        </button>
+                    </div>
+                </form>
+            </div>
         </main>
 
-        <!-- Модальное окно для подтверждения -->
+        <!-- Модальное окно подтверждения удаления -->
         <div class="modal-overlay" id="confirmModal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3><i class="fas fa-exclamation-triangle"></i> Подтверждение действия</h3>
-                    <button class="close-btn" id="closeConfirmModal">&times;</button>
+                    <h3><i class="fas fa-exclamation-triangle"></i> Подтверждение удаления</h3>
+                    <button class="close-btn">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p id="confirmMessage">Вы уверены, что хотите выполнить это действие?</p>
+                    <p>Вы уверены, что хотите удалить этот справочник? Все вложенные справочники и записи также будут удалены.</p>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn-danger" id="confirmActionBtn">Подтвердить</button>
-                    <button class="btn-secondary" id="cancelActionBtn">Отмена</button>
+                    <button class="btn-danger" id="confirmDeleteBtn">Удалить</button>
+                    <button class="btn-secondary" id="cancelDeleteBtn">Отмена</button>
                 </div>
             </div>
         </div>
@@ -349,7 +231,1337 @@
         <div id="messages"></div>
     </div>
 
+    <!-- ПОДКЛЮЧАЕМ API.js ПЕРЕД ОСНОВНЫМ СКРИПТОМ -->
     <script src="api.js"></script>
-    <script src="script.js"></script>
+    
+    <script>
+        const DirectoriesAPI = {
+            // Получить все каталоги
+            async getDirectories() {
+                try {
+                    console.log('📡 Отправляем запрос на получение каталогов...');
+                    const response = await EditorAPI.getDirectories();
+                    console.log('✅ Ответ от сервера:', response);
+                    
+                    if (!response) {
+                        console.error('❌ Пустой ответ от сервера');
+                        return {
+                            success: false,
+                            message: 'Сервер не ответил'
+                        };
+                    }
+                    
+                    return response;
+                } catch (error) {
+                    console.error('❌ API Error in getDirectories:', error);
+                    return {
+                        success: false,
+                        message: 'Ошибка соединения с сервером: ' + error.message
+                    };
+                }
+            },
+            
+            // Получить один каталог
+            async getDirectory(id) {
+                try {
+                    console.log('📡 Запрашиваем каталог ID:', id);
+                    const response = await EditorAPI.getDirectory(id);
+                    console.log('✅ Ответ для каталога ID', id, ':', response);
+                    return response;
+                } catch (error) {
+                    console.error('❌ API Error in getDirectory:', error);
+                    return {
+                        success: false,
+                        message: 'Ошибка загрузки каталога'
+                    };
+                }
+            },
+            
+            // Получить дочерние каталоги
+            async getChildDirectories(parentId) {
+                try {
+                    console.log('📡 Запрашиваем дочерние каталоги для родителя ID:', parentId);
+                    const response = await EditorAPI.getDirectories();
+                    if (response.success && response.data) {
+                        // Фильтруем каталоги по parentId
+                        const childDirectories = response.data.filter(dir => {
+                            if (parentId === null || parentId === '') {
+                                return !dir.parentId || dir.parentId === '';
+                            } else {
+                                return dir.parentId == parentId;
+                            }
+                        });
+                        return {
+                            success: true,
+                            data: childDirectories
+                        };
+                    }
+                    return response;
+                } catch (error) {
+                    console.error('❌ API Error in getChildDirectories:', error);
+                    return {
+                        success: false,
+                        message: 'Ошибка загрузки дочерних каталогов'
+                    };
+                }
+            },
+            
+            // Создать каталог
+            async createDirectory(data) {
+                try {
+                    console.log('📡 Создаем каталог:', data);
+                    const response = await EditorAPI.createDirectory(data);
+                    console.log('✅ Ответ при создании:', response);
+                    return response;
+                } catch (error) {
+                    console.error('❌ API Error in createDirectory:', error);
+                    return {
+                        success: false,
+                        message: 'Ошибка создания каталога'
+                    };
+                }
+            },
+            
+            // Обновить каталог
+            async updateDirectory(id, data) {
+                try {
+                    console.log('📡 Обновляем каталог ID:', id, 'данные:', data);
+                    const response = await EditorAPI.updateDirectory(id, data);
+                    console.log('✅ Ответ при обновлении:', response);
+                    return response;
+                } catch (error) {
+                    console.error('❌ API Error in updateDirectory:', error);
+                    return {
+                        success: false,
+                        message: 'Ошибка обновления каталога'
+                    };
+                }
+            },
+            
+            // Удалить каталог
+            async deleteDirectory(id) {
+                try {
+                    console.log('📡 Удаляем каталог ID:', id);
+                    const response = await EditorAPI.deleteDirectory(id);
+                    console.log('✅ Ответ при удаления:', response);
+                    return response;
+                } catch (error) {
+                    console.error('❌ API Error in deleteDirectory:', error);
+                    return {
+                        success: false,
+                        message: 'Ошибка удаления каталога'
+                    };
+                }
+            }
+        };
+
+        class DirectoriesPage {
+            constructor() {
+                this.currentPage = 1;
+                this.pageSize = 10;
+                this.totalPages = 1;
+                this.directories = [];
+                this.filteredDirectories = [];
+                this.currentDirectoryId = null;
+                this.activeStatusFilter = 'all';
+                this.currentView = 'table'; // 'table' или 'tree'
+                this.expandedNodes = new Set();
+                this.currentNodeId = null; // Текущий узел в дереве (для навигации)
+                this.nodeHistory = []; // История навигации по узлам
+                this.treeMode = 'full'; // 'full' - полное дерево, 'drilldown' - навигация по узлам
+                
+                this.init();
+            }
+            
+            async init() {
+                console.log('🚀 Инициализация DirectoriesPage...');
+                try {
+                    await this.loadDirectories();
+                    this.setupEventListeners();
+                    this.setupStatusFilters();
+                    console.log('✅ DirectoriesPage инициализирован');
+                } catch (error) {
+                    console.error('❌ Ошибка инициализации:', error);
+                    this.showNotification('Ошибка инициализации страницы', 'error');
+                }
+            }
+            
+            async loadDirectories() {
+                console.log('🔄 Начинаем загрузку каталогов...');
+                try {
+                    const loadingState = document.getElementById('loadingState');
+                    if (loadingState) {
+                        loadingState.innerHTML = `
+                            <i class="fas fa-spinner"></i>
+                            <h3>Загрузка каталогов...</h3>
+                            <p>Пожалуйста, подождите</p>
+                        `;
+                    }
+                    
+                    const response = await DirectoriesAPI.getDirectories();
+                    console.log('📊 Получен ответ от API:', response);
+                    
+                    if (response && response.success) {
+                        console.log('✅ Успешно загружено каталогов:', response.data?.length || 0);
+                        this.directories = response.data || [];
+                        this.filteredDirectories = [...this.directories];
+                        this.renderTable();
+                        this.populateParentSelect();
+                        
+                        // Рендерим дерево если оно активно
+                        if (this.currentView === 'tree') {
+                            if (this.treeMode === 'full') {
+                                this.renderTree();
+                            } else {
+                                this.renderDrilldownTree(this.currentNodeId);
+                            }
+                        }
+                        
+                        // Показываем уведомление если каталогов нет
+                        if (this.directories.length === 0) {
+                            this.showNotification('Каталоги не найдены. Создайте первый каталог.', 'info');
+                        }
+                    } else {
+                        console.error('❌ Ошибка в ответе API:', response);
+                        const errorMessage = response?.message || 'Неизвестная ошибка';
+                        this.showNotification(`Ошибка загрузки каталогов: ${errorMessage}`, 'error');
+                        this.renderErrorState(errorMessage);
+                    }
+                } catch (error) {
+                    console.error('❌ Ошибка в loadDirectories:', error);
+                    this.showNotification(`Ошибка загрузки: ${error.message}`, 'error');
+                    this.renderErrorState(error.message);
+                }
+            }
+            
+            renderErrorState(errorMessage) {
+                const tbody = document.getElementById('directoriesTable');
+                if (!tbody) return;
+                
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            <i class="fas fa-exclamation-triangle" style="color: #f56565;"></i>
+                            <h3>Ошибка загрузки каталогов</h3>
+                            <p>${errorMessage}</p>
+                            <button class="btn-primary" onclick="directoriesPage.loadDirectories()" style="margin-top: 15px;">
+                                <i class="fas fa-redo"></i> Попробовать снова
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            renderTable() {
+                const tbody = document.getElementById('directoriesTable');
+                if (!tbody) return;
+                
+                console.log('🎨 Рендерим таблицу с', this.filteredDirectories.length, 'каталогами');
+                
+                // Применяем пагинацию
+                const startIndex = (this.currentPage - 1) * this.pageSize;
+                const endIndex = startIndex + this.pageSize;
+                const pageData = this.filteredDirectories.slice(startIndex, endIndex);
+                
+                if (pageData.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="empty-state">
+                                <i class="fas fa-folder-open"></i>
+                                <h3>Каталоги не найдены</h3>
+                                <p>Создайте первый каталог или измените критерии поиска</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                let html = '';
+                pageData.forEach(dir => {
+                    console.log('📁 Рендерим каталог:', dir);
+                    const parentName = dir.parentName || '—';
+                    const createdAt = dir.createdAt ? new Date(dir.createdAt).toLocaleDateString('ru-RU') : '—';
+                    
+                    // Определяем статус для отображения
+                    const status = dir.status || 'active';
+                    const statusClass = `status-${status}`;
+                    const statusText = this.getStatusText(status);
+                    
+                    html += `
+                        <tr>
+                            <td>${dir.id}</td>
+                            <td>
+                                <div class="directory-name">
+                                    <i class="fas fa-folder"></i>
+                                    <span>${dir.name || 'Без названия'}</span>
+                                </div>
+                            </td>
+                            <td>${parentName}</td>
+                            <td>${createdAt}</td>
+                            <td><span class="count-badge">${dir.userCount || 0}</span></td>
+                            <td><span class="count-badge">${dir.recordCount || 0}</span></td>
+                            <td>
+                                <span class="status-badge ${statusClass}">
+                                    <span class="status-indicator ${status}"></span>
+                                    ${statusText}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn-action btn-action-edit" onclick="directoriesPage.editDirectory(${dir.id})" 
+                                            title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-action btn-action-delete" onclick="directoriesPage.confirmDelete(${dir.id})" 
+                                            title="Удалить">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                tbody.innerHTML = html;
+                this.updatePagination();
+            }
+            
+            async renderTree() {
+                const treeContainer = document.getElementById('treeViewContent');
+                if (!treeContainer) return;
+                
+                // Показываем индикатор загрузки
+                treeContainer.innerHTML = '<div class="tree-loading"><i class="fas fa-spinner"></i> Загрузка дерева...</div>';
+                
+                try {
+                    // Загружаем все каталоги для построения дерева
+                    const response = await DirectoriesAPI.getDirectories();
+                    if (!response.success) {
+                        treeContainer.innerHTML = `
+                            <div class="empty-tree">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <h3>Ошибка загрузки</h3>
+                                <p>${response.message}</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    const allDirectories = response.data || [];
+                    
+                    // Фильтруем только активные каталоги для дерева
+                    const activeDirectories = allDirectories.filter(dir => (dir.status || 'active') === 'active');
+                    
+                    const emptyTreeElement = document.getElementById('emptyTree');
+                    
+                    if (activeDirectories.length === 0) {
+                        if (emptyTreeElement) {
+                            emptyTreeElement.style.display = 'block';
+                        }
+                        treeContainer.innerHTML = '';
+                        return;
+                    }
+                    
+                    if (emptyTreeElement) {
+                        emptyTreeElement.style.display = 'none';
+                    }
+                    
+                    // Строим полную иерархию
+                    const hierarchy = this.buildHierarchy(activeDirectories);
+                    
+                    // Рендерим дерево
+                    let html = '';
+                    hierarchy.forEach(node => {
+                        html += this.renderTreeNode(node, 0, true);
+                    });
+                    
+                    treeContainer.innerHTML = html;
+                    
+                    // Скрываем хлебные крошки для полного дерева
+                    const treePathElement = document.getElementById('treePath');
+                    if (treePathElement) {
+                        treePathElement.style.display = 'none';
+                    }
+                    
+                    // Добавляем обработчики
+                    this.setupTreeEventListeners();
+                    
+                } catch (error) {
+                    console.error('Ошибка рендеринга дерева:', error);
+                    treeContainer.innerHTML = `
+                        <div class="empty-tree">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h3>Ошибка загрузки</h3>
+                            <p>${error.message}</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            async renderDrilldownTree(parentId = null) {
+                const treeContainer = document.getElementById('treeViewContent');
+                if (!treeContainer) return;
+                
+                // Показываем индикатор загрузки
+                treeContainer.innerHTML = '<div class="tree-loading"><i class="fas fa-spinner"></i> Загрузка...</div>';
+                
+                try {
+                    // Загружаем дочерние каталоги
+                    const response = await DirectoriesAPI.getChildDirectories(parentId);
+                    if (!response.success) {
+                        treeContainer.innerHTML = `
+                            <div class="empty-tree">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <h3>Ошибка загрузки</h3>
+                                <p>${response.message}</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    const childDirectories = response.data || [];
+                    
+                    if (childDirectories.length === 0) {
+                        treeContainer.innerHTML = `
+                            <div class="empty-tree">
+                                <i class="fas fa-folder-open"></i>
+                                <h3>Нет вложенных справочников</h3>
+                                <p>В этом каталоге нет дочерних справочников</p>
+                            </div>
+                        `;
+                    } else {
+                        // Рендерим список дочерних каталогов
+                        let html = '';
+                        childDirectories.forEach(dir => {
+                            html += this.renderDrilldownNode(dir);
+                        });
+                        treeContainer.innerHTML = html;
+                    }
+                    
+                    // Показываем хлебные крошки для навигации
+                    this.updateTreePath(parentId);
+                    
+                    // Добавляем обработчики для узлов
+                    this.setupDrilldownEventListeners();
+                    
+                } catch (error) {
+                    console.error('Ошибка рендеринга drilldown дерева:', error);
+                    treeContainer.innerHTML = `
+                        <div class="empty-tree">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h3>Ошибка загрузки</h3>
+                            <p>${error.message}</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            renderDrilldownNode(dir) {
+                // Получаем количество дочерних элементов
+                const childCount = this.directories.filter(d => d.parentId == dir.id && (d.status || 'active') === 'active').length;
+                
+                return `
+                    <div class="tree-node" data-id="${dir.id}">
+                        <div class="tree-node-header" onclick="directoriesPage.navigateToNode(${dir.id})">
+                            <span class="tree-toggle">
+                                <i class="fas fa-chevron-right"></i>
+                            </span>
+                            <span class="tree-icon">
+                                <i class="fas fa-folder${childCount > 0 ? '-open' : ''}"></i>
+                            </span>
+                            <div style="flex-grow: 1;">
+                                <div class="tree-node-name">
+                                    ${dir.name || 'Без названия'}
+                                    ${childCount > 0 ? `<span class="tree-node-children-count">(${childCount})</span>` : ''}
+                                </div>
+                                ${dir.description ? `<div class="tree-node-description">${dir.description}</div>` : ''}
+                            </div>
+                            <div class="tree-node-info">
+                                <span class="tree-node-badge">
+                                    <i class="fas fa-file"></i> ${dir.recordCount || 0}
+                                </span>
+                                <span class="tree-node-badge">
+                                    <i class="fas fa-users"></i> ${dir.userCount || 0}
+                                </span>
+                                <span class="tree-node-status status-${dir.status || 'active'}">
+                                    ${this.getStatusText(dir.status || 'active')}
+                                </span>
+                            </div>
+                            <div class="tree-node-actions">
+                                <button class="tree-node-action-btn" onclick="event.stopPropagation(); directoriesPage.editDirectory(${dir.id})" title="Редактировать">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="tree-node-action-btn" onclick="event.stopPropagation(); directoriesPage.confirmDelete(${dir.id})" title="Удалить">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            buildHierarchy(directories) {
+                const dirMap = new Map();
+                const roots = [];
+                
+                // Создаем карту каталогов
+                directories.forEach(dir => {
+                    dirMap.set(dir.id, {
+                        ...dir,
+                        children: []
+                    });
+                });
+                
+                // Строим иерархию
+                directories.forEach(dir => {
+                    const node = dirMap.get(dir.id);
+                    if (dir.parentId && dirMap.has(dir.parentId)) {
+                        const parent = dirMap.get(dir.parentId);
+                        parent.children.push(node);
+                    } else {
+                        roots.push(node);
+                    }
+                });
+                
+                return roots;
+            }
+            
+            renderTreeNode(node, level = 0, isRoot = false) {
+                const hasChildren = node.children && node.children.length > 0;
+                const isExpanded = this.expandedNodes.has(node.id);
+                const indent = level * 30;
+                
+                let html = `
+                    <div class="tree-node" data-id="${node.id}" style="margin-left: ${indent}px;">
+                        <div class="tree-node-header" onclick="directoriesPage.toggleTreeNode(${node.id})">
+                            ${hasChildren ? `
+                                <span class="tree-toggle">
+                                    <i class="fas fa-chevron-${isExpanded ? 'down' : 'right'}"></i>
+                                </span>
+                            ` : '<span class="tree-toggle" style="visibility: hidden;"><i class="fas fa-chevron-right"></i></span>'}
+                            <span class="tree-icon">
+                                <i class="fas fa-${hasChildren ? 'folder-open' : 'folder'}"></i>
+                            </span>
+                            <div style="flex-grow: 1;">
+                                <div class="tree-node-name">
+                                    ${node.name || 'Без названия'}
+                                    ${hasChildren ? `<span class="tree-node-children-count">(${node.children.length})</span>` : ''}
+                                </div>
+                                ${node.description ? `<div class="tree-node-description">${node.description}</div>` : ''}
+                            </div>
+                            <div class="tree-node-info">
+                                <span class="tree-node-badge">
+                                    <i class="fas fa-file"></i> ${node.recordCount || 0}
+                                </span>
+                                <span class="tree-node-badge">
+                                    <i class="fas fa-users"></i> ${node.userCount || 0}
+                                </span>
+                                <span class="tree-node-status status-${node.status || 'active'}">
+                                    ${this.getStatusText(node.status || 'active')}
+                                </span>
+                            </div>
+                            <div class="tree-node-actions">
+                                <button class="tree-node-action-btn" onclick="event.stopPropagation(); directoriesPage.navigateToNodeDrilldown(${node.id})" title="Открыть вложенные">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                                <button class="tree-node-action-btn" onclick="event.stopPropagation(); directoriesPage.editDirectory(${node.id})" title="Редактировать">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="tree-node-action-btn" onclick="event.stopPropagation(); directoriesPage.confirmDelete(${node.id})" title="Удалить">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                `;
+                
+                // Рендерим детей если узел развернут
+                if (hasChildren && isExpanded) {
+                    html += '<div class="tree-node-content">';
+                    node.children.forEach(child => {
+                        html += this.renderTreeNode(child, level + 1);
+                    });
+                    html += '</div>';
+                }
+                
+                html += '</div>';
+                return html;
+            }
+            
+            toggleTreeNode(nodeId) {
+                if (this.expandedNodes.has(nodeId)) {
+                    this.expandedNodes.delete(nodeId);
+                } else {
+                    this.expandedNodes.add(nodeId);
+                }
+                this.renderTree();
+            }
+            
+            expandAllNodes() {
+                // Находим все узлы с детьми и добавляем их в expandedNodes
+                const findNodesWithChildren = (nodes) => {
+                    nodes.forEach(node => {
+                        if (node.children && node.children.length > 0) {
+                            this.expandedNodes.add(node.id);
+                            findNodesWithChildren(node.children);
+                        }
+                    });
+                };
+                
+                // Фильтруем только активные каталоги
+                const activeDirectories = this.directories.filter(dir => (dir.status || 'active') === 'active');
+                const hierarchy = this.buildHierarchy(activeDirectories);
+                findNodesWithChildren(hierarchy);
+                this.renderTree();
+            }
+            
+            collapseAllNodes() {
+                this.expandedNodes.clear();
+                this.renderTree();
+            }
+            
+            navigateToNode(nodeId) {
+                // Сохраняем историю
+                if (this.currentNodeId !== null) {
+                    this.nodeHistory.push(this.currentNodeId);
+                }
+                
+                this.currentNodeId = nodeId;
+                this.treeMode = 'drilldown';
+                this.renderDrilldownTree(nodeId);
+            }
+            
+            navigateToNodeDrilldown(nodeId) {
+                // Переключаемся в режим drilldown и открываем узел
+                this.treeMode = 'drilldown';
+                this.navigateToNode(nodeId);
+            }
+            
+            navigateToParent() {
+                if (this.nodeHistory.length > 0) {
+                    const parentId = this.nodeHistory.pop();
+                    this.currentNodeId = parentId;
+                    this.renderDrilldownTree(parentId);
+                } else {
+                    this.navigateToRoot();
+                }
+            }
+            
+            navigateToRoot() {
+                this.currentNodeId = null;
+                this.nodeHistory = [];
+                this.treeMode = 'drilldown';
+                this.renderDrilldownTree(null);
+            }
+            
+            updateTreePath(parentId) {
+                const treePath = document.getElementById('treePath');
+                if (!treePath) return;
+                
+                const breadcrumb = treePath.querySelector('.tree-breadcrumb');
+                if (!breadcrumb) return;
+                
+                if (parentId === null || parentId === '') {
+                    // Показываем только корень
+                    treePath.style.display = 'flex';
+                    breadcrumb.innerHTML = `
+                        <span class="tree-back-btn" onclick="directoriesPage.navigateToParent()">
+                            <i class="fas fa-arrow-left"></i>
+                        </span>
+                        <span class="tree-current-node">Корневые каталоги</span>
+                    `;
+                } else {
+                    // Находим путь к текущему узлу
+                    const path = this.getPathToNode(parentId);
+                    treePath.style.display = 'flex';
+                    
+                    let breadcrumbHtml = `
+                        <span class="tree-back-btn" onclick="directoriesPage.navigateToParent()">
+                            <i class="fas fa-arrow-left"></i>
+                        </span>
+                        <span class="tree-path-item" onclick="directoriesPage.navigateToRoot()">Корень</span>
+                    `;
+                    
+                    path.forEach((node, index) => {
+                        if (index < path.length - 1) {
+                            breadcrumbHtml += `
+                                <span class="tree-path-separator">/</span>
+                                <span class="tree-path-item" onclick="directoriesPage.navigateToNode(${node.id})">${node.name}</span>
+                            `;
+                        } else {
+                            breadcrumbHtml += `
+                                <span class="tree-path-separator">/</span>
+                                <span class="tree-current-node">${node.name}</span>
+                            `;
+                        }
+                    });
+                    
+                    breadcrumb.innerHTML = breadcrumbHtml;
+                }
+            }
+            
+            getPathToNode(nodeId) {
+                const path = [];
+                let currentNode = this.directories.find(dir => dir.id == nodeId);
+                
+                while (currentNode) {
+                    path.unshift(currentNode);
+                    if (currentNode.parentId) {
+                        currentNode = this.directories.find(dir => dir.id == currentNode.parentId);
+                    } else {
+                        currentNode = null;
+                    }
+                }
+                
+                return path;
+            }
+            
+            setupTreeEventListeners() {
+                // Обработчики уже добавлены через onclick в renderTreeNode
+            }
+            
+            setupDrilldownEventListeners() {
+                // Обработчики уже добавлены через onclick в renderDrilldownNode
+            }
+            
+            switchView(view) {
+                this.currentView = view;
+                
+                const tableView = document.getElementById('tableView');
+                const treeView = document.getElementById('treeView');
+                const tableViewBtn = document.getElementById('tableViewBtn');
+                const treeViewBtn = document.getElementById('treeViewBtn');
+                
+                if (!tableView || !treeView || !tableViewBtn || !treeViewBtn) return;
+                
+                // Обновляем активные кнопки
+                tableViewBtn.classList.toggle('active', view === 'table');
+                treeViewBtn.classList.toggle('active', view === 'tree');
+                
+                // Показываем/скрываем представления
+                if (view === 'table') {
+                    tableView.style.display = 'block';
+                    treeView.style.display = 'none';
+                } else {
+                    tableView.style.display = 'none';
+                    treeView.style.display = 'block';
+                    
+                    // Рендерим дерево в нужном режиме
+                    if (this.treeMode === 'full') {
+                        this.renderTree();
+                    } else {
+                        this.renderDrilldownTree(this.currentNodeId);
+                    }
+                }
+            }
+            
+            showAllTree() {
+                this.treeMode = 'full';
+                this.currentNodeId = null;
+                this.nodeHistory = [];
+                this.renderTree();
+            }
+            
+            populateParentSelect() {
+                const select = document.getElementById('parentDirectory');
+                const filterSelect = document.getElementById('filterByParent');
+                
+                if (!select || !filterSelect) return;
+                
+                console.log('🔄 Заполняем выпадающие списки родительских каталогов');
+                
+                // Очищаем опции кроме первой
+                while (select.options.length > 1) select.remove(1);
+                while (filterSelect.options.length > 1) filterSelect.remove(1);
+                
+                // Добавляем опции только для активных каталогов
+                const activeDirectories = this.directories.filter(dir => (dir.status || 'active') === 'active');
+                console.log('📁 Активных каталогов для выбора:', activeDirectories.length);
+                
+                activeDirectories.forEach(dir => {
+                    const option1 = document.createElement('option');
+                    option1.value = dir.id;
+                    option1.textContent = dir.name || `Каталог ${dir.id}`;
+                    select.appendChild(option1);
+                    
+                    const option2 = document.createElement('option');
+                    option2.value = dir.id;
+                    option2.textContent = dir.name || `Каталог ${dir.id}`;
+                    filterSelect.appendChild(option2);
+                });
+            }
+            
+            setupStatusFilters() {
+                const statusFilters = document.querySelectorAll('.status-filter-btn');
+                statusFilters.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        // Убираем активный класс у всех кнопок
+                        statusFilters.forEach(b => b.classList.remove('active'));
+                        // Добавляем активный класс нажатой кнопке
+                        btn.classList.add('active');
+                        
+                        const status = btn.dataset.status;
+                        this.activeStatusFilter = status;
+                        this.filterDirectories();
+                    });
+                });
+            }
+            
+            setupEventListeners() {
+                console.log('🔧 Настраиваем обработчики событий...');
+                
+                // Кнопка добавления
+                const addBtn = document.getElementById('addDirectoryBtn');
+                if (addBtn) {
+                    addBtn.addEventListener('click', () => this.showForm());
+                    console.log('✅ Обработчик для кнопки добавления настроен');
+                }
+                
+                // Переключение вида
+                const tableViewBtn = document.getElementById('tableViewBtn');
+                const treeViewBtn = document.getElementById('treeViewBtn');
+                
+                if (tableViewBtn) {
+                    tableViewBtn.addEventListener('click', () => this.switchView('table'));
+                }
+                
+                if (treeViewBtn) {
+                    treeViewBtn.addEventListener('click', () => this.switchView('tree'));
+                }
+                
+                // Кнопки управления деревом
+                const expandAllBtn = document.getElementById('expandAllBtn');
+                const collapseAllBtn = document.getElementById('collapseAllBtn');
+                const refreshTreeBtn = document.getElementById('refreshTreeBtn');
+                const showAllBtn = document.getElementById('showAllBtn');
+                
+                if (expandAllBtn) {
+                    expandAllBtn.addEventListener('click', () => this.expandAllNodes());
+                }
+                
+                if (collapseAllBtn) {
+                    collapseAllBtn.addEventListener('click', () => this.collapseAllNodes());
+                }
+                
+                if (refreshTreeBtn) {
+                    refreshTreeBtn.addEventListener('click', () => {
+                        if (this.treeMode === 'full') {
+                            this.expandedNodes.clear();
+                            this.renderTree();
+                        } else {
+                            this.renderDrilldownTree(this.currentNodeId);
+                        }
+                    });
+                }
+                
+                if (showAllBtn) {
+                    showAllBtn.addEventListener('click', () => this.showAllTree());
+                }
+                
+                // Кнопка закрытия формы
+                const closeBtn = document.getElementById('closeFormBtn');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => this.hideForm());
+                }
+                
+                // Сброс формы
+                const resetBtn = document.getElementById('resetFormBtn');
+                if (resetBtn) {
+                    resetBtn.addEventListener('click', () => this.resetForm());
+                }
+                
+                // Форма
+                const form = document.getElementById('directoryForm');
+                if (form) {
+                    form.addEventListener('submit', (e) => this.handleSubmit(e));
+                }
+                
+                // Поиск
+                const searchInput = document.getElementById('searchDirectories');
+                if (searchInput) {
+                    searchInput.addEventListener('input', () => this.filterDirectories());
+                }
+                
+                // Фильтр по родительскому каталогу
+                const parentFilter = document.getElementById('filterByParent');
+                if (parentFilter) {
+                    parentFilter.addEventListener('change', () => this.filterDirectories());
+                }
+                
+                // Пагинация
+                const prevBtn = document.getElementById('prevPage');
+                const nextBtn = document.getElementById('nextPage');
+                
+                if (prevBtn) {
+                    prevBtn.addEventListener('click', () => this.prevPage());
+                }
+                
+                if (nextBtn) {
+                    nextBtn.addEventListener('click', () => this.nextPage());
+                }
+                
+                // Модальное окно удаления
+                const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+                const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+                const closeModalBtn = document.querySelector('.close-btn');
+                
+                if (confirmDeleteBtn) {
+                    confirmDeleteBtn.addEventListener('click', () => this.deleteDirectory());
+                }
+                
+                if (cancelDeleteBtn) {
+                    cancelDeleteBtn.addEventListener('click', () => this.hideModal());
+                }
+                
+                if (closeModalBtn) {
+                    closeModalBtn.addEventListener('click', () => this.hideModal());
+                }
+                
+                console.log('✅ Все обработчики событий настроены');
+            }
+            
+            filterDirectories() {
+                const searchTerm = document.getElementById('searchDirectories').value.toLowerCase();
+                const parentFilter = document.getElementById('filterByParent').value;
+                
+                this.filteredDirectories = this.directories.filter(dir => {
+                    // Поиск по названию
+                    const dirName = dir.name ? dir.name.toLowerCase() : '';
+                    const matchesSearch = dirName.includes(searchTerm);
+                    
+                    // Фильтр по родительскому каталогу
+                    const matchesParent = !parentFilter || dir.parentId == parentFilter;
+                    
+                    // Фильтр по статусу
+                    let matchesStatus = true;
+                    if (this.activeStatusFilter !== 'all') {
+                        matchesStatus = (dir.status || 'active') === this.activeStatusFilter;
+                    }
+                    
+                    return matchesSearch && matchesParent && matchesStatus;
+                });
+                
+                this.currentPage = 1;
+                this.renderTable();
+            }
+            
+            updatePagination() {
+                this.totalPages = Math.ceil(this.filteredDirectories.length / this.pageSize);
+                
+                const prevBtn = document.getElementById('prevPage');
+                const nextBtn = document.getElementById('nextPage');
+                const pageInfo = document.getElementById('pageInfo');
+                
+                if (prevBtn) {
+                    prevBtn.disabled = this.currentPage === 1;
+                }
+                
+                if (nextBtn) {
+                    nextBtn.disabled = this.currentPage === this.totalPages;
+                }
+                
+                if (pageInfo) {
+                    pageInfo.textContent = `Страница ${this.currentPage} из ${this.totalPages || 1}`;
+                }
+            }
+            
+            prevPage() {
+                if (this.currentPage > 1) {
+                    this.currentPage--;
+                    this.renderTable();
+                }
+            }
+            
+            nextPage() {
+                if (this.currentPage < this.totalPages) {
+                    this.currentPage++;
+                    this.renderTable();
+                }
+            }
+            
+            showForm(directoryId = null) {
+                const formCard = document.getElementById('directoryFormCard');
+                const formTitle = document.getElementById('formTitle');
+                
+                if (!formCard || !formTitle) return;
+                
+                if (directoryId) {
+                    formTitle.textContent = 'Редактировать каталог';
+                    this.currentDirectoryId = directoryId;
+                    this.loadDirectoryData(directoryId);
+                } else {
+                    formTitle.textContent = 'Добавить каталог';
+                    this.currentDirectoryId = null;
+                    this.resetForm();
+                }
+                
+                formCard.style.display = 'block';
+                formCard.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            hideForm() {
+                const formCard = document.getElementById('directoryFormCard');
+                if (formCard) {
+                    formCard.style.display = 'none';
+                }
+            }
+            
+            resetForm() {
+                const form = document.getElementById('directoryForm');
+                if (form) {
+                    form.reset();
+                    document.getElementById('directoryId').value = '';
+                    document.getElementById('directoryStatus').value = 'active';
+                }
+            }
+            
+            async loadDirectoryData(id) {
+                try {
+                    const response = await DirectoriesAPI.getDirectory(id);
+                    if (response.success && response.data) {
+                        const dir = response.data;
+                        document.getElementById('directoryId').value = dir.id;
+                        document.getElementById('directoryName').value = dir.name || '';
+                        document.getElementById('parentDirectory').value = dir.parentId || '';
+                        document.getElementById('directoryDescription').value = dir.description || '';
+                        document.getElementById('directoryStatus').value = dir.status || 'active';
+                    } else {
+                        this.showNotification(response.message || 'Ошибка загрузки данных', 'error');
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки данных каталога:', error);
+                    this.showNotification('Ошибка загрузки данных', 'error');
+                }
+            }
+            
+            async handleSubmit(e) {
+                e.preventDefault();
+                
+                const id = document.getElementById('directoryId').value;
+                const name = document.getElementById('directoryName').value.trim();
+                const parentId = document.getElementById('parentDirectory').value || null;
+                const description = document.getElementById('directoryDescription').value.trim();
+                const status = document.getElementById('directoryStatus').value;
+                
+                if (!name) {
+                    this.showNotification('Введите название каталога', 'error');
+                    return;
+                }
+                
+                try {
+                    let response;
+                    const data = { 
+                        name: name,
+                        parentId: parentId,
+                        description: description,
+                        status: status
+                    };
+                    
+                    if (id) {
+                        console.log(`🔄 Обновляем каталог ID: ${id} с новым статусом: ${status}`);
+                        response = await DirectoriesAPI.updateDirectory(id, data);
+                    } else {
+                        console.log(`🔄 Создаем каталог со статусом: ${status}`);
+                        response = await DirectoriesAPI.createDirectory(data);
+                    }
+                    
+                    if (response.success) {
+                        const message = response.message || (id ? 'Каталог обновлён' : 'Каталог создан');
+                        this.showNotification(message, 'success');
+                        
+                        this.hideForm();
+                        
+                        // Перезагружаем данные с сервера
+                        await this.loadDirectories();
+                        
+                        // Обновляем дерево если оно активно
+                        if (this.currentView === 'tree') {
+                            if (this.treeMode === 'full') {
+                                this.renderTree();
+                            } else {
+                                this.renderDrilldownTree(this.currentNodeId);
+                            }
+                        }
+                        
+                        // Если мы обновили статус, применяем фильтры
+                        if (id && this.activeStatusFilter !== 'all') {
+                            // Проверяем, соответствует ли новый статус активному фильтру
+                            const updatedDirectory = this.directories.find(d => d.id == id);
+                            if (updatedDirectory && updatedDirectory.status !== this.activeStatusFilter) {
+                                // Если статус не соответствует фильтру, обновляем таблицу
+                                this.filterDirectories();
+                            }
+                        }
+                    } else {
+                        this.showNotification(response.message || 'Ошибка сохранения', 'error');
+                    }
+                } catch (error) {
+                    console.error('Ошибка сохранения каталога:', error);
+                    this.showNotification('Ошибка сохранения', 'error');
+                }
+            }
+            
+            editDirectory(id) {
+                this.showForm(id);
+            }
+            
+            confirmDelete(id) {
+                this.currentDirectoryId = id;
+                this.showModal();
+            }
+            
+            async deleteDirectory() {
+                if (!this.currentDirectoryId) return;
+                
+                try {
+                    const response = await DirectoriesAPI.deleteDirectory(this.currentDirectoryId);
+                    if (response.success) {
+                        this.showNotification(response.message || 'Каталог удалён', 'success');
+                        this.hideModal();
+                        await this.loadDirectories();
+                        
+                        // Обновляем дерево если оно активно
+                        if (this.currentView === 'tree') {
+                            if (this.treeMode === 'full') {
+                                this.renderTree();
+                            } else {
+                                this.renderDrilldownTree(this.currentNodeId);
+                            }
+                        }
+                    } else {
+                        this.showNotification(response.message || 'Ошибка удаления', 'error');
+                    }
+                } catch (error) {
+                    console.error('Ошибка удаления каталога:', error);
+                    this.showNotification('Ошибка удаления', 'error');
+                }
+            }
+            
+            showModal() {
+                const modal = document.getElementById('confirmModal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                }
+            }
+            
+            hideModal() {
+                const modal = document.getElementById('confirmModal');
+                if (modal) {
+                    modal.style.display = 'none';
+                }
+            }
+            
+            getStatusText(status) {
+                const statuses = {
+                    'active': 'Активный',
+                    'inactive': 'Неактивный',
+                    'archived': 'Архив'
+                };
+                return statuses[status] || 'Активный';
+            }
+            
+            showNotification(message, type = 'info') {
+                const messagesContainer = document.getElementById('messages');
+                if (!messagesContainer) return;
+                
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.innerHTML = `
+                    <i class="fas fa-${this.getNotificationIcon(type)}"></i>
+                    <span>${message}</span>
+                `;
+                
+                messagesContainer.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.animation = 'slideInRight 0.3s ease reverse';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }, 5000);
+            }
+            
+            getNotificationIcon(type) {
+                switch (type) {
+                    case 'success': return 'check-circle';
+                    case 'error': return 'exclamation-circle';
+                    case 'info': return 'info-circle';
+                    default: return 'info-circle';
+                }
+            }
+        }
+
+        // Загрузка компонентов и инициализация
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('📄 DOM загружен, начинаем инициализацию...');
+            
+            try {
+                // Загружаем шапку
+                const headerResponse = await fetch('components/header.html');
+                if (headerResponse.ok) {
+                    const headerData = await headerResponse.text();
+                    const headerContainer = document.getElementById('header-container');
+                    if (headerContainer) {
+                        headerContainer.innerHTML = headerData;
+                        console.log('✅ Шапка загружена');
+                    }
+                } else {
+                    console.warn('⚠️ Не удалось загрузить шапку, создаем базовую');
+                }
+                
+                // Загружаем сайдбар
+                const sidebarResponse = await fetch('components/sidebar.html');
+                if (sidebarResponse.ok) {
+                    const sidebarData = await sidebarResponse.text();
+                    const sidebarContainer = document.getElementById('sidebar-container');
+                    if (sidebarContainer) {
+                        sidebarContainer.innerHTML = sidebarData;
+                        console.log('✅ Сайдбар загружен');
+                    }
+                } else {
+                    console.warn('⚠️ Не удалось загрузить сайдбар, создаем базовый');
+                }
+                
+                // Инициализируем общие элементы
+                if (typeof initCommonElements === 'function') {
+                    initCommonElements();
+                    console.log('✅ Общие элементы инициализированы');
+                }
+                
+                // Загружаем информацию о пользователе
+                if (typeof loadCurrentUser === 'function') {
+                    await loadCurrentUser();
+                    console.log('✅ Информация о пользователе загружена');
+                }
+                
+                // Подсвечиваем активную страницу
+                if (typeof highlightCurrentPage === 'function') {
+                    highlightCurrentPage();
+                    console.log('✅ Активная страница подсвечена');
+                }
+                
+                // Инициализируем мобильное меню
+                initMobileMenu();
+                console.log('✅ Мобильное меню инициализировано');
+                
+                // Инициализируем страницу каталогов
+                console.log('🚀 Запускаем DirectoriesPage...');
+                window.directoriesPage = new DirectoriesPage();
+                
+            } catch (error) {
+                console.error('❌ Ошибка загрузки компонентов:', error);
+                createBasicStructure();
+            }
+        });
+
+        function initMobileMenu() {
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const sidebar = document.getElementById('sidebar');
+            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+            
+            if (mobileMenuBtn && sidebar) {
+                mobileMenuBtn.addEventListener('click', () => {
+                    sidebar.classList.add('active');
+                    if (closeSidebarBtn) closeSidebarBtn.style.display = 'block';
+                });
+            }
+            
+            if (closeSidebarBtn && sidebar) {
+                closeSidebarBtn.addEventListener('click', () => {
+                    sidebar.classList.remove('active');
+                    closeSidebarBtn.style.display = 'none';
+                });
+            }
+            
+            // Закрытие меню при клике на ссылку
+            const sidebarLinks = document.querySelectorAll('.sidebar-nav a');
+            sidebarLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 768 && sidebar) {
+                        sidebar.classList.remove('active');
+                        if (closeSidebarBtn) closeSidebarBtn.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        function createBasicStructure() {
+            console.log('🛠️ Создаем базовую структуру...');
+            
+            // Базовая шапка
+            const headerContainer = document.getElementById('header-container');
+            if (headerContainer) {
+                headerContainer.innerHTML = `
+                    <header class="header">
+                        <div class="header-left">
+                            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                                <i class="fas fa-bars"></i>
+                            </button>
+                            <div class="header-text">
+                                <h1><i class="fas fa-edit"></i> Панель редактора</h1>
+                                <p class="header-subtitle">Управление каталогами</p>
+                            </div>
+                        </div>
+                        <div class="user-info">
+                            <div class="user-avatar">Р</div>
+                            <div class="user-details">
+                                <span class="user-name">Редактор</span>
+                                <span class="user-role">Редактор</span>
+                            </div>
+                            <button class="logout-btn" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt"></i> Выход
+                            </button>
+                        </div>
+                    </header>
+                `;
+            }
+            
+            // Базовый сайдбар
+            const sidebarContainer = document.getElementById('sidebar-container');
+            if (sidebarContainer) {
+                sidebarContainer.innerHTML = `
+                    <aside class="sidebar" id="sidebar">
+                        <div class="sidebar-brand">
+                            <h2><i class="fas fa-cogs"></i> Меню редактора</h2>
+                            <button class="close-sidebar-btn" id="closeSidebarBtn" style="display: none;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <nav>
+                            <ul class="sidebar-nav">
+                                <li><a href="editor.html"><i class="fas fa-home"></i><span>Главная</span></a></li>
+                                <li><a href="directories.html" class="active"><i class="fas fa-book"></i><span>Справочники</span></a></li>
+                                <li><a href="assignments.html"><i class="fas fa-user-check"></i><span>Назначения</span></a></li>
+                                <li><a href="counterparties.html"><i class="fas fa-building"></i><span>Контрагенты</span></a></li>
+                                <li><a href="status-logs.html"><i class="fas fa-tasks"></i><span>Статусы</span></a></li>
+                            </ul>
+                        </nav>
+                        <div class="sidebar-footer">
+                            <p>© 2024 Система документооборота</p>
+                            <p>Версия 1.0.0</p>
+                        </div>
+                    </aside>
+                `;
+            }
+            
+            // Инициализация
+            initMobileMenu();
+            
+            // Обработчик выхода
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function() {
+                    if (confirm('Вы уверены, что хотите выйти?')) {
+                        window.location.href = '../index.html';
+                    }
+                });
+            }
+            
+            // Инициализируем страницу каталогов
+            console.log('🚀 Запускаем DirectoriesPage в базовой структуре...');
+            window.directoriesPage = new DirectoriesPage();
+        }
+    </script>
 </body>
 </html>

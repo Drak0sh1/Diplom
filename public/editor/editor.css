@@ -1,0 +1,462 @@
+.search-filters {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+    background: #f8fafc;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+}
+
+.search-box {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+}
+
+.search-box i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #a0aec0;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 12px 15px 12px 45px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: #4299e1;
+}
+
+.filter-group {
+    min-width: 200px;
+}
+
+.status-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.status-filter-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 2px solid #e2e8f0;
+    background: white;
+    color: #4a5568;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.status-filter-btn:hover {
+    border-color: #4299e1;
+    transform: translateY(-1px);
+}
+
+.status-filter-btn.active {
+    background: #4299e1;
+    border-color: #4299e1;
+    color: white;
+}
+
+.status-filter-btn[data-status="all"]:hover,
+.status-filter-btn[data-status="all"].active {
+    background: #4299e1;
+    border-color: #4299e1;
+}
+
+.status-filter-btn[data-status="active"]:hover,
+.status-filter-btn[data-status="active"].active {
+    background: #48bb78;
+    border-color: #48bb78;
+    color: white;
+}
+
+.status-filter-btn[data-status="inactive"]:hover,
+.status-filter-btn[data-status="inactive"].active {
+    background: #f56565;
+    border-color: #f56565;
+    color: white;
+}
+
+.status-filter-btn[data-status="archived"]:hover,
+.status-filter-btn[data-status="archived"].active {
+    background: #a0aec0;
+    border-color: #a0aec0;
+    color: white;
+}
+
+@media (max-width: 1024px) {
+    .search-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-box,
+    .filter-group {
+        min-width: 100%;
+    }
+    
+    .status-filters {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .status-filters {
+        justify-content: stretch;
+    }
+    
+    .status-filter-btn {
+        flex: 1;
+        justify-content: center;
+    }
+}
+
+.directory-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.count-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    background: #e2e8f0;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 32px;
+    text-align: center;
+}
+
+/* Дополнительные стили для бейджей статусов */
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+}
+
+.status-indicator.active { background-color: #48bb78; }
+.status-indicator.inactive { background-color: #f56565; }
+.status-indicator.archived { background-color: #a0aec0; }
+
+/* Стиль для состояния загрузки */
+.loading-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #718096;
+}
+
+.loading-state i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    color: #4299e1;
+    animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.tree-view-container {
+    display: none;
+    margin-top: 20px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    background: #f9fafb;
+}
+
+.tree-view {
+    font-family: 'Inter', sans-serif;
+}
+
+.tree-node {
+    margin: 8px 0;
+    position: relative;
+}
+
+.tree-node-header {
+    padding: 12px 15px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 5px;
+}
+
+.tree-node-header:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.tree-node-content {
+    margin-left: 30px;
+    border-left: 2px solid #e5e7eb;
+    padding-left: 20px;
+    margin-bottom: 10px;
+}
+
+.tree-toggle {
+    margin-right: 10px;
+    color: #6b7280;
+    font-size: 12px;
+    width: 16px;
+    text-align: center;
+}
+
+.tree-icon {
+    margin-right: 10px;
+    color: #3b82f6;
+    font-size: 16px;
+}
+
+.tree-node-name {
+    font-weight: 500;
+    color: #374151;
+    font-size: 14px;
+    flex-grow: 1;
+}
+
+.tree-node-info {
+    display: flex;
+    gap: 15px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.tree-node-badge {
+    background: #f3f4f6;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.tree-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.btn-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.view-toggle {
+    display: flex;
+    background: #f3f4f6;
+    border-radius: 6px;
+    padding: 4px;
+    margin-right: 10px;
+}
+
+.view-toggle-btn {
+    padding: 6px 12px;
+    border: none;
+    background: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: #6b7280;
+    transition: all 0.2s;
+}
+
+.view-toggle-btn:hover {
+    background: #e5e7eb;
+}
+
+.view-toggle-btn.active {
+    background: white;
+    color: #3b82f6;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.empty-tree {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6b7280;
+}
+
+.empty-tree i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.tree-node-children-count {
+    color: #9ca3af;
+    font-size: 12px;
+    margin-left: 5px;
+}
+
+.tree-node-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: 15px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.tree-node-header:hover .tree-node-actions {
+    opacity: 1;
+}
+
+.tree-node-action-btn {
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.tree-node-action-btn:hover {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.tree-node-status {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 10px;
+}
+
+.status-active {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-inactive {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-archived {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.tree-node-description {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.tree-node-content-empty {
+    color: #9ca3af;
+    font-style: italic;
+    font-size: 13px;
+    padding: 10px 0;
+}
+
+.tree-loading {
+    text-align: center;
+    padding: 20px;
+    color: #6b7280;
+}
+
+.tree-loading i {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.tree-path {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding: 10px 15px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.tree-path-item {
+    cursor: pointer;
+    color: #3b82f6;
+    transition: color 0.2s;
+}
+
+.tree-path-item:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+}
+
+.tree-path-separator {
+    color: #d1d5db;
+}
+
+.tree-current-node {
+    font-weight: 600;
+    color: #374151;
+}
+
+.tree-back-btn {
+    margin-right: 10px;
+    color: #6b7280;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.tree-back-btn:hover {
+    color: #3b82f6;
+}
+
+.tree-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
