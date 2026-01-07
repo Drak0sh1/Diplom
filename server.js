@@ -256,22 +256,41 @@ app.use(async (req, res, next) => {
 });
 
 function requireAuth(requiredRole = null) {
-    return (req, res, next) => {
-        if (!req.user) {
-            return res.status(401).json({ 
-                success: false, 
-                message: 'Требуется авторизация' 
+    return async (req, res, next) => {
+        try {
+            const sessionId = req.cookies?.sessionId;
+
+            if (!sessionId || !sessions.has(sessionId)) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Требуется авторизация'
+                });
+            }
+
+            const session = sessions.get(sessionId);
+
+            // ⬇️ ВОТ ЗДЕСЬ КЛАДЁМ req.user
+            req.user = {
+                userId: session.userId,
+                username: session.username,
+                role: session.role
+            };
+
+            if (requiredRole && req.user.role !== requiredRole) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Недостаточно прав'
+                });
+            }
+
+            next();
+        } catch (err) {
+            console.error('❌ requireAuth error:', err);
+            res.status(401).json({
+                success: false,
+                message: 'Ошибка авторизации'
             });
         }
-        
-        if (requiredRole && req.user.role !== requiredRole) {
-            return res.status(403).json({ 
-                success: false, 
-                message: 'Недостаточно прав' 
-            });
-        }
-        
-        next();
     };
 }
 
@@ -448,19 +467,76 @@ app.post('/api/login', async (req, res) => {
 });
 
 // Проверка текущего пользователя
-app.get('/api/user', (req, res) => {
-    if (req.user) {
+app.get('/api/user', requireAuth(), async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: 'Не авторизован'
+            });
+        }
+        
+        console.log(`📊 Запрос данных пользователя для хедера: ${req.user.username} (ID: ${req.user.userId})`);
+        
+        // Прямой запрос к БД для получения актуальных данных
+        const connection = await pool.getConnection();
+        
+        const [users] = await connection.execute(`
+            SELECT 
+                u.idUsers,
+                u.name,
+                r.name as role
+            FROM Users u
+            LEFT JOIN Roles r ON u.idRoles = r.idRoles
+            WHERE u.idUsers = ?
+        `, [req.user.userId]);
+        
+        connection.release();
+        
+        if (users.length === 0) {
+            console.error(`❌ Пользователь не найден в БД: ID ${req.user.userId}`);
+            return res.status(404).json({
+                success: false,
+                message: 'Пользователь не найден'
+            });
+        }
+        
+        const userData = users[0];
+        
+        // Обновляем данные в сессии (на случай, если что-то изменилось)
+        if (req.user.username !== userData.name || req.user.role !== userData.role) {
+            console.log(`🔄 Обновление данных в сессии: ${req.user.username} -> ${userData.name}`);
+            const sessionId = req.cookies?.sessionId;
+            if (sessionId && sessions.has(sessionId)) {
+                sessions.get(sessionId).username = userData.name;
+                sessions.get(sessionId).role = userData.role;
+            }
+        }
+        
         res.json({
             success: true,
-            userId: req.user.userId,
-            username: req.user.username,
-            role: req.user.role
+            userId: userData.idUsers,
+            username: userData.name,
+            role: userData.role
         });
-    } else {
-        res.status(401).json({
-            success: false,
-            message: 'Не авторизован'
-        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения данных пользователя:', error);
+        
+        // Возвращаем данные из сессии как fallback
+        if (req.user) {
+            res.json({
+                success: true,
+                userId: req.user.userId,
+                username: req.user.username,
+                role: req.user.role
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                message: 'Ошибка сервера при получении данных пользователя'
+            });
+        }
     }
 });
 
@@ -1247,16 +1323,46 @@ function requireEditorRole(req, res, next) {
 // ============ API ЭНДПОИНТЫ ДЛЯ РЕДАКТОРА ============
 
 // Получить текущего пользователя (для редактора)
-app.get('/api/editor/current-user', requireEditorRole, (req, res) => {
-    res.json({
-        success: true,
-        data: {
-            id: req.user.userId,
-            name: req.user.username,
-            role: req.user.role
+app.get('/api/editor/current-user', requireAuth('Редактор'), async (req, res) => {
+    try {
+        console.log(`📊 Запрос данных редактора: ${req.user.username}`);
+        
+        // Прямой запрос к БД для получения актуальных данных
+        const connection = await pool.getConnection();
+        
+        const [users] = await connection.execute(`
+            SELECT 
+                u.idUsers as id,
+                u.name,
+                r.name as role
+            FROM Users u
+            LEFT JOIN Roles r ON u.idRoles = r.idRoles
+            WHERE u.idUsers = ?
+        `, [req.user.userId]);
+        
+        connection.release();
+        
+        if (users.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Пользователь не найден'
+            });
         }
-    });
+        
+        res.json({
+            success: true,
+            data: users[0]
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения данных редактора:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера' 
+        });
+    }
 });
+
 
 // Получить все справочники (каталоги)
 app.get('/api/editor/directories', requireEditorRole, async (req, res) => {
@@ -2415,6 +2521,245 @@ app.post('/api/editor/backup', requireEditorRole, async (req, res) => {
             message: 'Ошибка создания резервной копии' 
         });
     }
+});
+// ============ API ДЛЯ РАБОТЫ С ХЕДЕРОМ И СМЕНЫ ПАРОЛЯ ============
+
+// ============ API ДЛЯ РАБОТЫ С ХЕДЕРОМ И СМЕНЫ ПАРОЛЯ ============
+
+app.get('/api/user/password-last-change', requireAuth(), async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        
+        // Ищем логи о смене пароля
+        const [passwordLogs] = await pool.execute(`
+            SELECT 
+                createdAt as lastChange
+            FROM Logs 
+            WHERE idUsers = ? 
+            AND module = 'auth'
+            AND actionType = 'password_change'
+            AND status = 'success'
+            ORDER BY createdAt DESC
+            LIMIT 1
+        `, [userId]);
+        
+        if (passwordLogs.length > 0) {
+            res.json({
+                success: true,
+                lastChange: passwordLogs[0].lastChange
+            });
+        } else {
+            // Если нет логов о смене пароля, возвращаем null
+            res.json({
+                success: true,
+                lastChange: null
+            });
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения информации о смене пароля:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера' 
+        });
+    }
+});
+
+// Сменить пароль текущего пользователя - ИСПРАВЛЕННАЯ ВЕРСИЯ
+app.post('/api/user/change-password', requireAuth(), async (req, res) => {
+    try {
+        console.log('🔐 Запрос на смену пароля получен');
+        console.log('📦 Тело запроса:', req.body);
+        console.log('👤 Пользователь из сессии:', req.user);
+        
+        const userId = req.user.userId;
+        const username = req.user.username;
+        const { currentPassword, newPassword } = req.body;
+        const ip = getClientIp(req);
+        const userAgent = req.headers['user-agent'] || '';
+        
+        console.log(`🔐 Запрос смены пароля от пользователя: ${username} (ID: ${userId})`);
+        
+        if (!currentPassword || !newPassword) {
+            console.log('❌ Не все поля заполнены');
+            return res.json({
+                success: false,
+                message: 'Заполните все поля'
+            });
+        }
+        
+        if (newPassword.length < 6) {
+            console.log('❌ Пароль слишком короткий');
+            return res.json({
+                success: false,
+                message: 'Пароль должен содержать минимум 6 символов'
+            });
+        }
+        
+        // Проверяем наличие букв и цифр в пароле
+        const hasLetter = /[a-zA-Z]/.test(newPassword);
+        const hasNumber = /[0-9]/.test(newPassword);
+        
+        if (!hasLetter || !hasNumber) {
+            console.log('❌ Пароль не содержит буквы и цифры');
+            return res.json({
+                success: false,
+                message: 'Пароль должен содержать буквы и цифры'
+            });
+        }
+        
+        // Получаем текущий пароль пользователя из БД
+        const [users] = await pool.execute(
+            'SELECT idUsers, password FROM Users WHERE idUsers = ?',
+            [userId]
+        );
+        
+        if (users.length === 0) {
+            console.log('❌ Пользователь не найден в БД');
+            return res.json({
+                success: false,
+                message: 'Пользователь не найден'
+            });
+        }
+        
+        const currentHashedPassword = users[0].password;
+        console.log('✅ Пользователь найден, получен хеш пароля');
+        
+        // Проверяем текущий пароль
+        console.log('🔑 Проверяем текущий пароль...');
+        const isCurrentPasswordValid = await bcrypt.compare(currentPassword, currentHashedPassword);
+        
+        if (!isCurrentPasswordValid) {
+            console.log('❌ Текущий пароль неверен');
+            return res.json({
+                success: false,
+                message: 'Текущий пароль неверен'
+            });
+        }
+        
+        console.log('✅ Текущий пароль верен');
+        
+        // Проверяем, не использовался ли этот пароль ранее
+        console.log('🔍 Проверяем, отличается ли новый пароль от старого...');
+        const isSamePassword = await bcrypt.compare(newPassword, currentHashedPassword);
+        if (isSamePassword) {
+            console.log('❌ Новый пароль совпадает с текущим');
+            return res.json({
+                success: false,
+                message: 'Новый пароль должен отличаться от текущего'
+            });
+        }
+        
+        console.log('✅ Новый пароль отличается от старого');
+        
+        // Проверяем, можно ли менять пароль (не чаще 1 раза в месяц)
+        console.log('📅 Проверяем историю смены пароля...');
+        const [lastChangeLog] = await pool.execute(`
+            SELECT createdAt 
+            FROM Logs 
+            WHERE idUsers = ? 
+            AND module = 'auth'
+            AND actionType = 'password_change'
+            AND status = 'success'
+            ORDER BY createdAt DESC
+            LIMIT 1
+        `, [userId]);
+        
+        if (lastChangeLog.length > 0) {
+            const lastChangeDate = new Date(lastChangeLog[0].createdAt);
+            const now = new Date();
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+            
+            if (lastChangeDate > oneMonthAgo) {
+                const nextChangeDate = new Date(lastChangeDate);
+                nextChangeDate.setMonth(nextChangeDate.getMonth() + 1);
+                const daysLeft = Math.ceil((nextChangeDate - now) / (1000 * 60 * 60 * 24));
+                
+                console.log(`⚠️ Смена пароля разрешена только раз в месяц. Осталось ${daysLeft} дней`);
+                
+                return res.json({
+                    success: false,
+                    message: `Пароль можно менять не чаще 1 раза в месяц. Следующая смена возможна через ${daysLeft} дней`
+                });
+            }
+        }
+        
+        console.log('✅ Ограничений по частоте смены пароля нет');
+        
+        // Хешируем новый пароль
+        console.log('🔐 Хешируем новый пароль...');
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+        
+        // Обновляем пароль в базе данных
+        console.log('💾 Обновляем пароль в базе данных...');
+        await pool.execute(
+            'UPDATE Users SET password = ? WHERE idUsers = ?',
+            [hashedNewPassword, userId]
+        );
+        
+        console.log('✅ Пароль успешно обновлен в базе данных');
+        
+        // Логируем успешную смену пароля
+        console.log('📝 Логируем смену пароля...');
+        await logAction(
+            userId,
+            'password_change',
+            `Пользователь ${username} успешно сменил пароль`,
+            'auth',
+            'user',
+            userId,
+            'success',
+            ip,
+            userAgent
+        );
+        
+        console.log('✅ Смена пароля завершена успешно');
+        
+        res.json({
+            success: true,
+            message: 'Пароль успешно изменен'
+        });
+        
+    } catch (error) {
+        console.error('❌ КРИТИЧЕСКАЯ ОШИБКА при смене пароля:', error);
+        console.error('Stack trace:', error.stack);
+        
+        // Логируем ошибку
+        const ip = getClientIp(req);
+        const userAgent = req.headers['user-agent'] || '';
+        
+        try {
+            await logAction(
+                req.user?.userId || null,
+                'password_change',
+                `Ошибка смены пароля: ${error.message}`,
+                'auth',
+                'user',
+                null,
+                'failed',
+                ip,
+                userAgent
+            );
+        } catch (logError) {
+            console.error('❌ Ошибка при логировании ошибки смены пароля:', logError);
+        }
+        
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера при смене пароля',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
+// Простая проверка доступности сервера
+app.get('/api/health', (req, res) => {
+    res.json({
+        success: true,
+        status: 'ok',
+        timestamp: new Date().toISOString()
+    });
 });
 // ============ API ДЛЯ ЛОГОВ ============
 

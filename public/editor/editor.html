@@ -13,7 +13,34 @@
 <body>
     <div class="admin-container">
         <!-- Шапка -->
-        <div id="header-container"></div>
+        <header class="header">
+            <div class="header-left">
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="header-text">
+                    <h1><i class="fas fa-book"></i> Панель редактора</h1>
+                    <p class="header-subtitle">Система контроля версий документов</p>
+                </div>
+            </div>
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar">Р</div>
+                <div class="user-details">
+                    <span class="user-name" id="userName">Загрузка...</span>
+                    <span class="user-role" id="userRole">Редактор</span>
+                    <span class="user-status" id="lastPasswordChange"></span>
+                </div>
+                <div class="user-menu-dropdown">
+                    <button class="user-menu-btn" id="userMenuBtn">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="dropdown-content" id="userDropdown">
+                        <a href="#" id="changePasswordBtn"><i class="fas fa-key"></i> Сменить пароль</a>
+                        <a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Выход</a>
+                    </div>
+                </div>
+            </div>
+        </header>
 
         <!-- Сайдбар -->
         <div id="sidebar-container"></div>
@@ -25,7 +52,6 @@
                 <p class="page-subtitle">Управление иерархией каталогов и справочников</p>
             </div>
 
-            <!-- Управление справочниками -->
             <div class="card">
                 <div class="card-header">
                     <h2><i class="fas fa-list"></i> Список справочников</h2>
@@ -227,6 +253,59 @@
             </div>
         </div>
 
+        <!-- Модальное окно смены пароля -->
+        <div class="modal-overlay" id="changePasswordModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-key"></i> Смена пароля</h3>
+                    <button class="close-btn" id="closePasswordModal">&times;</button>
+                </div>
+                <form id="changePasswordForm">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="currentPassword">
+                                <i class="fas fa-lock"></i> Текущий пароль *
+                            </label>
+                            <input type="password" id="currentPassword" class="form-control" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="newPassword">
+                                <i class="fas fa-lock"></i> Новый пароль *
+                            </label>
+                            <input type="password" id="newPassword" class="form-control" required>
+                            <small class="form-text">
+                                Минимум 6 символов, должен содержать буквы и цифры
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="confirmPassword">
+                                <i class="fas fa-lock"></i> Подтвердите новый пароль *
+                            </label>
+                            <input type="password" id="confirmPassword" class="form-control" required>
+                        </div>
+                        
+                        <div class="password-requirements">
+                            <p><strong>Требования к паролю:</strong></p>
+                            <ul>
+                                <li>Минимум 6 символов</li>
+                                <li>Содержит буквы и цифры</li>
+                                <li>Не должен совпадать с текущим паролем</li>
+                                <li>Пароль можно менять не чаще 1 раза в месяц</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="cancelPasswordChange">Отмена</button>
+                        <button type="submit" class="btn-primary" id="savePasswordBtn">
+                            <i class="fas fa-save"></i> Сменить пароль
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Уведомления -->
         <div id="messages"></div>
     </div>
@@ -235,6 +314,77 @@
     <script src="api.js"></script>
     
     <script>
+        // API для работы с пользователем и паролем
+        const UserAPI = {
+            // Получить информацию о текущем пользователе
+            async getCurrentUser() {
+                try {
+                    console.log('📡 Запрашиваем информацию о текущем пользователе...');
+                    const response = await fetch('/api/user');
+                    if (!response.ok) {
+                        throw new Error('Ошибка получения данных пользователя');
+                    }
+                    return await response.json();
+                } catch (error) {
+                    console.error('❌ Ошибка получения данных пользователя:', error);
+                    return null;
+                }
+            },
+            
+            // Получить информацию о последней смене пароля
+            async getPasswordLastChange() {
+                try {
+                    console.log('📡 Запрашиваем информацию о смене пароля...');
+                    const response = await fetch('/api/user/password-last-change');
+                    if (!response.ok) {
+                        throw new Error('Ошибка получения информации о пароле');
+                    }
+                    return await response.json();
+                } catch (error) {
+                    console.error('❌ Ошибка получения информации о пароле:', error);
+                    return { success: false, lastChange: null };
+                }
+            },
+            
+            // Сменить пароль
+            async changePassword(currentPassword, newPassword) {
+                try {
+                    console.log('📡 Меняем пароль...');
+                    const response = await fetch('/api/user/change-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            currentPassword: currentPassword,
+                            newPassword: newPassword
+                        })
+                    });
+                    return await response.json();
+                } catch (error) {
+                    console.error('❌ Ошибка смены пароля:', error);
+                    return {
+                        success: false,
+                        message: 'Ошибка подключения к серверу'
+                    };
+                }
+            },
+            
+            // Выход из системы
+            async logout() {
+                try {
+                    console.log('📡 Выход из системы...');
+                    const response = await fetch('/api/logout', { 
+                        method: 'POST' 
+                    });
+                    return response.ok;
+                } catch (error) {
+                    console.error('❌ Ошибка выхода:', error);
+                    return false;
+                }
+            }
+        };
+
         const DirectoriesAPI = {
             // Получить все каталоги
             async getDirectories() {
@@ -355,6 +505,237 @@
             }
         };
 
+        class UserManager {
+            constructor() {
+                this.currentUser = null;
+                this.init();
+            }
+            
+            async init() {
+                await this.loadUserInfo();
+                this.setupEventListeners();
+            }
+            
+            async loadUserInfo() {
+                try {
+                    // Загружаем информацию о пользователе
+                    const userData = await UserAPI.getCurrentUser();
+                    if (userData) {
+                        this.currentUser = userData;
+                        this.updateUserDisplay(userData);
+                    }
+                    
+                    // Загружаем информацию о последней смене пароля
+                    const passwordData = await UserAPI.getPasswordLastChange();
+                    if (passwordData.success) {
+                        this.updatePasswordInfo(passwordData.lastChange);
+                    }
+                    
+                } catch (error) {
+                    console.error('Ошибка загрузки информации о пользователе:', error);
+                }
+            }
+            
+            updateUserDisplay(userData) {
+                const userName = document.getElementById('userName');
+                const userRole = document.getElementById('userRole');
+                const userAvatar = document.getElementById('userAvatar');
+                
+                if (userName && userData.username) {
+                    userName.textContent = userData.username;
+                }
+                
+                if (userRole && userData.role) {
+                    userRole.textContent = userData.role;
+                }
+                
+                if (userAvatar && userData.username) {
+                    userAvatar.textContent = userData.username.charAt(0).toUpperCase();
+                }
+            }
+            
+            updatePasswordInfo(lastChange) {
+                const lastPasswordChange = document.getElementById('lastPasswordChange');
+                if (!lastPasswordChange) return;
+                
+                if (lastChange) {
+                    const changeDate = new Date(lastChange);
+                    const now = new Date();
+                    const daysSinceChange = Math.floor((now - changeDate) / (1000 * 60 * 60 * 24));
+                    
+                    if (daysSinceChange >= 30) {
+                        lastPasswordChange.textContent = 'Можно менять пароль';
+                        lastPasswordChange.className = 'user-status can-change';
+                    } else {
+                        const daysLeft = 30 - daysSinceChange;
+                        lastPasswordChange.textContent = `Смена пароля через ${daysLeft} дней`;
+                        lastPasswordChange.className = 'user-status cannot-change';
+                    }
+                } else {
+                    lastPasswordChange.textContent = 'Пароль не менялся';
+                    lastPasswordChange.className = 'user-status never-changed';
+                }
+            }
+            
+            setupEventListeners() {
+                // Кнопка меню пользователя
+                const userMenuBtn = document.getElementById('userMenuBtn');
+                const userDropdown = document.getElementById('userDropdown');
+                
+                if (userMenuBtn && userDropdown) {
+                    userMenuBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        userDropdown.classList.toggle('show');
+                    });
+                    
+                    // Закрытие меню при клике вне его
+                    document.addEventListener('click', () => {
+                        userDropdown.classList.remove('show');
+                    });
+                }
+                
+                // Кнопка смены пароля
+                const changePasswordBtn = document.getElementById('changePasswordBtn');
+                if (changePasswordBtn) {
+                    changePasswordBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.showChangePasswordModal();
+                    });
+                }
+                
+                // Кнопка выхода
+                const logoutBtn = document.getElementById('logoutBtn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        if (confirm('Вы уверены, что хотите выйти?')) {
+                            await UserAPI.logout();
+                            window.location.href = '../index.html';
+                        }
+                    });
+                }
+                
+                // Обработчики модального окна смены пароля
+                const closePasswordModal = document.getElementById('closePasswordModal');
+                const cancelPasswordChange = document.getElementById('cancelPasswordChange');
+                const changePasswordForm = document.getElementById('changePasswordForm');
+                
+                if (closePasswordModal) {
+                    closePasswordModal.addEventListener('click', () => this.hideChangePasswordModal());
+                }
+                
+                if (cancelPasswordChange) {
+                    cancelPasswordChange.addEventListener('click', () => this.hideChangePasswordModal());
+                }
+                
+                if (changePasswordForm) {
+                    changePasswordForm.addEventListener('submit', (e) => this.handlePasswordChange(e));
+                }
+            }
+            
+            showChangePasswordModal() {
+                const modal = document.getElementById('changePasswordModal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    // Очищаем форму при открытии
+                    document.getElementById('changePasswordForm').reset();
+                }
+            }
+            
+            hideChangePasswordModal() {
+                const modal = document.getElementById('changePasswordModal');
+                if (modal) {
+                    modal.style.display = 'none';
+                }
+            }
+            
+            async handlePasswordChange(e) {
+                e.preventDefault();
+                
+                const currentPassword = document.getElementById('currentPassword').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                
+                // Валидация
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                    this.showNotification('Заполните все поля', 'error');
+                    return;
+                }
+                
+                if (newPassword !== confirmPassword) {
+                    this.showNotification('Новый пароль и подтверждение не совпадают', 'error');
+                    return;
+                }
+                
+                if (newPassword.length < 6) {
+                    this.showNotification('Пароль должен содержать минимум 6 символов', 'error');
+                    return;
+                }
+                
+                // Проверяем наличие букв и цифр
+                const hasLetter = /[a-zA-Z]/.test(newPassword);
+                const hasNumber = /[0-9]/.test(newPassword);
+                
+                if (!hasLetter || !hasNumber) {
+                    this.showNotification('Пароль должен содержать буквы и цифры', 'error');
+                    return;
+                }
+                
+                // Блокируем кнопку
+                const saveBtn = document.getElementById('savePasswordBtn');
+                const originalText = saveBtn.innerHTML;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Смена...';
+                saveBtn.disabled = true;
+                
+                try {
+                    const response = await UserAPI.changePassword(currentPassword, newPassword);
+                    
+                    if (response.success) {
+                        this.showNotification('Пароль успешно изменен', 'success');
+                        this.hideChangePasswordModal();
+                        
+                        // Обновляем информацию о смене пароля
+                        const passwordData = await UserAPI.getPasswordLastChange();
+                        if (passwordData.success) {
+                            this.updatePasswordInfo(passwordData.lastChange);
+                        }
+                    } else {
+                        this.showNotification(response.message || 'Ошибка смены пароля', 'error');
+                    }
+                } catch (error) {
+                    this.showNotification('Ошибка подключения к серверу', 'error');
+                } finally {
+                    saveBtn.innerHTML = originalText;
+                    saveBtn.disabled = false;
+                }
+            }
+            
+            showNotification(message, type = 'info') {
+                const messagesContainer = document.getElementById('messages');
+                if (!messagesContainer) return;
+                
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.innerHTML = `
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                                      type === 'error' ? 'exclamation-circle' : 
+                                      'info-circle'}"></i>
+                    <span>${message}</span>
+                `;
+                
+                messagesContainer.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.animation = 'slideInRight 0.3s ease reverse';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }, 5000);
+            }
+        }
+
         class DirectoriesPage {
             constructor() {
                 this.currentPage = 1;
@@ -434,6 +815,7 @@
                 }
             }
             
+            // ... остальные методы DirectoriesPage без изменений ...
             renderErrorState(errorMessage) {
                 const tbody = document.getElementById('directoriesTable');
                 if (!tbody) return;
@@ -542,7 +924,7 @@
                                 <i class="fas fa-exclamation-triangle"></i>
                                 <h3>Ошибка загрузки</h3>
                                 <p>${response.message}</p>
-                            </div>
+                        </div>
                         `;
                         return;
                     }
@@ -1397,18 +1779,13 @@
             console.log('📄 DOM загружен, начинаем инициализацию...');
             
             try {
-                // Загружаем шапку
-                const headerResponse = await fetch('components/header.html');
-                if (headerResponse.ok) {
-                    const headerData = await headerResponse.text();
-                    const headerContainer = document.getElementById('header-container');
-                    if (headerContainer) {
-                        headerContainer.innerHTML = headerData;
-                        console.log('✅ Шапка загружена');
-                    }
-                } else {
-                    console.warn('⚠️ Не удалось загрузить шапку, создаем базовую');
-                }
+                // Инициализируем менеджер пользователя
+                console.log('👤 Инициализируем менеджер пользователя...');
+                window.userManager = new UserManager();
+                
+                // Инициализируем страницу каталогов
+                console.log('🚀 Запускаем DirectoriesPage...');
+                window.directoriesPage = new DirectoriesPage();
                 
                 // Загружаем сайдбар
                 const sidebarResponse = await fetch('components/sidebar.html');
@@ -1421,39 +1798,50 @@
                     }
                 } else {
                     console.warn('⚠️ Не удалось загрузить сайдбар, создаем базовый');
-                }
-                
-                // Инициализируем общие элементы
-                if (typeof initCommonElements === 'function') {
-                    initCommonElements();
-                    console.log('✅ Общие элементы инициализированы');
-                }
-                
-                // Загружаем информацию о пользователе
-                if (typeof loadCurrentUser === 'function') {
-                    await loadCurrentUser();
-                    console.log('✅ Информация о пользователе загружена');
-                }
-                
-                // Подсвечиваем активную страницу
-                if (typeof highlightCurrentPage === 'function') {
-                    highlightCurrentPage();
-                    console.log('✅ Активная страница подсвечена');
+                    createBasicSidebar();
                 }
                 
                 // Инициализируем мобильное меню
                 initMobileMenu();
                 console.log('✅ Мобильное меню инициализировано');
                 
-                // Инициализируем страницу каталогов
-                console.log('🚀 Запускаем DirectoriesPage...');
-                window.directoriesPage = new DirectoriesPage();
-                
             } catch (error) {
                 console.error('❌ Ошибка загрузки компонентов:', error);
-                createBasicStructure();
+                createBasicSidebar();
             }
         });
+
+        function createBasicSidebar() {
+            console.log('🛠️ Создаем базовый сайдбар...');
+            
+            const sidebarContainer = document.getElementById('sidebar-container');
+            if (sidebarContainer) {
+                sidebarContainer.innerHTML = `
+                    <aside class="sidebar" id="sidebar">
+                        <div class="sidebar-brand">
+                            <h2><i class="fas fa-cogs"></i> Меню редактора</h2>
+                            <button class="close-sidebar-btn" id="closeSidebarBtn" style="display: none;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <nav>
+                            <ul class="sidebar-nav">
+                                <li><a href="editor.html"><i class="fas fa-home"></i><span>Главная</span></a></li>
+                                <li><a href="directories.html" class="active"><i class="fas fa-book"></i><span>Справочники</span></a></li>
+                                <li><a href="assignments.html"><i class="fas fa-user-check"></i><span>Назначения</span></a></li>
+                                <li><a href="counterparties.html"><i class="fas fa-building"></i><span>Контрагенты</span></a></li>
+                                <li><a href="status-logs.html"><i class="fas fa-tasks"></i><span>Статусы</span></a></li>
+                            </ul>
+                        </nav>
+                        <div class="sidebar-footer">
+                            <p>© 2024 Система документооборота</p>
+                            <p>Версия 1.0.0</p>
+                        </div>
+                    </aside>
+                `;
+                initMobileMenu();
+            }
+        }
 
         function initMobileMenu() {
             const mobileMenuBtn = document.getElementById('mobileMenuBtn');
@@ -1484,83 +1872,6 @@
                     }
                 });
             });
-        }
-
-        function createBasicStructure() {
-            console.log('🛠️ Создаем базовую структуру...');
-            
-            // Базовая шапка
-            const headerContainer = document.getElementById('header-container');
-            if (headerContainer) {
-                headerContainer.innerHTML = `
-                    <header class="header">
-                        <div class="header-left">
-                            <button class="mobile-menu-btn" id="mobileMenuBtn">
-                                <i class="fas fa-bars"></i>
-                            </button>
-                            <div class="header-text">
-                                <h1><i class="fas fa-edit"></i> Панель редактора</h1>
-                                <p class="header-subtitle">Управление каталогами</p>
-                            </div>
-                        </div>
-                        <div class="user-info">
-                            <div class="user-avatar">Р</div>
-                            <div class="user-details">
-                                <span class="user-name">Редактор</span>
-                                <span class="user-role">Редактор</span>
-                            </div>
-                            <button class="logout-btn" id="logoutBtn">
-                                <i class="fas fa-sign-out-alt"></i> Выход
-                            </button>
-                        </div>
-                    </header>
-                `;
-            }
-            
-            // Базовый сайдбар
-            const sidebarContainer = document.getElementById('sidebar-container');
-            if (sidebarContainer) {
-                sidebarContainer.innerHTML = `
-                    <aside class="sidebar" id="sidebar">
-                        <div class="sidebar-brand">
-                            <h2><i class="fas fa-cogs"></i> Меню редактора</h2>
-                            <button class="close-sidebar-btn" id="closeSidebarBtn" style="display: none;">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <nav>
-                            <ul class="sidebar-nav">
-                                <li><a href="editor.html"><i class="fas fa-home"></i><span>Главная</span></a></li>
-                                <li><a href="directories.html" class="active"><i class="fas fa-book"></i><span>Справочники</span></a></li>
-                                <li><a href="assignments.html"><i class="fas fa-user-check"></i><span>Назначения</span></a></li>
-                                <li><a href="counterparties.html"><i class="fas fa-building"></i><span>Контрагенты</span></a></li>
-                                <li><a href="status-logs.html"><i class="fas fa-tasks"></i><span>Статусы</span></a></li>
-                            </ul>
-                        </nav>
-                        <div class="sidebar-footer">
-                            <p>© 2024 Система документооборота</p>
-                            <p>Версия 1.0.0</p>
-                        </div>
-                    </aside>
-                `;
-            }
-            
-            // Инициализация
-            initMobileMenu();
-            
-            // Обработчик выхода
-            const logoutBtn = document.getElementById('logoutBtn');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', function() {
-                    if (confirm('Вы уверены, что хотите выйти?')) {
-                        window.location.href = '../index.html';
-                    }
-                });
-            }
-            
-            // Инициализируем страницу каталогов
-            console.log('🚀 Запускаем DirectoriesPage в базовой структуре...');
-            window.directoriesPage = new DirectoriesPage();
         }
     </script>
 </body>

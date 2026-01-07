@@ -43,7 +43,27 @@ const EditorAPI = {
     
     // Получение текущего пользователя
     async getCurrentUser() {
-        return await this.request('/editor/current-user');
+        return await this.request('/user');
+    },
+    
+    // Получить информацию о последней смене пароля
+    async getPasswordLastChange() {
+        return await this.request('/user/password-last-change');
+    },
+    
+    // Сменить пароль
+    async changePassword(currentPassword, newPassword) {
+        return await this.request('/user/change-password', {
+            method: 'POST',
+            body: JSON.stringify({ currentPassword, newPassword })
+        });
+    },
+    
+    // Выход из системы
+    async logout() {
+        return await this.request('/logout', {
+            method: 'POST'
+        });
     },
     
     // Получение справочников
@@ -176,13 +196,6 @@ const EditorAPI = {
     // Создание резервной копии
     async createBackup() {
         return await this.request('/editor/backup', {
-            method: 'POST'
-        });
-    },
-    
-    // Выход из системы
-    async logout() {
-        return await this.request('/auth/logout', {
             method: 'POST'
         });
     }

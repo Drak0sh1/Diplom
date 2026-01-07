@@ -164,3 +164,72 @@ ALTER TABLE Folder
 ADD COLUMN status ENUM('active', 'inactive', 'archived') DEFAULT 'active';
 ALTER TABLE Folder
 ADD COLUMN description TEXT NULL
+
+-- Добавьте таблицу для истории паролей
+CREATE TABLE IF NOT EXISTS PasswordHistory (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    userId INT NOT NULL,
+    oldPassword VARCHAR(60) NOT NULL,
+    newPassword VARCHAR(60) NOT NULL,
+    changedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ipAddress VARCHAR(45) NULL,
+    userAgent VARCHAR(255) NULL,
+    FOREIGN KEY (userId) REFERENCES Users(idUsers) ON DELETE CASCADE
+) ENGINE = InnoDB;
+
+-- Добавьте триггер для логирования смены паролей
+DELIMITER $$
+
+CREATE TRIGGER before_user_password_update 
+BEFORE UPDATE ON Users 
+FOR EACH ROW 
+BEGIN
+    IF OLD.password != NEW.password THEN
+        INSERT INTO PasswordHistory (userId, oldPassword, newPassword, changedAt)
+        VALUES (OLD.idUsers, OLD.password, NEW.password, NOW());
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- Создайте представление для удобного просмотра информации о паролях
+CREATE OR REPLACE VIEW UserPasswordInfo AS
+SELECT 
+    u.idUsers,
+    u.name as username,
+    r.name as role,
+    u.createdAt as userCreated,
+    ph.changedAt as lastPasswordChange,
+    DATEDIFF(NOW(), ph.changedAt) as daysSinceLastChange,
+    CASE 
+        WHEN DATEDIFF(NOW(), ph.changedAt) >= 30 THEN 'Можно менять'
+        ELSE CONCAT('Через ', 30 - DATEDIFF(NOW(), ph.changedAt), ' дней')
+    END as passwordChangeStatus
+FROM Users u
+LEFT JOIN Roles r ON u.idRoles = r.idRoles
+LEFT JOIN (
+    SELECT userId, MAX(changedAt) as changedAt
+    FROM PasswordHistory
+    GROUP BY userId
+) ph ON u.idUsers = ph.userId
+ORDER BY u.idUsers;
+
+ALTER TABLE Files 
+ADD COLUMN fileStatus ENUM('new', 'processing', 'approved', 'rejected', 'archived') DEFAULT 'new',
+ADD COLUMN priority ENUM('low', 'medium', 'high', 'critical') DEFAULT 'medium',
+ADD COLUMN idCounterparties INT NULL COMMENT 'ID контрагента',
+ADD COLUMN idUsers INT NULL COMMENT 'ID ответственного пользователя',
+ADD COLUMN email VARCHAR(100) NULL COMMENT 'Email для уведомлений',
+ADD COLUMN deadline DATE NULL COMMENT 'Срок исполнения',
+ADD COLUMN tags JSON NULL COMMENT 'Теги для фильтрации',
+ADD INDEX idx_files_counterparty (idCounterparties),
+ADD INDEX idx_files_responsible (idUsers),
+ADD INDEX idx_files_status (fileStatus),
+ADD INDEX idx_files_priority (priority),
+ADD CONSTRAINT fk_Files_ResponsibleUser
+    FOREIGN KEY (idUsers)
+    REFERENCES Users(idUsers)
+    ON DELETE SET NULL;
+
+    -- Отключить триггер
+DROP TRIGGER IF EXISTS before_user_password_update;
