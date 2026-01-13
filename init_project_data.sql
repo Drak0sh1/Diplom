@@ -49,3 +49,9 @@ FROM Logs l
 LEFT JOIN Users u ON l.idUsers = u.idUsers
 ORDER BY l.createdAt DESC
 LIMIT 10;
+
+SELECT name, password, LEFT(password, 30) as hash_start FROM Users WHERE name = 'valerka';
+
+UPDATE Users 
+SET password = '$2a$10$ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuv' 
+WHERE name = 'valerka';

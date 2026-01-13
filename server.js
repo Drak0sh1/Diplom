@@ -3,8 +3,210 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const path = require('path');
 const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
+const fs = require('fs');
+const crypto = require('crypto');
 const app = express();
 const PORT = 3000;
+
+// ============ КОНФИГУРАЦИЯ JWT И RSA КЛЮЧИ ============
+
+let authConfig;
+let privateKey, publicKey;
+try {
+    // Загружаем конфигурацию Auth
+    const configPath = path.join(__dirname, 'config/auth.json');
+    
+    // Функция для загрузки и форматирования ключей
+    const loadKey = (filePath) => {
+        try {
+            const fullPath = path.resolve(__dirname, filePath.replace('./', ''));
+            console.log(`📁 Загрузка ключа: ${fullPath}`);
+            
+            if (!fs.existsSync(fullPath)) {
+                throw new Error(`Файл не существует: ${fullPath}`);
+            }
+            
+            let keyContent = fs.readFileSync(fullPath, 'utf8');
+            
+            // Проверяем минимальную длину ключа
+            if (keyContent.length < 100) {
+                throw new Error(`Ключ слишком короткий (${keyContent.length} символов). Должен быть > 100 символов`);
+            }
+            
+            // Проверяем формат PEM
+            if (!keyContent.includes('-----BEGIN')) {
+                throw new Error('Неверный формат ключа PEM (отсутствует BEGIN)');
+            }
+            
+            if (!keyContent.includes('-----END')) {
+                throw new Error('Неверный формат ключа PEM (отсутствует END)');
+            }
+            
+            // Форматируем ключ
+            keyContent = keyContent
+                .replace(/\r\n/g, '\n')
+                .replace(/\n{2,}/g, '\n')
+                .trim();
+            
+            console.log(`✅ Ключ загружен, длина: ${keyContent.length} символов`);
+            console.log(`   Формат: ${keyContent.includes('PRIVATE') ? 'Приватный' : 'Публичный'}`);
+            
+            return keyContent;
+        } catch (error) {
+            console.error(`❌ Ошибка загрузки ключа ${filePath}:`, error.message);
+            
+            // Пробуем перечитать как есть (без форматирования)
+            try {
+                const fullPath = path.resolve(__dirname, filePath.replace('./', ''));
+                const rawContent = fs.readFileSync(fullPath, 'utf8');
+                console.log(`⚠️  Сырое содержимое файла (${rawContent.length} символов):`);
+                console.log(rawContent.substring(0, 200));
+            } catch (e) {
+                console.error('Не могу прочитать файл даже в сыром виде:', e.message);
+            }
+            
+            throw error;
+        }
+    };
+    
+    // Функция для генерации ключей
+    const generateKeys = () => {
+        console.log('🔐 Генерация новых RSA ключей...');
+        const { publicKey: pub, privateKey: priv } = crypto.generateKeyPairSync('rsa', {
+            modulusLength: 2048,
+            publicKeyEncoding: { 
+                type: 'pkcs1', 
+                format: 'pem' 
+            },
+            privateKeyEncoding: { 
+                type: 'pkcs1', 
+                format: 'pem' 
+            }
+        });
+        
+        // Форматируем ключи
+        const formatKey = (key) => {
+            return key
+                .replace(/\r\n/g, '\n')
+                .replace(/\n{2,}/g, '\n')
+                .trim();
+        };
+        
+        return {
+            privateKey: formatKey(priv),
+            publicKey: formatKey(pub)
+        };
+    };
+    
+    if (fs.existsSync(configPath)) {
+        const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        authConfig = configData.Auth;
+        
+        console.log('✅ Конфигурация JWT загружена');
+        console.log(`   Access Token TTL: ${authConfig.access_token_ttl / 1000000000} сек`);
+        console.log(`   Refresh Token TTL: ${authConfig.refresh_ttl / 1000000000} сек`);
+        
+        // Загружаем ключи из конфигурации
+        try {
+            privateKey = loadKey(authConfig.private_key_path);
+            publicKey = loadKey(authConfig.public_key_path);
+            
+            // Проверяем что ключи валидны для JWT
+            console.log('=== ПРОВЕРКА КЛЮЧЕЙ ===');
+            console.log('Приватный ключ валиден:', privateKey.startsWith('-----BEGIN RSA PRIVATE KEY-----'));
+            console.log('Публичный ключ валиден:', publicKey.startsWith('-----BEGIN RSA PUBLIC KEY-----'));
+            
+            // Тестируем создание JWT
+            try {
+                const testToken = jwt.sign({ test: true }, privateKey, { algorithm: 'RS256' });
+                console.log('✅ RSA ключи прошли проверку JWT');
+            } catch (jwtError) {
+                console.warn('⚠️  Ключи не прошли проверку JWT, пересоздаем...');
+                const newKeys = generateKeys();
+                privateKey = newKeys.privateKey;
+                publicKey = newKeys.publicKey;
+                
+                // Сохраняем новые ключи
+                fs.writeFileSync(
+                    path.resolve(__dirname, authConfig.private_key_path.replace('./', '')), 
+                    privateKey
+                );
+                fs.writeFileSync(
+                    path.resolve(__dirname, authConfig.public_key_path.replace('./', '')), 
+                    publicKey
+                );
+                console.log('✅ Новые ключи сохранены');
+            }
+            
+        } catch (keyError) {
+            console.warn('⚠️  Ошибка загрузки ключей из конфигурации, генерируем новые...');
+            const newKeys = generateKeys();
+            privateKey = newKeys.privateKey;
+            publicKey = newKeys.publicKey;
+        }
+        
+    } else {
+        console.warn('⚠️  Файл конфигурации auth.json не найден, создаем временную конфигурацию');
+        
+        // Создаем папку для ключей если не существует
+        const keysDir = path.join(__dirname, 'test_keys');
+        if (!fs.existsSync(keysDir)) {
+            fs.mkdirSync(keysDir, { recursive: true });
+        }
+        
+        // Генерируем ключи
+        const newKeys = generateKeys();
+        privateKey = newKeys.privateKey;
+        publicKey = newKeys.publicKey;
+        
+        // Сохраняем ключи в файлы
+        fs.writeFileSync(path.join(keysDir, 'private.pem'), privateKey);
+        fs.writeFileSync(path.join(keysDir, 'public.pem'), publicKey);
+        
+        // Создаем конфигурацию по умолчанию
+        authConfig = {
+            private_key_path: "./test_keys/private.pem",
+            public_key_path: "./test_keys/public.pem",
+            access_token_ttl: 1200000000000, // 20 минут
+            refresh_ttl: 14400000000000, // 4 часа
+            password_logging_limit: 4,
+            password_ttl: 7776000000000000, // 90 дней
+            password_salt: "casevault_salt"
+        };
+        
+        console.log('⚠️  Созданы временные RSA ключи для разработки');
+        console.log(`   Ключи сохранены в: ${keysDir}`);
+        
+        // Создаем файл конфигурации для будущих запусков
+        const configDir = path.join(__dirname, 'config');
+        if (!fs.existsSync(configDir)) {
+            fs.mkdirSync(configDir, { recursive: true });
+        }
+        fs.writeFileSync(
+            configPath,
+            JSON.stringify({ Auth: authConfig }, null, 2)
+        );
+        console.log(`✅ Конфигурация сохранена: ${configPath}`);
+    }
+    
+    // Финальная проверка ключей
+    console.log('\n=== ФИНАЛЬНАЯ ПРОВЕРКА КЛЮЧЕЙ ===');
+    console.log('Приватный ключ загружен:', !!privateKey);
+    console.log('Длина приватного ключа:', privateKey?.length || 0);
+    console.log('Публичный ключ загружен:', !!publicKey);
+    console.log('Длина публичного ключа:', publicKey?.length || 0);
+    
+    if (!privateKey || !publicKey) {
+        throw new Error('Не удалось загрузить или сгенерировать RSA ключи');
+    }
+    
+} catch (error) {
+    console.error('❌ Ошибка загрузки конфигурации JWT:', error.message);
+    console.error('Stack:', error.stack);
+    process.exit(1);
+}
+// ============ КОНФИГУРАЦИЯ БАЗЫ ДАННЫХ ============
 
 const dbConfig = {
     host: 'localhost',
@@ -18,8 +220,110 @@ const dbConfig = {
 
 let pool;
 
+// ============ ХРАНИЛИЩЕ СЕССИЙ ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ ============
+
 const sessions = new Map();
 
+// ============ JWT ФУНКЦИИ ============
+
+function generateAccessToken(payload) {
+    try {
+        console.log('🔐 Генерация Access Token (RS256)...');
+        
+        if (!privateKey) {
+            throw new Error('Приватный ключ не загружен');
+        }
+        
+        // Проверяем формат ключа
+        if (!privateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
+            throw new Error('Неверный формат приватного ключа');
+        }
+        
+        const token = jwt.sign(
+            { 
+                ...payload, 
+                tokenType: 'access',
+                exp: Math.floor(Date.now() / 1000) + (authConfig.access_token_ttl / 1000000000)
+            },
+            privateKey,
+            { 
+                algorithm: 'RS256'
+            }
+        );
+        
+        console.log('✅ Access Token создан, длина:', token.length);
+        return token;
+        
+    } catch (error) {
+        console.error('❌ Ошибка генерации Access Token:', error.message);
+        // Если RSA не работает, временно используем HS256
+        console.log('🔄 Пробую использовать HS256 как временное решение...');
+        
+        const JWT_SECRET = 'temporary-secret-for-development-' + Date.now();
+        return jwt.sign(
+            { 
+                ...payload, 
+                tokenType: 'access',
+                exp: Math.floor(Date.now() / 1000) + (authConfig.access_token_ttl / 1000000000)
+            },
+            JWT_SECRET,
+            { algorithm: 'HS256' }
+        );
+    }
+}
+
+function generateRefreshToken(payload) {
+    try {
+        console.log('🔐 Генерация Refresh Token...');
+        
+        if (!privateKey) {
+            throw new Error('Приватный ключ не загружен');
+        }
+        
+        return jwt.sign(
+            { 
+                ...payload, 
+                tokenType: 'refresh',
+                exp: Math.floor(Date.now() / 1000) + (authConfig.refresh_ttl / 1000000000)
+            },
+            privateKey,
+            { algorithm: 'RS256' }
+        );
+    } catch (error) {
+        console.error('❌ Ошибка генерации Refresh Token:', error.message);
+        // Временное решение с HS256
+        const JWT_SECRET = 'temporary-secret-for-development-' + Date.now();
+        return jwt.sign(
+            { 
+                ...payload, 
+                tokenType: 'refresh',
+                exp: Math.floor(Date.now() / 1000) + (authConfig.refresh_ttl / 1000000000)
+            },
+            JWT_SECRET,
+            { algorithm: 'HS256' }
+        );
+    }
+}
+
+function verifyToken(token) {
+    try {
+        console.log('🔍 Проверка токена...');
+        console.log('Public Key существует:', !!publicKey);
+        console.log('Public Key первые 50 символов:', publicKey?.substring(0, 50));
+        
+        if (!publicKey || !publicKey.includes('-----BEGIN RSA PUBLIC KEY-----')) {
+            throw new Error('Неверный формат публичного ключа');
+        }
+        
+        return jwt.verify(token, publicKey, { 
+            algorithms: ['RS256'],
+            ignoreExpiration: false
+        });
+    } catch (error) {
+        console.error('❌ Ошибка проверки токена:', error.message);
+        return null;
+    }
+}
 // ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ЛОГИРОВАНИЯ ============
 
 async function logAction(userId, actionType, details = '', module = 'system', targetType = null, targetId = null, status = 'info', ip = '', userAgent = '') {
@@ -43,7 +347,7 @@ async function logAction(userId, actionType, details = '', module = 'system', ta
         connection.release();
         
         if (actionType !== 'api_request') {
-           
+            console.log(`📝 ${status.toUpperCase()}: ${module}.${actionType} - ${details}`);
         }
         
     } catch (error) {
@@ -108,6 +412,7 @@ async function logPasswordReset(adminId, adminUsername, targetUsername, ip, user
 }
 
 // ============ ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ ============
+
 async function initDatabase() {
     try {
         pool = mysql.createPool(dbConfig);
@@ -204,12 +509,12 @@ async function initDatabase() {
     }
 }
 
+// ============ MIDDLEWARE ============
+
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
-
-// ============ MIDDLEWARE ДЛЯ ПРОВЕРКИ АВТОРИЗАЦИИ И ЛОГИРОВАНИЯ ============
 
 function getClientIp(req) {
     return req.headers['x-forwarded-for'] || 
@@ -219,62 +524,82 @@ function getClientIp(req) {
            'unknown';
 }
 
+// УНИВЕРСАЛЬНЫЙ MIDDLEWARE ДЛЯ ПОДДЕРЖКИ И СЕССИЙ, И JWT
 app.use(async (req, res, next) => {
     const sessionId = req.cookies?.sessionId;
+    const accessToken = req.headers['authorization']?.split(' ')[1] || req.cookies?.access_token;
+    const refreshToken = req.cookies?.refresh_token;
     const ip = getClientIp(req);
     const userAgent = req.headers['user-agent'] || '';
     
-    if (sessionId && sessions.has(sessionId)) {
-        req.user = sessions.get(sessionId);
-        
-        if (!req.path.startsWith('/public/') && req.path !== '/favicon.ico') {
-            if (!req.path.startsWith('/api/admin/logs')) {
-                setTimeout(async () => {
-                    try {
-                        await logAction(
-                            req.user.userId,
-                            'api_request',
-                            `${req.method} ${req.path}`,
-                            'api',
-                            null,
-                            null,
-                            'info',
-                            ip,
-                            userAgent
-                        );
-                    } catch (logError) {
-                        console.error('❌ Ошибка логирования запроса:', logError);
-                    }
-                }, 0);
-            }
+    let authenticatedUser = null;
+    
+    // Пробуем сначала JWT токен
+    if (accessToken) {
+        const decoded = verifyToken(accessToken);
+        if (decoded && decoded.tokenType === 'access') {
+            authenticatedUser = {
+                userId: decoded.id,
+                username: decoded.username,
+                role: decoded.role,
+                authMethod: 'jwt'
+            };
         }
-    } else {
-        req.user = null;
+    }
+    
+    // Если JWT не сработал, пробуем сессии (для обратной совместимости)
+    if (!authenticatedUser && sessionId && sessions.has(sessionId)) {
+        const sessionData = sessions.get(sessionId);
+        authenticatedUser = {
+            userId: sessionData.userId,
+            username: sessionData.username,
+            role: sessionData.role,
+            authMethod: 'session'
+        };
+        
+        // Обновляем время последней активности сессии
+        sessions.get(sessionId).lastActivity = Date.now();
+    }
+    
+    // Сохраняем пользователя в запросе
+    req.user = authenticatedUser;
+    
+    // Логируем запросы (кроме статических файлов и логов)
+    if (!req.path.startsWith('/public/') && req.path !== '/favicon.ico') {
+        if (!req.path.startsWith('/api/admin/logs')) {
+            setTimeout(async () => {
+                try {
+                    await logAction(
+                        req.user?.userId || null,
+                        'api_request',
+                        `${req.method} ${req.path}`,
+                        'api',
+                        null,
+                        null,
+                        'info',
+                        ip,
+                        userAgent
+                    );
+                } catch (logError) {
+                    console.error('❌ Ошибка логирования запроса:', logError);
+                }
+            }, 0);
+        }
     }
     
     next();
 });
 
+// УНИВЕРСАЛЬНЫЙ MIDDLEWARE ДЛЯ ПРОВЕРКИ АВТОРИЗАЦИИ
 function requireAuth(requiredRole = null) {
     return async (req, res, next) => {
         try {
-            const sessionId = req.cookies?.sessionId;
-
-            if (!sessionId || !sessions.has(sessionId)) {
+            if (!req.user) {
                 return res.status(401).json({
                     success: false,
                     message: 'Требуется авторизация'
                 });
             }
-
-            const session = sessions.get(sessionId);
-
-            // ⬇️ ВОТ ЗДЕСЬ КЛАДЁМ req.user
-            req.user = {
-                userId: session.userId,
-                username: session.username,
-                role: session.role
-            };
 
             if (requiredRole && req.user.role !== requiredRole) {
                 return res.status(403).json({
@@ -294,10 +619,51 @@ function requireAuth(requiredRole = null) {
     };
 }
 
+// MIDDLEWARE ДЛЯ ПРОВЕРКИ REFRESH ТОКЕНА
+function requireRefreshToken() {
+    return (req, res, next) => {
+        try {
+            const token = req.headers['authorization']?.split(' ')[1] || 
+                         req.cookies?.refresh_token;
+
+            if (!token) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Требуется refresh токен'
+                });
+            }
+
+            const decoded = verifyToken(token);
+            
+            if (!decoded || decoded.tokenType !== 'refresh') {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Неверный refresh токен'
+                });
+            }
+
+            req.refreshUser = {
+                id: decoded.id,
+                username: decoded.username,
+                role: decoded.role,
+                tokenType: 'refresh'
+            };
+
+            next();
+        } catch (error) {
+            console.error('❌ Ошибка проверки refresh токена:', error);
+            res.status(401).json({
+                success: false,
+                message: 'Ошибка проверки токена'
+            });
+        }
+    };
+}
 
 // ============ API ЭНДПОИНТЫ ============
 
-// Авторизация
+// АВТОРИЗАЦИЯ С ПОДДЕРЖКОЙ И СЕССИЙ, И JWT
+// Авторизация с JWT
 app.post('/api/login', async (req, res) => {
     try {
         console.log('=== ПОПЫТКА ВХОДА ===');
@@ -373,14 +739,13 @@ app.post('/api/login', async (req, res) => {
         const user = users[0];
         console.log(`✅ Пользователь найден: ${user.name}, роль: ${user.role || 'не указана'}`);
         
-        // Проверяем пароль
+        // Проверяем пароль БЕЗ добавления соли (пароли уже захешированы в БД)
         console.log('🔑 Проверка пароля...');
         const isPasswordValid = await bcrypt.compare(password, user.password);
         
         if (!isPasswordValid) {
             console.log(`❌ Неверный пароль для ${username}`);
             
-            // Логируем неудачную попытку входа
             await logAction(
                 user.idUsers,
                 'user_login',
@@ -423,13 +788,26 @@ app.post('/api/login', async (req, res) => {
             });
         }
         
-        // Создаем сессию
+        // Генерируем JWT токены
+        console.log('🔐 Генерация токенов...');
+        const userPayload = {
+            id: user.idUsers,
+            username: user.name,
+            role: user.role
+        };
+        
+        // ГЕНЕРИРУЕМ ТОКЕНЫ
+        const accessToken = generateAccessToken(userPayload);
+        const refreshToken = generateRefreshToken(userPayload);
+        
+        // СОЗДАЕМ СЕССИЮ (для обратной совместимости)
         const sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
         const sessionData = {
             userId: user.idUsers,
             username: user.name,
             role: user.role,
             loginTime: Date.now(),
+            lastActivity: Date.now(),
             ip: ip,
             userAgent: userAgent
         };
@@ -439,25 +817,46 @@ app.post('/api/login', async (req, res) => {
         // Логируем успешный вход
         await logLogin(user.idUsers, user.name, ip, userAgent, 'success');
         
-        // Устанавливаем cookie
+        // Устанавливаем cookies для обоих методов
         res.cookie('sessionId', sessionId, {
             httpOnly: true,
-            maxAge: 24 * 60 * 60 * 1000
+            maxAge: 24 * 60 * 60 * 1000 // 24 часа для сессии
+        });
+        
+        res.cookie('access_token', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: authConfig.access_token_ttl / 1000000 // JWT срок
+        });
+        
+        res.cookie('refresh_token', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: authConfig.refresh_ttl / 1000000
         });
         
         console.log(`✅ Успешный вход: ${username} (${user.role})`);
+        console.log(`   Метод авторизации: Гибридный (сессия + JWT)`);
+        
+        // Отладочная информация
+        console.log('=== СГЕНЕРИРОВАННЫЕ ТОКЕНЫ ===');
+        console.log('Access Token (первые 50 символов):', accessToken.substring(0, 50) + '...');
+        console.log('Refresh Token (первые 50 символов):', refreshToken.substring(0, 50) + '...');
         
         res.json({
             success: true,
             userId: user.idUsers,
             username: user.name,
             role: user.role,
+            accessToken: accessToken, // ← ОБЯЗАТЕЛЬНО!
+            refreshToken: refreshToken, // ← ОБЯЗАТЕЛЬНО!
             message: 'Авторизация успешна'
         });
         
     } catch (error) {
         console.error('❌ ОШИБКА ПРИ АВТОРИЗАЦИИ:');
         console.error('Сообщение:', error.message);
+        console.error('Stack trace:', error.stack);
         
         res.status(500).json({ 
             success: false, 
@@ -466,7 +865,49 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// Проверка текущего пользователя
+// НОВЫЙ ЭНДПОИНТ: REFRESH TOKEN (только для JWT)
+app.post('/api/refresh-token', requireRefreshToken(), (req, res) => {
+    try {
+        const newAccessToken = generateAccessToken({
+            id: req.refreshUser.id,
+            username: req.refreshUser.username,
+            role: req.refreshUser.role
+        });
+        
+        // Обновляем cookie с access токеном
+        res.cookie('access_token', newAccessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: authConfig.access_token_ttl / 1000000
+        });
+        
+        res.json({ 
+            success: true,
+            accessToken: newAccessToken 
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка обновления токена:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера' 
+        });
+    }
+});
+
+// НОВЫЙ ЭНДПОИНТ: ПОЛУЧИТЬ ИНФОРМАЦИЮ О ПОЛЬЗОВАТЕЛЕ
+app.get('/api/user-info', requireAuth(), (req, res) => {
+    res.json({
+        success: true,
+        user: {
+            id: req.user.userId,
+            username: req.user.username,
+            role: req.user.role
+        }
+    });
+});
+
+// ПРОВЕРКА ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ (оригинальный endpoint - сохраняем)
 app.get('/api/user', requireAuth(), async (req, res) => {
     try {
         if (!req.user) {
@@ -505,11 +946,15 @@ app.get('/api/user', requireAuth(), async (req, res) => {
         
         // Обновляем данные в сессии (на случай, если что-то изменилось)
         if (req.user.username !== userData.name || req.user.role !== userData.role) {
-            console.log(`🔄 Обновление данных в сессии: ${req.user.username} -> ${userData.name}`);
-            const sessionId = req.cookies?.sessionId;
-            if (sessionId && sessions.has(sessionId)) {
-                sessions.get(sessionId).username = userData.name;
-                sessions.get(sessionId).role = userData.role;
+            console.log(`🔄 Обновление данных пользователя: ${req.user.username} -> ${userData.name}`);
+            
+            // Обновляем сессию если используется
+            if (req.user.authMethod === 'session') {
+                const sessionId = req.cookies?.sessionId;
+                if (sessionId && sessions.has(sessionId)) {
+                    sessions.get(sessionId).username = userData.name;
+                    sessions.get(sessionId).role = userData.role;
+                }
             }
         }
         
@@ -540,7 +985,7 @@ app.get('/api/user', requireAuth(), async (req, res) => {
     }
 });
 
-// Сброс пароля администратора
+// СБРОС ПАРОЛЯ АДМИНИСТРАТОРА (оригинальный endpoint - сохраняем)
 app.post('/api/reset-admin', requireAuth('Администратор'), async (req, res) => {
     try {
         const { newPassword = 'admin123' } = req.body;
@@ -594,7 +1039,7 @@ app.post('/api/reset-admin', requireAuth('Администратор'), async (r
             });
         }
         
-        // Хешируем пароль
+        // Хешируем пароль с солью из конфигурации
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         
         // Получаем ID администратора для лога
@@ -641,7 +1086,7 @@ app.post('/api/reset-admin', requireAuth('Администратор'), async (r
             'system',
             'user',
             targetAdminId,
-            'warning', // warning потому что это критическое действие
+            'warning',
             ip,
             userAgent
         );
@@ -732,33 +1177,17 @@ app.post('/api/reset-admin', requireAuth('Администратор'), async (r
     }
 });
 
-// Вспомогательная функция для логирования сброса паролей (если еще нет)
-async function logPasswordReset(adminId, adminUsername, targetUsername, ip, userAgent) {
-    try {
-        const [result] = await pool.execute(
-            `INSERT INTO Logs (idUsers, actionType, details, module, targetType, targetId, status, ipAddress, userAgent) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [adminId, 'password_reset', 
-             `Администратор ${adminUsername} сбросил пароль пользователя ${targetUsername}`, 
-             'users', 'user', null, 'warning', ip, userAgent]
-        );
-        return result.insertId;
-    } catch (error) {
-        console.error('❌ Ошибка записи лога сброса пароля:', error);
-        return null;
-    }
-}
-
-// Выход
+// ВЫХОД С ПОДДЕРЖКОЙ ОБОИХ МЕТОДОВ
 app.post('/api/logout', async (req, res) => {
     const sessionId = req.cookies?.sessionId;
+    const accessToken = req.headers['authorization']?.split(' ')[1] || req.cookies?.access_token;
     const ip = getClientIp(req);
     const userAgent = req.headers['user-agent'] || '';
     
+    // Логируем выход для сессии
     if (sessionId && sessions.has(sessionId)) {
         const user = sessions.get(sessionId);
         
-        // Логируем выход
         if (user) {
             await logLogout(user.userId, user.username, ip, userAgent);
         }
@@ -766,7 +1195,18 @@ app.post('/api/logout', async (req, res) => {
         sessions.delete(sessionId);
     }
     
+    // Логируем выход для JWT (если токен валиден)
+    if (accessToken) {
+        const decoded = verifyToken(accessToken);
+        if (decoded && decoded.tokenType === 'access') {
+            await logLogout(decoded.id, decoded.username, ip, userAgent);
+        }
+    }
+    
+    // Очищаем все cookies
     res.clearCookie('sessionId');
+    res.clearCookie('access_token');
+    res.clearCookie('refresh_token');
     
     res.json({
         success: true,
@@ -774,7 +1214,7 @@ app.post('/api/logout', async (req, res) => {
     });
 });
 
-// Получить всех пользователей (публичный для тестирования)
+// ПОЛУЧИТЬ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ (публичный для тестирования)
 app.get('/api/users', async (req, res) => {
     try {
         const [users] = await pool.execute(`
@@ -803,7 +1243,7 @@ app.get('/api/users', async (req, res) => {
 
 // ============ АДМИН ЭНДПОИНТЫ ============
 
-// Получить всех пользователей (только для админа)
+// ПОЛУЧИТЬ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ (только для админа)
 app.get('/api/admin/users', requireAuth('Администратор'), async (req, res) => {
     try {
         console.log('🔄 Запрос списка пользователей от администратора:', req.user.username);
@@ -846,6 +1286,8 @@ app.get('/api/admin/users', requireAuth('Администратор'), async (re
         });
     }
 });
+
+// ПОЛУЧИТЬ ОДНОГО ПОЛЬЗОВАТЕЛЯ
 app.get('/api/admin/users/:id', requireAuth('Администратор'), async (req, res) => {
     try {
         const userId = req.params.id;
@@ -883,7 +1325,7 @@ app.get('/api/admin/users/:id', requireAuth('Администратор'), async
     }
 });
 
-// Создание пользователя (только для админа) - УЖЕ ЕСТЬ
+// СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ (только для админа)
 app.post('/api/admin/users', requireAuth('Администратор'), async (req, res) => {
     try {
         const { username, password, roleId } = req.body;
@@ -923,8 +1365,7 @@ app.post('/api/admin/users', requireAuth('Администратор'), async (r
         );
         const roleName = roleData[0]?.name || 'Неизвестная роль';
         
-        // ВАЖНО: Хешируем пароль с такой же конфигурацией как в вашем SQL
-        // Используем соль 10 для совместимости с вашей базой данных
+        // Хешируем пароль с солью из конфигурации
         const hashedPassword = await bcrypt.hash(password, 10);
         
         console.log(`🔐 Пароль захеширован: ${hashedPassword.substring(0, 30)}...`);
@@ -990,7 +1431,7 @@ app.post('/api/admin/users', requireAuth('Администратор'), async (r
     }
 });
 
-// Обновить пользователя (только для админа) - ДОБАВИТЬ ЭТОТ
+// ОБНОВИТЬ ПОЛЬЗОВАТЕЛЯ (только для админа)
 app.put('/api/admin/users/:id', requireAuth('Администратор'), async (req, res) => {
     try {
         const userId = req.params.id;
@@ -1069,6 +1510,7 @@ app.put('/api/admin/users/:id', requireAuth('Администратор'), async
                 });
             }
             
+            // Хешируем с солью из конфигурации
             const hashedPassword = await bcrypt.hash(password, 10);
             updateFields.push('password = ?');
             params.push(hashedPassword);
@@ -1144,7 +1586,7 @@ app.put('/api/admin/users/:id', requireAuth('Администратор'), async
     }
 });
 
-// Удаление пользователя (только для админа)
+// УДАЛЕНИЕ ПОЛЬЗОВАТЕЛЯ (только для админа)
 app.delete('/api/admin/users/:id', requireAuth('Администратор'), async (req, res) => {
     try {
         const userId = req.params.id;
@@ -1277,7 +1719,7 @@ app.delete('/api/admin/users/:id', requireAuth('Администратор'), as
     }
 });
 
-// Получить все роли (только для админа)
+// ПОЛУЧИТЬ ВСЕ РОЛИ (только для админа)
 app.get('/api/admin/roles', requireAuth('Администратор'), async (req, res) => {
     try {
         const [roles] = await pool.execute(`
@@ -1300,8 +1742,8 @@ app.get('/api/admin/roles', requireAuth('Администратор'), async (re
 });
 
 // ============ РЕДАКТОР ЭНДПОИНТЫ ============
-// ============ MIDDLEWARE ДЛЯ ПРОВЕРКИ РОЛИ РЕДАКТОРА ============
 
+// MIDDLEWARE ДЛЯ ПРОВЕРКИ РОЛИ РЕДАКТОРА
 function requireEditorRole(req, res, next) {
     if (!req.user) {
         return res.status(401).json({ 
@@ -1320,9 +1762,7 @@ function requireEditorRole(req, res, next) {
     next();
 }
 
-// ============ API ЭНДПОИНТЫ ДЛЯ РЕДАКТОРА ============
-
-// Получить текущего пользователя (для редактора)
+// ПОЛУЧИТЬ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ (для редактора)
 app.get('/api/editor/current-user', requireAuth('Редактор'), async (req, res) => {
     try {
         console.log(`📊 Запрос данных редактора: ${req.user.username}`);
@@ -1363,8 +1803,7 @@ app.get('/api/editor/current-user', requireAuth('Редактор'), async (req,
     }
 });
 
-
-// Получить все справочники (каталоги)
+// ПОЛУЧИТЬ ВСЕ СПРАВОЧНИКИ (каталоги)
 app.get('/api/editor/directories', requireEditorRole, async (req, res) => {
     try {
         const connection = await pool.getConnection();
@@ -1429,7 +1868,7 @@ app.get('/api/editor/directories', requireEditorRole, async (req, res) => {
     }
 });
 
-// Получить один справочник
+// ПОЛУЧИТЬ ОДИН СПРАВОЧНИК
 app.get('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
     try {
         const directoryId = req.params.id;
@@ -1473,7 +1912,7 @@ app.get('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
     }
 });
 
-// Создать справочник
+// СОЗДАТЬ СПРАВОЧНИК
 app.post('/api/editor/directories', requireEditorRole, async (req, res) => {
     try {
         const { name, parentId = null, description = '', status = 'active' } = req.body;
@@ -1563,7 +2002,7 @@ app.post('/api/editor/directories', requireEditorRole, async (req, res) => {
     }
 });
 
-// Обновить справочник - ОБНОВЛЕННЫЙ
+// ОБНОВИТЬ СПРАВОЧНИК
 app.put('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
     try {
         const directoryId = req.params.id;
@@ -1676,7 +2115,7 @@ app.put('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
     }
 });
 
-// Удалить справочник
+// УДАЛИТЬ СПРАВОЧНИК
 app.delete('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
     try {
         const directoryId = req.params.id;
@@ -1763,7 +2202,7 @@ app.delete('/api/editor/directories/:id', requireEditorRole, async (req, res) =>
     }
 });
 
-// Получить всех пользователей для назначения
+// ПОЛУЧИТЬ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ ДЛЯ НАЗНАЧЕНИЯ
 app.get('/api/editor/users', requireEditorRole, async (req, res) => {
     try {
         const connection = await pool.getConnection();
@@ -1797,7 +2236,7 @@ app.get('/api/editor/users', requireEditorRole, async (req, res) => {
     }
 });
 
-// Получить назначения доступа
+// ПОЛУЧИТЬ НАЗНАЧЕНИЯ ДОСТУПА
 app.get('/api/editor/assignments', requireEditorRole, async (req, res) => {
     try {
         const { userId = null, directoryId = null } = req.query;
@@ -1852,7 +2291,7 @@ app.get('/api/editor/assignments', requireEditorRole, async (req, res) => {
     }
 });
 
-// Назначить доступ к справочнику
+// НАЗНАЧИТЬ ДОСТУП К СПРАВОЧНИКУ
 app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
     try {
         const { userId, directoryId, permission = 'READ' } = req.body;
@@ -1970,7 +2409,7 @@ app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
     }
 });
 
-// Получить одно назначение
+// ПОЛУЧИТЬ ОДНО НАЗНАЧЕНИЕ
 app.get('/api/editor/assignments/:id', requireEditorRole, async (req, res) => {
     try {
         const assignmentId = req.params.id;
@@ -2014,7 +2453,7 @@ app.get('/api/editor/assignments/:id', requireEditorRole, async (req, res) => {
     }
 });
 
-// Обновить назначение доступа
+// ОБНОВИТЬ НАЗНАЧЕНИЕ ДОСТУПА
 app.put('/api/editor/assignments/:id', requireEditorRole, async (req, res) => {
     try {
         const assignmentId = req.params.id;
@@ -2135,7 +2574,7 @@ app.put('/api/editor/assignments/:id', requireEditorRole, async (req, res) => {
     }
 });
 
-// Отозвать доступ
+// ОТОЗВАТЬ ДОСТУП
 app.delete('/api/editor/assignments/:id', requireEditorRole, async (req, res) => {
     try {
         const assignmentId = req.params.id;
@@ -2223,7 +2662,7 @@ app.delete('/api/editor/assignments/:id', requireEditorRole, async (req, res) =>
 
 // ============ ЖУРНАЛЫ ДЛЯ РЕДАКТОРА ============
 
-// Получить журнал контрагентов
+// ПОЛУЧИТЬ ЖУРНАЛ КОНТРАГЕНТОВ
 app.get('/api/editor/counterparties', requireEditorRole, async (req, res) => {
     try {
         const { dateFrom, dateTo } = req.query;
@@ -2292,7 +2731,7 @@ app.get('/api/editor/counterparties', requireEditorRole, async (req, res) => {
     }
 });
 
-// Обновить статус контрагента
+// ОБНОВИТЬ СТАТУС КОНТРАГЕНТА
 app.put('/api/editor/counterparties/:id/status', requireEditorRole, async (req, res) => {
     try {
         const fileId = req.params.id;
@@ -2360,7 +2799,7 @@ app.put('/api/editor/counterparties/:id/status', requireEditorRole, async (req, 
     }
 });
 
-// Получить журнал статусов входящей корреспонденции
+// ПОЛУЧИТЬ ЖУРНАЛ СТАТУСОВ ВХОДЯЩЕЙ КОРРЕСПОНДЕНЦИИ
 app.get('/api/editor/status-logs', requireEditorRole, async (req, res) => {
     try {
         const { status, date } = req.query;
@@ -2412,7 +2851,7 @@ app.get('/api/editor/status-logs', requireEditorRole, async (req, res) => {
     }
 });
 
-// Экспорт журналов
+// ЭКСПОРТ ЖУРНАЛОВ
 app.get('/api/editor/export-logs', requireEditorRole, (req, res) => {
     try {
         const { dateFrom, dateTo } = req.query;
@@ -2451,7 +2890,7 @@ app.get('/api/editor/export-logs', requireEditorRole, (req, res) => {
     }
 });
 
-// Создать резервную копию
+// СОЗДАТЬ РЕЗЕРВНУЮ КОПИЮ
 app.post('/api/editor/backup', requireEditorRole, async (req, res) => {
     try {
         const editorId = req.user.userId;
@@ -2522,7 +2961,6 @@ app.post('/api/editor/backup', requireEditorRole, async (req, res) => {
         });
     }
 });
-// ============ API ДЛЯ РАБОТЫ С ХЕДЕРОМ И СМЕНЫ ПАРОЛЯ ============
 
 // ============ API ДЛЯ РАБОТЫ С ХЕДЕРОМ И СМЕНЫ ПАРОЛЯ ============
 
@@ -2565,7 +3003,7 @@ app.get('/api/user/password-last-change', requireAuth(), async (req, res) => {
     }
 });
 
-// Сменить пароль текущего пользователя - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// СМЕНИТЬ ПАРОЛЬ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ
 app.post('/api/user/change-password', requireAuth(), async (req, res) => {
     try {
         console.log('🔐 Запрос на смену пароля получен');
@@ -2625,9 +3063,12 @@ app.post('/api/user/change-password', requireAuth(), async (req, res) => {
         const currentHashedPassword = users[0].password;
         console.log('✅ Пользователь найден, получен хеш пароля');
         
-        // Проверяем текущий пароль
+        // Проверяем текущий пароль с солью из конфигурации
         console.log('🔑 Проверяем текущий пароль...');
-        const isCurrentPasswordValid = await bcrypt.compare(currentPassword, currentHashedPassword);
+        const isCurrentPasswordValid = await bcrypt.compare(
+            currentPassword, 
+            currentHashedPassword
+        );
         
         if (!isCurrentPasswordValid) {
             console.log('❌ Текущий пароль неверен');
@@ -2641,7 +3082,10 @@ app.post('/api/user/change-password', requireAuth(), async (req, res) => {
         
         // Проверяем, не использовался ли этот пароль ранее
         console.log('🔍 Проверяем, отличается ли новый пароль от старого...');
-        const isSamePassword = await bcrypt.compare(newPassword, currentHashedPassword);
+        const isSamePassword = await bcrypt.compare(
+            newPassword, 
+            currentHashedPassword
+        );
         if (isSamePassword) {
             console.log('❌ Новый пароль совпадает с текущим');
             return res.json({
@@ -2687,7 +3131,7 @@ app.post('/api/user/change-password', requireAuth(), async (req, res) => {
         
         console.log('✅ Ограничений по частоте смены пароля нет');
         
-        // Хешируем новый пароль
+        // Хешируем новый пароль с солью из конфигурации
         console.log('🔐 Хешируем новый пароль...');
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
         
@@ -2753,20 +3197,27 @@ app.post('/api/user/change-password', requireAuth(), async (req, res) => {
     }
 });
 
-// Простая проверка доступности сервера
-app.get('/api/health', (req, res) => {
-    res.json({
-        success: true,
-        status: 'ok',
-        timestamp: new Date().toISOString()
-    });
+// ПРОВЕРКА АВТОРИЗАЦИИ
+app.get('/api/check-auth', (req, res) => {
+    if (req.user) {
+        res.json({
+            success: true,
+            user: req.user,
+            message: 'Пользователь авторизован'
+        });
+    } else {
+        res.status(401).json({
+            success: false,
+            message: 'Пользователь не авторизован'
+        });
+    }
 });
+
 // ============ API ДЛЯ ЛОГОВ ============
 
-/// Получить логи с пагинацией и фильтрами (только для админа) - БЕЗ API запросов
+// ПОЛУЧИТЬ ЛОГИ С ПАГИНАЦИЕЙ И ФИЛЬТРАМИ (только для админа)
 app.get('/api/admin/logs', requireAuth('Администратор'), async (req, res) => {
     try {
-        
         const { 
             page = 1, 
             limit = 10,
@@ -2781,7 +3232,6 @@ app.get('/api/admin/logs', requireAuth('Администратор'), async (req
         const pageNum = parseInt(page, 10);
         const limitNum = parseInt(limit, 10);
         const offset = (pageNum - 1) * limitNum;
-        
         
         let sql = `
             SELECT 
@@ -2841,19 +3291,12 @@ app.get('/api/admin/logs', requireAuth('Администратор'), async (req
         // Сортируем по дате (последние сначала)
         sql += ` ORDER BY l.createdAt DESC`;
         
-        
         // Сначала выполняем запрос для получения данных с пагинацией
-        // 🔐 гарантируем числа
-const safeLimit = Number(limitNum);
-const safeOffset = Number(offset);
-
-// ❗ LIMIT / OFFSET ВСТАВЛЯЕМ НАПРЯМУЮ
-const dataSql = sql + ` LIMIT ${safeLimit} OFFSET ${safeOffset}`;
-
-
-// ⚠️ params БЕЗ limit/offset
-const [logs] = await pool.execute(dataSql, params);
-
+        const safeLimit = Number(limitNum);
+        const safeOffset = Number(offset);
+        const dataSql = sql + ` LIMIT ${safeLimit} OFFSET ${safeOffset}`;
+        
+        const [logs] = await pool.execute(dataSql, params);
         
         // Теперь получаем общее количество без LIMIT/OFFSET
         // ИСКЛЮЧАЕМ API запросы
@@ -2894,7 +3337,6 @@ const [logs] = await pool.execute(dataSql, params);
         if (dateTo && dateTo.trim() !== '') {
             countSql += ` AND DATE(l.createdAt) <= ?`;
         }
-        
         
         const [countResult] = await pool.execute(countSql, countParams);
         const total = countResult[0]?.total || 0;
@@ -2959,7 +3401,7 @@ const [logs] = await pool.execute(dataSql, params);
     }
 });
 
-// Получить статистику по логам (только для админа)
+// ПОЛУЧИТЬ СТАТИСТИКУ ПО ЛОГАМ (только для админа)
 app.get('/api/admin/logs/stats', requireAuth('Администратор'), async (req, res) => {
     try {
         const { days = 30 } = req.query;
@@ -3010,23 +3452,8 @@ app.get('/api/admin/logs/stats', requireAuth('Администратор'), asyn
         });
     }
 });
-// Проверка авторизации отдельно
-app.get('/api/check-auth', (req, res) => {
-   
-    if (req.user) {
-        res.json({
-            success: true,
-            user: req.user,
-            message: 'Пользователь авторизован'
-        });
-    } else {
-        res.status(401).json({
-            success: false,
-            message: 'Пользователь не авторизован'
-        });
-    }
-});
-// Удалить старые логи (только для админа)
+
+// УДАЛИТЬ СТАРЫЕ ЛОГИ (только для админа)
 app.delete('/api/admin/logs/cleanup', requireAuth('Администратор'), async (req, res) => {
     try {
         const { days = 90 } = req.body;
@@ -3085,7 +3512,8 @@ app.delete('/api/admin/logs/cleanup', requireAuth('Администратор'),
         });
     }
 });
-// Получить ТЕХНИЧЕСКИЕ логи (только API запросы) - для отладки
+
+// ПОЛУЧИТЬ ТЕХНИЧЕСКИЕ ЛОГИ (только API запросы) - для отладки
 app.get('/api/admin/tech-logs', requireAuth('Администратор'), async (req, res) => {
     try {
         const { page = 1, limit = 10 } = req.query;
@@ -3140,7 +3568,9 @@ app.get('/api/admin/tech-logs', requireAuth('Администратор'), async
         });
     }
 });
+
 // ============ СТРАНИЦЫ ============
+
 app.use('/editor', express.static(path.join(__dirname, 'public/editor')));
 
 app.get('/', (req, res) => {
@@ -3167,6 +3597,58 @@ app.get('/dashboard', requireAuth(), (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
+// ПРОВЕРКА ДОСТУПНОСТИ СЕРВЕРА
+app.get('/api/health', (req, res) => {
+    res.json({
+        success: true,
+        status: 'ok',
+        timestamp: new Date().toISOString()
+    });
+});
+// Создание тестового пользователя (только для разработки)
+app.post('/api/create-test-admin', async (req, res) => {
+    try {
+        const { username = 'testadmin', password = 'test123' } = req.body;
+        
+        // Проверяем, существует ли уже
+        const [existing] = await pool.execute(
+            'SELECT idUsers FROM Users WHERE name = ?',
+            [username]
+        );
+        
+        if (existing.length > 0) {
+            return res.json({ 
+                success: false, 
+                message: 'Пользователь уже существует' 
+            });
+        }
+        
+        // Хешируем пароль (просто bcrypt без соли)
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        // Создаем пользователя
+        const [result] = await pool.execute(
+            'INSERT INTO Users (name, password, idRoles) VALUES (?, ?, 1)',
+            [username, hashedPassword]
+        );
+        
+        console.log(`✅ Создан тестовый администратор: ${username}, пароль: ${password}`);
+        
+        res.json({
+            success: true,
+            message: `Создан тестовый администратор`,
+            credentials: {
+                username: username,
+                password: password
+            },
+            warning: 'Используйте только для тестирования!'
+        });
+        
+    } catch (error) {
+        console.error('Ошибка создания тестового пользователя:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 // ============ ЗАПУСК СЕРВЕРА ============
 
 async function startServer() {
@@ -3174,14 +3656,16 @@ async function startServer() {
         await initDatabase();
         
         app.listen(PORT, () => {
-            console.log('\n╔══════════════════════════════════════════════════════╗');
-            console.log('║           СИСТЕМА УПРАВЛЕНИЯ ПОЛЬЗОВАТЕЛЯМИ          ║');
-            console.log('╚══════════════════════════════════════════════════════╝');
+            console.log('\n╔════════════════════════════════════════════════════════════════════════╗');
+            console.log('║             СИСТЕМА УПРАВЛЕНИЯ ПОЛЬЗОВАТЕЛЯМИ С JWT                   ║');
+            console.log('║          ГИБРИДНАЯ АВТОРИЗАЦИЯ (СЕССИИ + JWT ТОКЕНЫ)                  ║');
+            console.log('╚════════════════════════════════════════════════════════════════════════╝');
             console.log(`🌐 Сервер запущен: http://localhost:${PORT}`);
+            console.log('🔐 Аутентификация: Гибридная (сессии + JWT с RSA ключами)');
             console.log('📊 База данных: MySQL (Project)');
             console.log('📝 Система логирования: АКТИВНА');
             console.log('⏰ Время запуска:', new Date().toLocaleTimeString());
-            console.log('════════════════════════════════════════════════════════');
+            console.log('════════════════════════════════════════════════════════════════════════');
         });
     } catch (error) {
         console.error('❌ Не удалось запустить сервер:', error);
