@@ -608,18 +608,12 @@
             // Получить все назначения
             async getAssignments() {
         try {
-            console.log('📡 Отправляем запрос на получение назначений...');
             const response = await fetch('/api/editor/assignments');
-            if (!response.ok) {
-                throw new Error('Ошибка получения назначений');
-            }
+            if (!response.ok) throw new Error('Ошибка получения назначений');
             return await response.json();
         } catch (error) {
             console.error('❌ Ошибка получения назначений:', error);
-            return {
-                success: false,
-                message: 'Ошибка соединения с сервером: ' + error.message
-            };
+            return { success: false, message: error.message };
         }
     },
     
@@ -643,211 +637,61 @@
             
     async createAssignment(data) {
         try {
-            console.log('📡 Создаем назначение:', data);
-            
-            // Сначала создаем основное назначение
             const response = await fetch('/api/editor/assignments', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
             
-            const result = await response.json();
-            
-            if (!response.ok || !result.success) {
-                return result;
-            }
-            
-            // Если назначение успешно создано, получаем всех дочерних каталогов
-            if (data.includeChildren === true || data.includeChildren === undefined) {
-                try {
-                    // Получаем все дочерние каталоги рекурсивно
-                    const childrenResponse = await this.getAllChildDirectories(data.directoryId);
-                    
-                    if (childrenResponse.success && childrenResponse.data && childrenResponse.data.length > 0) {
-                        console.log(`📦 Найдено ${childrenResponse.data.length} дочерних каталогов для автоматического назначения`);
-                        
-                        // Создаем назначения для каждого дочернего каталога
-                        const childPromises = childrenResponse.data.map(async (childDirectory) => {
-                            const childData = {
-                                userId: data.userId,
-                                directoryId: childDirectory.id,
-                                permission: data.permission,
-                                notes: data.notes ? `${data.notes} (наследовано от родителя)` : 'Наследовано от родительского каталога',
-                                parentAssignmentId: result.data?.id, // Сохраняем ID родительского назначения
-                                inheritedFrom: data.directoryId
-                            };
-                            
-                            if (data.expiresAt) {
-                                childData.expiresAt = data.expiresAt;
-                            }
-                            
-                            return this.createAssignment(childData);
-                        });
-                        
-                        // Ждем завершения всех назначений
-                        await Promise.all(childPromises);
-                        
-                        console.log(`✅ Созданы назначения для всех дочерних каталогов`);
-                        
-                        // Обновляем сообщение результата
-                        result.message = `Назначение создано. Также предоставлен доступ к ${childrenResponse.data.length} дочерним каталогам`;
-                        result.childrenCreated = childrenResponse.data.length;
-                    }
-                } catch (childError) {
-                    console.error('❌ Ошибка создания дочерних назначений:', childError);
-                    // Не прерываем процесс, просто логируем ошибку
-                    // Основное назначение уже создано
-                }
-            }
-            
-            return result;
-            
+            if (!response.ok) throw new Error('Ошибка создания назначения');
+            return await response.json();
         } catch (error) {
             console.error('❌ Ошибка создания назначения:', error);
-            return {
-                success: false,
-                message: 'Ошибка создания назначения'
-            };
+            return { success: false, message: error.message };
         }
     },
     
     // Обновить назначение
     async updateAssignment(id, data) {
         try {
-            console.log('📡 Обновляем назначение ID:', id, 'данные:', data);
-            
-            // Сначала обновляем основное назначение
             const response = await fetch(`/api/editor/assignments/${id}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
             
-            const result = await response.json();
-            
-            if (!response.ok || !result.success) {
-                return result;
-            }
-            
-            // Если нужно обновить дочерние назначения
-            if (data.updateChildren === true) {
-                try {
-                    // Получаем все дочерние назначения для этого основного назначения
-                    const childrenAssignments = await this.getChildAssignments(id);
-                    
-                    if (childrenAssignments.success && childrenAssignments.data && childrenAssignments.data.length > 0) {
-                        console.log(`📦 Найдено ${childrenAssignments.data.length} дочерних назначений для обновления`);
-                        
-                        // Обновляем каждое дочернее назначение
-                        const updatePromises = childrenAssignments.data.map(async (childAssignment) => {
-                            const updateData = {
-                                permission: data.permission,
-                                notes: data.notes ? `${data.notes} (обновлено из родителя)` : childAssignment.notes,
-                                inheritedFrom: data.directoryId
-                            };
-                            
-                            if (data.expiresAt) {
-                                updateData.expiresAt = data.expiresAt;
-                            }
-                            
-                            return this.updateAssignment(childAssignment.id, updateData);
-                        });
-                        
-                        await Promise.all(updatePromises);
-                        
-                        console.log(`✅ Обновлены ${childrenAssignments.data.length} дочерних назначений`);
-                        
-                        result.message = `Назначение обновлено. Также обновлено ${childrenAssignments.data.length} дочерних назначений`;
-                        result.childrenUpdated = childrenAssignments.data.length;
-                    }
-                } catch (childError) {
-                    console.error('❌ Ошибка обновления дочерних назначений:', childError);
-                }
-            }
-            
-            return result;
-            
+            if (!response.ok) throw new Error('Ошибка обновления назначения');
+            return await response.json();
         } catch (error) {
             console.error('❌ Ошибка обновления назначения:', error);
-            return {
-                success: false,
-                message: 'Ошибка обновления назначения'
-            };
+            return { success: false, message: error.message };
         }
     },
             
     async deleteAssignment(id, deleteChildren = false) {
         try {
-            console.log('📡 Удаляем назначение ID:', id, 'deleteChildren:', deleteChildren);
-            
-            if (deleteChildren) {
-                try {
-                    // Получаем все дочерние назначения
-                    const childrenAssignments = await this.getChildAssignments(id);
-                    
-                    if (childrenAssignments.success && childrenAssignments.data && childrenAssignments.data.length > 0) {
-                        console.log(`🗑️  Удаляем ${childrenAssignments.data.length} дочерних назначений`);
-                        
-                        // Удаляем дочерние назначения
-                        const deletePromises = childrenAssignments.data.map(async (childAssignment) => {
-                            return fetch(`/api/editor/assignments/${childAssignment.id}`, {
-                                method: 'DELETE'
-                            });
-                        });
-                        
-                        await Promise.all(deletePromises);
-                        console.log(`✅ Удалены дочерние назначения`);
-                    }
-                } catch (childError) {
-                    console.error('❌ Ошибка удаления дочерних назначений:', childError);
-                }
-            }
-            
-            // Удаляем основное назначение
             const response = await fetch(`/api/editor/assignments/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deleteChildren })
             });
             
-            const result = await response.json();
-            
-            if (deleteChildren && result.success) {
-                result.message = `Назначение и все дочерние назначения удалены`;
-            }
-            
-            return result;
-            
+            if (!response.ok) throw new Error('Ошибка удаления назначения');
+            return await response.json();
         } catch (error) {
             console.error('❌ Ошибка удаления назначения:', error);
-            return {
-                success: false,
-                message: 'Ошибка удаления назначения'
-            };
+            return { success: false, message: error.message };
         }
     },
 
     async getAllChildDirectories(parentId) {
         try {
-            console.log(`📡 Получаем все дочерние каталоги для ${parentId}`);
-            
             const response = await fetch(`/api/editor/directories/${parentId}/all-children`);
-            
-            if (!response.ok) {
-                throw new Error('Ошибка получения дочерних каталогов');
-            }
-            
+            if (!response.ok) throw new Error('Ошибка получения дочерних каталогов');
             return await response.json();
-            
         } catch (error) {
             console.error('❌ Ошибка получения дочерних каталогов:', error);
-            return {
-                success: false,
-                message: 'Ошибка получения дочерних каталогов'
-            };
+            return { success: false, message: error.message };
         }
     },
     
@@ -1224,34 +1068,32 @@
                 }
             }
             async checkDirectoryHasChildren(directoryId) {
-    try {
-        if (!directoryId) return false;
-        
-        // Ищем каталог в загруженном списке
-        const directory = this.allDirectories.find(dir => dir.id == directoryId);
-        
-        if (!directory) return false;
-        
-        // Проверяем, есть ли у этого каталога дети в списке allDirectories
-        const hasChildren = this.allDirectories.some(dir => dir.parentId == directoryId);
-        
-        // Показываем или скрываем блок с опциями
-        const childrenOptions = document.getElementById('childrenOptions');
-        if (childrenOptions) {
-            if (hasChildren) {
-                childrenOptions.style.display = 'block';
+        try {
+            // Сначала получаем все дочерние каталоги
+            const response = await this.getAllChildDirectories(directoryId);
+            
+            if (response.success && response.data && response.data.length > 0) {
+                // Показываем блок с опциями
+                const childrenOptions = document.getElementById('childrenOptions');
+                if (childrenOptions) {
+                    childrenOptions.style.display = 'block';
+                    document.getElementById('includeChildren').checked = true;
+                }
+                return true;
             } else {
-                childrenOptions.style.display = 'none';
+                // Скрываем блок с опциями
+                const childrenOptions = document.getElementById('childrenOptions');
+                if (childrenOptions) {
+                    childrenOptions.style.display = 'none';
+                }
+                return false;
             }
+        } catch (error) {
+            console.error('❌ Ошибка проверки дочерних каталогов:', error);
+            return false;
         }
-        
-        return hasChildren;
-        
-    } catch (error) {
-        console.error('Ошибка проверки дочерних каталогов:', error);
-        return false;
     }
-}
+
             async loadAssignments() {
                 console.log('🔄 Начинаем загрузку назначений...');
                 try {
@@ -1727,17 +1569,12 @@ async handleSubmit(e) {
     const userId = document.getElementById('assignUser').value;
     const directoryId = document.getElementById('assignDirectoryId').value;
     const permission = document.getElementById('assignPermission').value;
-    const expiresAt = document.getElementById('assignExpiresAt').value;
     const notes = document.getElementById('assignNotes').value.trim();
     const includeChildren = document.getElementById('includeChildren')?.checked || false;
     
+    // Проверка обязательных полей
     if (!userId || !directoryId || !permission) {
         this.showNotification('Заполните обязательные поля', 'error');
-        return;
-    }
-    
-    if (!directoryId) {
-        this.showNotification('Выберите справочник из списка поиска', 'error');
         return;
     }
     
@@ -1747,44 +1584,25 @@ async handleSubmit(e) {
             userId: userId,
             directoryId: directoryId,
             permission: permission,
-            notes: notes,
-            includeChildren: includeChildren  // Добавляем флаг наследования
+            notes: notes
         };
         
-        // Оставляем expiresAt только если поле заполнено (опционально)
-        if (expiresAt) {
-            data.expiresAt = expiresAt;
-        }
-        
         if (id) {
-            console.log(`🔄 Обновляем назначение ID: ${id}`);
-            // При обновлении также передаем флаг обновления детей
+            // При обновлении передаем флаг updateChildren
             data.updateChildren = includeChildren;
             response = await AssignmentsAPI.updateAssignment(id, data);
         } else {
-            console.log(`🔄 Создаем назначение с наследованием: ${includeChildren}`);
+            // При создании передаем флаг includeChildren
+            data.includeChildren = includeChildren;
             response = await AssignmentsAPI.createAssignment(data);
         }
         
         if (response.success) {
-            let message = response.message || (id ? 'Назначение обновлено' : 'Назначение создано');
-            
-            // Добавляем информацию о дочерних каталогах
-            if (response.childrenCreated) {
-                message += ` (включая ${response.childrenCreated} дочерних каталогов)`;
-            } else if (response.childrenUpdated) {
-                message += ` (обновлено ${response.childrenUpdated} дочерних назначений)`;
-            }
-            
-            this.showNotification(message, 'success');
-            
+            this.showNotification(response.message, 'success');
             this.hideForm();
-            
-            // Перезагружаем данные
             await this.loadInitialData();
-            
         } else {
-            this.showNotification(response.message || 'Ошибка сохранения', 'error');
+            this.showNotification(response.message, 'error');
         }
     } catch (error) {
         console.error('Ошибка сохранения назначения:', error);

@@ -6,158 +6,866 @@
     <title>Каталог документов</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/user/style.css">
     <style>
-        /* Дополнительные стили для страницы каталога */
-        .documents-container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            overflow: hidden;
-            margin-top: 20px;
-            border: 1px solid #e2e8f0;
+        /* Общие сбросы */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
-        .documents-header {
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8fafc;
+            color: #334155;
+            line-height: 1.6;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Хэдер */
+        .header {
+            background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+            color: white;
+            padding: 15px 30px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px 25px;
-            color: white;
-            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            position: fixed;
+            top: 0;
+            z-index: 1000;
+            height: 74px;
         }
-        
-        .documents-header h3 {
-            margin: 0;
-            font-size: 1.4rem;
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-text h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 4px;
             display: flex;
             align-items: center;
             gap: 10px;
-            font-weight: 600;
         }
-        
-        .documents-actions {
+
+        .header-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        /* Стили для информации о пользователе */
+        .user-info {
             display: flex;
-            gap: 8px;
+            align-items: center;
+            gap: 15px;
+            position: relative;
         }
-        
-        .btn-primary {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .user-role {
+            font-size: 13px;
+            opacity: 0.9;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 12px;
+            display: inline-block;
+            width: fit-content;
+        }
+
+        .user-menu-dropdown {
+            position: relative;
+        }
+
+        .user-menu-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
             color: white;
-            padding: 8px 12px;
+            width: 36px;
+            height: 36px;
             border-radius: 6px;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 6px;
-            transition: all 0.3s ease;
-            font-size: 14px;
-            font-weight: 500;
+            justify-content: center;
+            transition: background 0.3s ease;
         }
-        
-        .btn-primary:hover {
-            background: rgba(255,255,255,0.3);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+
+        .user-menu-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
-        
-        .documents-info {
-            background: #f8fafc;
-            padding: 15px 25px;
-            border-bottom: 1px solid #e5e7eb;
-            font-size: 14px;
-            color: #64748b;
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: white;
+            min-width: 200px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            overflow: hidden;
+            z-index: 1001;
+            margin-top: 10px;
         }
-        
-        .documents-list {
+
+        .dropdown-content.show {
+            display: block;
+        }
+
+        .dropdown-content a {
+            color: #334155;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s ease;
+        }
+
+        .dropdown-content a:hover {
+            background: #f1f5f9;
+        }
+
+        .dropdown-content a i {
+            width: 20px;
+            color: #5b86e5;
+        }
+
+        /* Кнопка для открытия сайдбара на мобильных */
+        .mobile-menu-btn {
+            display: none;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-right: 10px;
+        }
+
+        /* Сайдбар */
+        .sidebar {
+            width: 250px;
+            background: white;
+            position: fixed;
+            top: 74px; /* Отступ под хэдер */
+            left: 0;
+            height: calc(100vh - 74px);
+            z-index: 999;
+            transition: transform 0.3s ease;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #e2e8f0;
+        }
+
+        /* Шапка сайдбара */
+        .sidebar-header {
             padding: 20px;
-            min-height: 300px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
         }
-        
-        .document-item {
+
+        .sidebar-brand {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px;
-            border-bottom: 1px solid #e5e7eb;
-            transition: all 0.2s ease;
+        }
+
+        .sidebar-brand h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-brand i {
+            color: #5b86e5;
+        }
+
+        .close-sidebar-btn {
+            display: none;
+            background: #e2e8f0;
+            border: none;
+            color: #64748b;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+
+        .close-sidebar-btn:hover {
+            background: #cbd5e1;
+        }
+
+        /* Навигация */
+        .sidebar-nav {
+            flex: 1;
+            padding: 15px 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-nav ul {
+            list-style: none;
+        }
+
+        .sidebar-nav li {
+            margin-bottom: 4px;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 14px 20px;
+            color: #475569;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+            border-left: 3px solid transparent;
+            font-weight: 500;
+        }
+
+        .sidebar-link:hover {
+            background: #f1f5f9;
+            color: #334155;
+            border-left-color: #cbd5e1;
+        }
+
+        .sidebar-link.active {
+            background: #e0f2fe;
+            color: #0369a1;
+            border-left-color: #0ea5e9;
+        }
+
+        .sidebar-link.active .sidebar-icon {
+            color: #0ea5e9;
+        }
+
+        .sidebar-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 16px;
+            color: #64748b;
+        }
+
+        .sidebar-text {
+            flex: 1;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .submenu-arrow {
+            font-size: 12px;
+            color: #94a3b8;
+            transition: transform 0.3s ease;
+        }
+
+        /* Подменю */
+        .sidebar-submenu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background: #f8fafc;
+            border-left: 3px solid #e2e8f0;
+            margin-left: 20px;
+        }
+
+        .has-submenu.active .sidebar-submenu {
+            max-height: 200px;
+        }
+
+        .has-submenu.active .submenu-arrow {
+            transform: rotate(180deg);
+        }
+
+        .sidebar-submenu-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px 12px 56px;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 400;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-submenu-link:hover {
+            background: #f1f5f9;
+            color: #334155;
+        }
+
+        .sidebar-submenu-link i {
+            margin-right: 10px;
+            width: 16px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        /* Футер сайдбара */
+        .sidebar-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+
+        .sidebar-version {
+            text-align: center;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+
+        /* Основной контент */
+        .content-area {
+            flex: 1;
+            padding: 30px;
+            transition: margin-left 0.3s ease;
+            margin-left: 250px; /* Ширина сайдбара */
+            margin-top: 74px; /* Высота хэдера */
+            background: #f8fafc;
+            min-height: calc(100vh - 74px);
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 30px;
+            min-height: calc(100vh - 74px);
+            margin-top: 74px;
+            transition: margin-left 0.3s ease;
+            background: #f8fafc;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content,
+            .content-area {
+                margin-left: 0;
+                padding: 20px;
+            }
+            
+            .sidebar {
+                transform: translateX(-100%);
+                top: 74px;
+                height: calc(100vh - 74px);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .close-sidebar-btn {
+                display: flex;
+            }
+            
+            .mobile-menu-btn {
+                display: flex;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 12px 15px;
+                height: 68px;
+            }
+            
+            .header-text h1 {
+                font-size: 20px;
+            }
+            
+            .header-subtitle {
+                font-size: 13px;
+            }
+            
+            .sidebar {
+                top: 68px;
+                height: calc(100vh - 68px);
+            }
+            
+            .main-content,
+            .content-area {
+                margin-top: 68px;
+                padding: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .sidebar {
+                width: 100%;
+            }
+            
+            .user-details {
+                display: none;
+            }
+        }
+
+        /* Стили для каталога */
+        .catalog-container {
+            max-width: 1200px;
+            margin: 0 auto;
         }
         
-        .document-item:hover {
+        .catalog-header {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .catalog-title {
+            color: #0f172a;
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .access-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .access-badge.direct {
+            background: #10b98115;
+            color: #10b981;
+            border: 1px solid #10b98130;
+        }
+        
+        .access-badge.inherited {
+            background: #f59e0b15;
+            color: #f59e0b;
+            border: 1px solid #f59e0b30;
+        }
+        
+        .access-badge.admin {
+            background: #3b82f615;
+            color: #3b82f6;
+            border: 1px solid #3b82f630;
+        }
+        
+        .access-badge.none {
+            background: #ef444415;
+            color: #ef4444;
+            border: 1px solid #ef444430;
+        }
+        
+        .catalog-info-card {
             background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .info-item i {
+            font-size: 20px;
+            color: #64748b;
+        }
+        
+        .info-label {
+            display: block;
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+        
+        .info-value {
+            display: block;
+            font-size: 16px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+        
+        .control-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .documents-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .documents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+        
+        .document-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.2s ease;
+            background: white;
+        }
+        
+        .document-card:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .document-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            font-size: 24px;
+            position: relative;
+        }
+        
+        .document-icon.pdf {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .document-icon.doc {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+        
+        .document-icon.xls {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        
+        .document-icon.img {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        
+        .document-icon.default {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        
+        .badge-new {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            font-size: 10px;
+            padding: 2px 6px;
         }
         
         .document-info {
             flex: 1;
         }
         
-        .document-name {
+        .document-title {
             font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 4px;
-            display: block;
+            color: #1e293b;
+            margin-bottom: 8px;
+            line-height: 1.4;
         }
         
         .document-meta {
             display: flex;
-            gap: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .meta-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
             font-size: 12px;
-            color: #6b7280;
+            color: #64748b;
+        }
+        
+        .meta-item i {
+            font-size: 10px;
         }
         
         .document-actions {
             display: flex;
-            gap: 8px;
+            gap: 6px;
+            margin-top: 12px;
         }
         
-        .btn-secondary {
-            background: #f3f4f6;
-            border: 1px solid #d1d5db;
-            color: #374151;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
+        .action-btn {
+            padding: 6px 10px;
             font-size: 12px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            transition: all 0.2s ease;
         }
         
-        .btn-secondary:hover {
-            background: #e5e7eb;
+        .loading-container {
+            text-align: center;
+            padding: 80px 20px;
         }
         
-        .no-documents {
+        .loading-documents {
+            text-align: center;
+            padding: 40px 20px;
+            grid-column: 1 / -1;
+        }
+        
+        .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: #64748b;
+            grid-column: 1 / -1;
         }
         
-        .no-documents i {
+        .empty-state-icon {
             font-size: 48px;
             color: #cbd5e1;
             margin-bottom: 20px;
-            display: block;
         }
         
-        .loading-state {
+        .error-state {
             text-align: center;
             padding: 60px 20px;
-            color: #64748b;
+            grid-column: 1 / -1;
         }
         
-        .loading-state i {
-            font-size: 32px;
-            color: #3b82f6;
-            margin-bottom: 15px;
-            display: block;
+        .access-denied-container {
+            text-align: center;
+            padding: 80px 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .access-denied-icon {
+            font-size: 72px;
+            color: #ef4444;
+            margin-bottom: 24px;
+        }
+        
+        .access-denied-info {
+            background: #fef2f2;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 24px 0;
+            text-align: left;
+            border-left: 4px solid #ef4444;
+        }
+        
+        .access-denied-info h5 {
+            color: #dc2626;
+            margin-bottom: 12px;
+        }
+        
+        .access-denied-info ul {
+            margin-bottom: 0;
+            padding-left: 20px;
+        }
+        
+        .access-denied-info li {
+            margin-bottom: 8px;
+            color: #7f1d1d;
+        }
+
+        /* Стили для статуса пароля в хэдере */
+        .user-status {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-top: 2px;
+            display: inline-block;
+            font-weight: 500;
+        }
+
+        .user-status.can-change {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .user-status.cannot-change {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+
+        .user-status.never-changed {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+
+        .user-status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        /* Модальное окно смены пароля */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 20px;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #6b7280;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: #f3f4f6;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .password-requirements {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 13px;
+        }
+
+        .password-requirements ul {
+            margin: 8px 0 0 0;
+            padding-left: 20px;
+            color: #6b7280;
+        }
+
+        .password-requirements li {
+            margin-bottom: 4px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Хэдер (такой же как в dashboard) -->
+    <!-- Хэдер -->
     <header class="header">
         <div class="header-left">
             <button class="mobile-menu-btn" id="mobileMenuBtn">
@@ -165,14 +873,15 @@
             </button>
             <div class="header-text">
                 <h1><i class="fas fa-folder-open"></i> Каталог документов</h1>
-                <p class="header-subtitle">Управление документами и версиями</p>
+                <p class="header-subtitle">Система контроля версий документов</p>
             </div>
         </div>
         <div class="user-info">
-            <div class="user-avatar" id="userAvatar">П</div>
+            <div class="user-avatar" id="userAvatar">?</div>
             <div class="user-details">
-                <span class="user-name" id="userName">Пользователь</span>
+                <span class="user-name" id="userName">Загрузка...</span>
                 <span class="user-role" id="userRole">Пользователь</span>
+                <span class="user-status" id="userStatus" style="display: none;"></span>
             </div>
             <div class="user-menu-dropdown">
                 <button class="user-menu-btn" id="userMenuBtn">
@@ -180,14 +889,13 @@
                 </button>
                 <div class="dropdown-content" id="userDropdown">
                     <a href="#" id="changePasswordBtn"><i class="fas fa-key"></i> Сменить пароль</a>
-                    <a href="/dashboard" id="backToDashboardBtn"><i class="fas fa-arrow-left"></i> На главную</a>
                     <a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Выход</a>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- Сайдбар (такой же как в dashboard) -->
+    <!-- Сайдбар -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-brand">
@@ -201,7 +909,7 @@
         <nav class="sidebar-nav">
             <ul>
                 <li>
-                    <a href="/dashboard" class="sidebar-link" id="nav-dashboard">
+                    <a href="/dashboard" class="sidebar-link">
                         <div class="sidebar-icon">
                             <i class="fas fa-home"></i>
                         </div>
@@ -240,20 +948,11 @@
                 </li>
                 
                 <li>
-                    <a href="/documents" class="sidebar-link" id="nav-documents">
+                    <a href="/documents" class="sidebar-link">
                         <div class="sidebar-icon">
                             <i class="fas fa-file-alt"></i>
                         </div>
                         <span class="sidebar-text">Документы</span>
-                    </a>
-                </li>
-                
-                <li>
-                    <a href="/catalogs" class="sidebar-link active" id="nav-catalogs">
-                        <div class="sidebar-icon">
-                            <i class="fas fa-folder-open"></i>
-                        </div>
-                        <span class="sidebar-text">Каталоги</span>
                     </a>
                 </li>
             </ul>
@@ -261,409 +960,230 @@
         
         <div class="sidebar-footer">
             <div class="sidebar-version">
-                <span>Версия 1.2.0</span>
+                <span>Версия 1.3.0</span>
             </div>
         </div>
     </aside>
 
     <!-- Основной контент -->
-    <div class="content-area" id="contentArea">
-        <div class="page-header">
-            <h2 id="catalogTitle">Загрузка каталога...</h2>
-            <p id="catalogDescription">Загрузка информации о каталоге</p>
-        </div>
-        
-        <!-- Блок с документами каталога -->
-        <div class="documents-container" id="documentsContainer">
-            <div class="documents-header">
-                <h3><i class="fas fa-file-alt"></i> Документы в каталоге</h3>
-                <div class="documents-actions">
-                    <button class="btn-primary" id="addDocumentBtn">
-                        <i class="fas fa-plus"></i> Добавить документ
-                    </button>
-                    <button class="btn-primary" id="refreshDocumentsBtn">
-                        <i class="fas fa-sync-alt"></i> Обновить
-                    </button>
-                </div>
-            </div>
-            
-            <div class="documents-info">
-                <p><i class="fas fa-info-circle"></i> Здесь отображаются все документы в текущем каталоге. Вы можете добавлять новые документы и управлять их версиями.</p>
-            </div>
-            
-            <div class="documents-list" id="documentsList">
-                <div class="loading-state">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <p>Загрузка документов...</p>
-                </div>
-            </div>
-        </div>
-    </div>
+    <main class="main-content" id="mainContent">
+        <!-- Контент будет загружен динамически -->
+    </main>
 
-    <!-- Модальное окно для добавления документа -->
-    <div class="modal-overlay" id="addDocumentModal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-plus"></i> Добавить документ</h3>
-                <button class="close-btn" id="closeAddDocumentModal">&times;</button>
-            </div>
-            <form id="addDocumentForm">
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="documentName">
-                            <i class="fas fa-file"></i> Название документа *
-                        </label>
-                        <input type="text" id="documentName" class="form-control" required placeholder="Введите название документа">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="documentDescription">
-                            <i class="fas fa-align-left"></i> Описание
-                        </label>
-                        <textarea id="documentDescription" class="form-control" rows="3" placeholder="Введите описание документа"></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="documentFile">
-                            <i class="fas fa-upload"></i> Файл документа *
-                        </label>
-                        <input type="file" id="documentFile" class="form-control" required>
-                        <small class="form-text">
-                            Поддерживаемые форматы: PDF, DOC, DOCX, XLS, XLSX, TXT (макс. 10MB)
-                        </small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="documentVersion">
-                            <i class="fas fa-code-branch"></i> Версия документа
-                        </label>
-                        <input type="text" id="documentVersion" class="form-control" placeholder="1.0.0" value="1.0.0">
-                        <small class="form-text">
-                            Формат версии: X.Y.Z (например: 1.0.0)
-                        </small>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-secondary" id="cancelAddDocument">Отмена</button>
-                    <button type="submit" class="btn-primary" id="saveDocumentBtn">
-                        <i class="fas fa-save"></i> Сохранить документ
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Базовый скрипт для страницы каталога
+        // Исправленный основной скрипт
+        
         document.addEventListener('DOMContentLoaded', function() {
             console.log('📂 Страница каталога загружена');
             
-            // Получаем ID каталога из URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const catalogId = urlParams.get('id');
+            // Сначала загружаем информацию о пользователе
+            loadUserInfo().then(() => {
+                // Инициализация UI
+                initUI();
+                
+                // Получаем ID каталога из URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const catalogId = urlParams.get('id');
+                
+                if (!catalogId) {
+                    showError('Ошибка', 'Каталог не выбран');
+                    setTimeout(() => window.location.href = '/dashboard', 2000);
+                    return;
+                }
+                
+                console.log(`🔍 Загружаем каталог ID: ${catalogId}`);
+                
+                // Загружаем информацию о каталоге с проверкой доступа
+                loadCatalogInfo(catalogId);
+            }).catch(error => {
+                console.error('Ошибка загрузки пользователя:', error);
+                setDefaultUserInfo();
+                initUI();
+                
+                const urlParams = new URLSearchParams(window.location.search);
+                const catalogId = urlParams.get('id');
+                if (catalogId) {
+                    loadCatalogInfo(catalogId);
+                }
+            });
+        });
+        
+        /**
+         * Загружает информацию о пользователе с сервера
+         */
+        async function loadUserInfo() {
+            try {
+                console.log('👤 Загружаем информацию о пользователе...');
+                
+                const response = await fetch('/api/user/profile', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Получены данные пользователя:', data);
+                
+                if (data.success && data.user) {
+                    updateUserInfo(data.user);
+                    checkPasswordStatus();
+                } else {
+                    throw new Error(data.message || 'Ошибка получения данных');
+                }
+                
+            } catch (error) {
+                console.error('❌ Ошибка загрузки профиля:', error);
+                throw error;
+            }
+        }
+        
+        /**
+         * Обновляет информацию о пользователе в хэдере
+         */
+        function updateUserInfo(user) {
+            const userAvatar = document.getElementById('userAvatar');
+            const userName = document.getElementById('userName');
+            const userRole = document.getElementById('userRole');
             
-            if (!catalogId) {
-                alert('Каталог не выбран. Возвращаемся на главную страницу.');
-                window.location.href = '/dashboard';
-                return;
+            // Обновляем имя
+            if (userName && user.name) {
+                userName.textContent = user.name;
             }
             
-            // Проверяем, есть ли информация о каталоге в sessionStorage
-            let catalog = null;
+            // Обновляем роль
+            if (userRole && user.role) {
+                userRole.textContent = user.role;
+            }
+            
+            // Обновляем аватар
+            if (userAvatar && user.name) {
+                userAvatar.textContent = user.name.charAt(0).toUpperCase();
+                
+                // Добавляем цветной градиент для аватара
+                const colors = [
+                    'linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%)',
+                    'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                    'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
+                    'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
+                ];
+                
+                const charCode = user.name.charCodeAt(0);
+                const colorIndex = charCode % colors.length;
+                userAvatar.style.background = colors[colorIndex];
+                userAvatar.style.color = 'white';
+                userAvatar.style.fontWeight = 'bold';
+                userAvatar.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+            }
+            
+            console.log('✅ Данные пользователя обновлены');
+        }
+        
+        /**
+         * Устанавливает значения по умолчанию для пользователя
+         */
+        function setDefaultUserInfo() {
+            const userName = document.getElementById('userName');
+            const userRole = document.getElementById('userRole');
+            const userAvatar = document.getElementById('userAvatar');
+            
+            if (userName) userName.textContent = 'Гость';
+            if (userRole) userRole.textContent = 'Пользователь';
+            if (userAvatar) {
+                userAvatar.textContent = 'Г';
+                userAvatar.style.background = 'linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%)';
+                userAvatar.style.color = 'white';
+            }
+        }
+        
+        /**
+         * Проверяет статус пароля пользователя
+         */
+        async function checkPasswordStatus() {
             try {
-                const catalogData = sessionStorage.getItem('currentCatalog');
-                if (catalogData) {
-                    catalog = JSON.parse(catalogData);
-                    console.log('📦 Загружен каталог из sessionStorage:', catalog);
+                const response = await fetch('/api/user/password-status', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.status) {
+                        updatePasswordStatus(data.status);
+                    }
                 }
             } catch (error) {
-                console.error('❌ Ошибка загрузки каталога из sessionStorage:', error);
-            }
-            
-            // Если каталог найден, обновляем заголовок
-            if (catalog) {
-                updateCatalogInfo(catalog);
-            } else {
-                // Или запрашиваем информацию с сервера
-                loadCatalogInfo(catalogId);
-            }
-            
-            // Инициализируем интерфейс
-            initUI();
-            
-            // Загружаем документы
-            loadDocuments(catalogId);
-            
-            // Устанавливаем обработчики событий
-            setupEventListeners();
-        });
-        
-        function updateCatalogInfo(catalog) {
-            document.getElementById('catalogTitle').textContent = catalog.name || 'Каталог документов';
-            document.getElementById('catalogDescription').textContent = 
-                catalog.description || 'Управление документами в каталоге';
-            
-            // Обновляем заголовок страницы
-            document.title = catalog.name + ' - Каталог документов';
-        }
-        
-        function loadCatalogInfo(catalogId) {
-    fetch(`/api/user/catalogs/${catalogId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                updateCatalogInfo(data.catalog);
-            } else {
-                alert(data.message);
-                window.location.href = '/dashboard';
-            }
-        })
-        .catch(error => {
-            console.error('Ошибка загрузки каталога:', error);
-            alert('Ошибка загрузки каталога');
-            window.location.href = '/dashboard';
-        });
-}
-        
-function loadDocuments(catalogId) {
-    const documentsList = document.getElementById('documentsList');
-    if (!documentsList) return;
-    
-    documentsList.innerHTML = `
-        <div class="loading-state">
-            <i class="fas fa-spinner fa-spin"></i>
-            <p>Загрузка документов...</p>
-        </div>
-    `;
-    
-    // Сначала проверяем доступ
-    fetch(`/api/user/catalog-access/${catalogId}`, {
-        credentials: 'include'
-    })
-    .then(response => response.json())
-    .then(accessData => {
-        if (!accessData.success || !accessData.hasAccess) {
-            throw new Error(accessData.message || 'Доступ запрещен');
-        }
-        
-        // Если доступ есть, загружаем документы
-        return fetch(`/api/user/catalogs/${catalogId}/documents`, {
-            credentials: 'include'
-        });
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            renderDocuments(data.documents);
-            
-            // Обновляем заголовок каталога
-            if (data.catalog) {
-                document.getElementById('catalogTitle').textContent = data.catalog.name;
-                document.getElementById('catalogDescription').textContent = 
-                    data.catalog.description || `Документов: ${data.catalog.documentCount}`;
-                document.title = data.catalog.name + ' - Каталог документов';
-            }
-            
-            // Показываем/скрываем кнопку добавления в зависимости от прав
-            const addDocumentBtn = document.getElementById('addDocumentBtn');
-            if (data.permission && (data.permission === 'WRITE' || data.permission === 'ADMIN')) {
-                addDocumentBtn.style.display = 'flex';
-            } else {
-                addDocumentBtn.style.display = 'none';
-            }
-        } else {
-            throw new Error(data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Ошибка загрузки документов:', error);
-        
-        let errorMessage = error.message || 'Неизвестная ошибка';
-        let errorDetails = '';
-        
-        if (errorMessage.includes('Доступ к каталогу запрещен')) {
-            errorDetails = `
-                <div style="margin-top: 15px; padding: 10px; background: #fef2f2; border-radius: 6px; border-left: 4px solid #dc2626;">
-                    <p style="margin: 0; color: #dc2626; font-size: 14px;">
-                        <i class="fas fa-info-circle"></i> 
-                        Возможные причины:
-                    </p>
-                    <ul style="margin: 5px 0 0 15px; color: #dc2626; font-size: 13px;">
-                        <li>Каталог не назначен вашему пользователю</li>
-                        <li>Каталог удален или неактивен</li>
-                        <li>Обратитесь к администратору для получения доступа</li>
-                    </ul>
-                </div>
-            `;
-        }
-        
-        documentsList.innerHTML = `
-            <div class="no-documents">
-                <i class="fas fa-exclamation-triangle" style="color: #dc2626;"></i>
-                <h4 style="color: #dc2626;">Ошибка загрузки документов</h4>
-                <p>${errorMessage}</p>
-                ${errorDetails}
-                <div style="margin-top: 20px;">
-                    <button onclick="window.location.href='/dashboard'" class="btn-secondary" style="padding: 8px 16px;">
-                        <i class="fas fa-arrow-left"></i> Вернуться на главную
-                    </button>
-                    <button onclick="loadDocuments('${catalogId}')" class="btn-secondary" style="padding: 8px 16px; margin-left: 10px;">
-                        <i class="fas fa-sync-alt"></i> Попробовать снова
-                    </button>
-                </div>
-            </div>
-        `;
-    });
-}
-        // Функция для отладки - показывает все доступные каталоги пользователя
-function debugUserCatalogs() {
-    fetch('/api/user/assigned-catalogs', {
-        credentials: 'include'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            console.log('📋 Доступные каталоги пользователя:', data.catalogs);
-            
-            const urlParams = new URLSearchParams(window.location.search);
-            const currentCatalogId = urlParams.get('id');
-            
-            console.log('📍 Текущий каталог ID:', currentCatalogId);
-            console.log('🔍 Ищем среди доступных каталогов...');
-            
-            const findCatalog = (catalogs, targetId) => {
-                for (const catalog of catalogs) {
-                    if (catalog.id == targetId) {
-                        return catalog;
-                    }
-                    if (catalog.children) {
-                        const found = findCatalog(catalog.children, targetId);
-                        if (found) return found;
-                    }
-                }
-                return null;
-            };
-            
-            const foundCatalog = findCatalog(data.catalogs, currentCatalogId);
-            
-            if (foundCatalog) {
-                console.log('✅ Каталог найден среди доступных:', foundCatalog);
-            } else {
-                console.log('❌ Каталог НЕ найден среди доступных');
-                console.log('💡 Попробуйте выбрать один из доступных каталогов:');
-                data.catalogs.forEach(catalog => {
-                    console.log(`   📁 ${catalog.name} (ID: ${catalog.id})`);
-                    if (catalog.children) {
-                        catalog.children.forEach(child => {
-                            console.log(`      └── ${child.name} (ID: ${child.id})`);
-                        });
-                    }
-                });
+                console.error('Ошибка проверки статуса пароля:', error);
             }
         }
-    })
-    .catch(error => {
-        console.error('Ошибка отладки:', error);
-    });
-}
-
-// Добавьте эту кнопку в HTML для отладки (только в разработке)
-const debugButton = document.createElement('button');
-debugButton.innerHTML = '<i class="fas fa-bug"></i> Отладка';
-debugButton.className = 'btn-secondary';
-debugButton.style.position = 'fixed';
-debugButton.style.bottom = '20px';
-debugButton.style.right = '20px';
-debugButton.style.zIndex = '1000';
-debugButton.onclick = debugUserCatalogs;
-document.body.appendChild(debugButton);
-
-        function renderDocuments(documents) {
-            const documentsList = document.getElementById('documentsList');
-            if (!documentsList) return;
+        
+        /**
+         * Обновляет статус пароля в хэдере
+         */
+        function updatePasswordStatus(status) {
+            const userStatus = document.getElementById('userStatus');
+            if (!userStatus) return;
             
-            if (!documents || documents.length === 0) {
-                documentsList.innerHTML = `
-                    <div class="no-documents">
-                        <i class="fas fa-file-excel"></i>
-                        <h4>В каталоге нет документов</h4>
-                        <p>Нажмите кнопку "Добавить документ", чтобы загрузить первый документ</p>
-                    </div>
-                `;
-                return;
+            userStatus.style.display = 'inline-block';
+            
+            switch(status) {
+                case 'can_change':
+                    userStatus.textContent = 'Пароль можно сменить';
+                    userStatus.className = 'user-status can-change';
+                    break;
+                case 'cannot_change':
+                    userStatus.textContent = 'Смена пароля заблокирована';
+                    userStatus.className = 'user-status cannot-change';
+                    break;
+                case 'never_changed':
+                    userStatus.textContent = 'Рекомендуется сменить пароль';
+                    userStatus.className = 'user-status never-changed';
+                    break;
+                default:
+                    userStatus.style.display = 'none';
             }
-            
-            let html = '';
-            
-            documents.forEach(doc => {
-                const uploadedDate = new Date(doc.uploadedAt).toLocaleDateString();
-                const fileIcon = getFileIcon(doc.fileType);
-                
-                html += `
-                    <div class="document-item">
-                        <div class="document-info">
-                            <span class="document-name">
-                                <i class="fas fa-${fileIcon}"></i> ${doc.name}
-                            </span>
-                            <div class="document-meta">
-                                <span><i class="fas fa-info-circle"></i> ${doc.description || 'Без описания'}</span>
-                                <span><i class="fas fa-code-branch"></i> Версия ${doc.version}</span>
-                                <span><i class="fas fa-user"></i> ${doc.uploadedBy}</span>
-                                <span><i class="fas fa-calendar"></i> ${uploadedDate}</span>
-                                <span><i class="fas fa-weight"></i> ${doc.size}</span>
-                            </div>
-                        </div>
-                        <div class="document-actions">
-                            <button class="btn-secondary" onclick="downloadDocument(${doc.id})">
-                                <i class="fas fa-download"></i> Скачать
-                            </button>
-                            <button class="btn-secondary" onclick="viewVersions(${doc.id})">
-                                <i class="fas fa-history"></i> Версии
-                            </button>
-                            <button class="btn-secondary" onclick="editDocument(${doc.id})">
-                                <i class="fas fa-edit"></i> Редактировать
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            documentsList.innerHTML = html;
         }
         
-        function getFileIcon(fileType) {
-            const icons = {
-                'pdf': 'file-pdf',
-                'doc': 'file-word',
-                'docx': 'file-word',
-                'xls': 'file-excel',
-                'xlsx': 'file-excel',
-                'txt': 'file-alt',
-                'jpg': 'file-image',
-                'png': 'file-image',
-                'zip': 'file-archive'
-            };
-            
-            return icons[fileType] || 'file';
-        }
-        
+        /**
+         * Инициализация UI элементов
+         */
         function initUI() {
-            // Инициализация мобильного меню
+            // Мобильное меню
             const mobileMenuBtn = document.getElementById('mobileMenuBtn');
             const sidebar = document.getElementById('sidebar');
             const closeSidebarBtn = document.getElementById('closeSidebarBtn');
             
-            if (mobileMenuBtn && sidebar) {
+            if (mobileMenuBtn) {
                 mobileMenuBtn.addEventListener('click', () => {
                     sidebar.classList.add('active');
                 });
             }
             
-            if (closeSidebarBtn && sidebar) {
+            if (closeSidebarBtn) {
                 closeSidebarBtn.addEventListener('click', () => {
                     sidebar.classList.remove('active');
                 });
             }
+            
+            // Закрытие сайдбара при клике вне его
+            document.addEventListener('click', (e) => {
+                if (sidebar.classList.contains('active') && 
+                    !sidebar.contains(e.target) && 
+                    e.target !== mobileMenuBtn) {
+                    sidebar.classList.remove('active');
+                }
+            });
             
             // Инициализация меню пользователя
             const userMenuBtn = document.getElementById('userMenuBtn');
@@ -675,236 +1195,1570 @@ document.body.appendChild(debugButton);
                     userDropdown.classList.toggle('show');
                 });
                 
+                // Закрытие меню при клике вне его
                 document.addEventListener('click', (e) => {
                     if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
                         userDropdown.classList.remove('show');
                     }
                 });
             }
-        }
-        
-        function setupEventListeners() {
-            // Кнопка добавления документа
-            const addDocumentBtn = document.getElementById('addDocumentBtn');
-            const addDocumentModal = document.getElementById('addDocumentModal');
-            const closeAddDocumentModal = document.getElementById('closeAddDocumentModal');
-            const cancelAddDocument = document.getElementById('cancelAddDocument');
             
-            if (addDocumentBtn && addDocumentModal) {
-                addDocumentBtn.addEventListener('click', () => {
-                    addDocumentModal.style.display = 'flex';
-                });
-            }
-            
-            if (closeAddDocumentModal && addDocumentModal) {
-                closeAddDocumentModal.addEventListener('click', () => {
-                    addDocumentModal.style.display = 'none';
-                });
-            }
-            
-            if (cancelAddDocument && addDocumentModal) {
-                cancelAddDocument.addEventListener('click', () => {
-                    addDocumentModal.style.display = 'none';
-                });
-            }
-            
-            // Закрытие модального окна по клику на оверлей
-            if (addDocumentModal) {
-                addDocumentModal.addEventListener('click', (e) => {
-                    if (e.target === addDocumentModal) {
-                        addDocumentModal.style.display = 'none';
+            // Кнопка выхода
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    if (confirm('Вы уверены, что хотите выйти?')) {
+                        try {
+                            const success = await logout();
+                            if (success) {
+                                window.location.href = '/';
+                            }
+                        } catch (error) {
+                            console.error('Ошибка выхода:', error);
+                            window.location.href = '/';
+                        }
                     }
                 });
             }
             
-            // Форма добавления документа
-            const addDocumentForm = document.getElementById('addDocumentForm');
-            if (addDocumentForm) {
-                addDocumentForm.addEventListener('submit', handleAddDocument);
+            // Кнопка смены пароля
+            const changePasswordBtn = document.getElementById('changePasswordBtn');
+            if (changePasswordBtn) {
+                changePasswordBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    openPasswordChangeModal();
+                });
+            }
+        }
+        
+        /**
+         * Загружает информацию о каталоге и проверяет доступ
+         * @param {string} catalogId - ID каталога
+         */
+        function loadCatalogInfo(catalogId) {
+            console.log(`🔄 Загрузка информации о каталоге ${catalogId}`);
+            
+            // Показываем загрузку в основном контейнере
+            const mainContent = document.getElementById('mainContent');
+            if (mainContent) {
+                mainContent.innerHTML = `
+                    <div class="loading-container">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3">Проверка доступа к каталогу...</p>
+                    </div>
+                `;
             }
             
-            // Кнопка обновления документов
-            const refreshDocumentsBtn = document.getElementById('refreshDocumentsBtn');
-            if (refreshDocumentsBtn) {
-                refreshDocumentsBtn.addEventListener('click', () => {
+            // Проверяем доступ к каталогу с учетом иерархии
+            fetch(`/api/user/catalog-access-hierarchy/${catalogId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success && data.hasAccess) {
+                        console.log(`✅ Доступ разрешен. Тип: ${data.accessType}, Права: ${data.permission}`);
+                        
+                        // Сохраняем права в глобальной переменной
+                        window.currentPermission = data.permission;
+                        
+                        // Загружаем информацию о каталоге
+                        fetch(`/api/user/catalogs/${catalogId}`)
+                            .then(response => response.json())
+                            .then(catalogData => {
+                                if (catalogData.success && catalogData.catalog) {
+                                    // Создаем интерфейс каталога
+                                    createCatalogInterface(catalogData.catalog, data);
+                                    
+                                    // Загружаем документы
+                                    loadDocuments(catalogId, data.permission, data.accessType);
+                                    
+                                } else {
+                                    throw new Error(catalogData.message || 'Каталог не найден');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Ошибка загрузки информации о каталоге:', error);
+                                showError('Ошибка загрузки каталога', error.message);
+                            });
+                        
+                    } else {
+                        // Доступ запрещен
+                        showAccessDenied(data.message || 'Доступ к каталогу запрещен');
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка проверки доступа:', error);
+                    showError('Ошибка подключения', 'Не удалось проверить доступ к каталогу');
+                });
+        }
+        
+        /**
+         * Создает интерфейс каталога
+         */
+        function createCatalogInterface(catalog, accessData) {
+            const mainContent = document.getElementById('mainContent');
+            
+            if (!mainContent) return;
+            
+            // Определяем цвет и иконку для типа доступа
+            const accessConfig = getAccessConfig(accessData.accessType, accessData.permission);
+            
+            mainContent.innerHTML = `
+                <div class="catalog-container">
+                    <!-- Шапка каталога -->
+                    <div class="catalog-header">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h1 id="catalogTitle" class="catalog-title">${catalog.name || 'Каталог'}</h1>
+                                <div class="access-badge ${accessConfig.badgeClass}">
+                                    <i class="${accessConfig.icon}"></i>
+                                    ${accessConfig.text}
+                                </div>
+                                <p id="catalogDescription" class="text-muted mt-2">
+                                    ${catalog.description || 'Без описания'}
+                                </p>
+                            </div>
+                            <div class="catalog-actions" id="catalogActions">
+                                <button class="btn btn-outline-primary" onclick="refreshCatalog()" title="Обновить">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Информация о каталоге -->
+                        <div class="catalog-info-card">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="info-item">
+                                        <i class="fas fa-file-alt"></i>
+                                        <div>
+                                            <span class="info-label">Документов</span>
+                                            <span class="info-value" id="documentCount">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="info-item">
+                                        <i class="fas fa-calendar"></i>
+                                        <div>
+                                            <span class="info-label">Обновлен</span>
+                                            <span class="info-value">${formatDate(catalog.updatedAt) || 'Неизвестно'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="info-item">
+                                        <i class="fas fa-shield-alt"></i>
+                                        <div>
+                                            <span class="info-label">Уровень доступа</span>
+                                            <span class="info-value">${getPermissionText(accessData.permission)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Панель управления -->
+                    <div class="control-panel mb-4" id="controlPanel">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-secondary" onclick="refreshCatalog()" title="Обновить">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                                <div id="addDocumentBtnContainer"></div>
+                            </div>
+                            
+                            <div class="d-flex gap-2">
+                                <div class="input-group" style="width: 300px;">
+                                    <input type="text" class="form-control" placeholder="Поиск документов..." id="searchInput">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="searchDocuments()">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                                <select class="form-select" style="width: 150px;" id="sortSelect" onchange="sortDocuments()">
+                                    <option value="date_desc">Сначала новые</option>
+                                    <option value="date_asc">Сначала старые</option>
+                                    <option value="name_asc">По имени (А-Я)</option>
+                                    <option value="name_desc">По имени (Я-А)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Список документов -->
+                    <div class="documents-section">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 class="mb-0">
+                                <i class="fas fa-file me-2"></i>
+                                Документы
+                                <span class="badge bg-secondary ms-2" id="documentsCount">0</span>
+                            </h4>
+                        </div>
+                        
+                        <div class="documents-container">
+                            <div id="documentsList" class="documents-grid">
+                                <!-- Документы загрузятся здесь -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Пустое состояние (изначально скрыто) -->
+                    <div id="emptyState" class="empty-state" style="display: none;">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-folder-open"></i>
+                        </div>
+                        <h4>В этом каталоге пока нет документов</h4>
+                        <p class="text-muted">Добавьте первый документ или дождитесь, пока его добавят другие пользователи</p>
+                        <button class="btn btn-primary" id="addFirstDocumentBtn" style="display: none;">
+                            <i class="fas fa-plus"></i> Добавить документ
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Настраиваем обработчики событий для панели управления
+            setupControlPanel();
+        }
+        
+        /**
+         * Загружает документы каталога
+         */
+        function loadDocuments(catalogId, permission, accessType) {
+            const documentsList = document.getElementById('documentsList');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (!documentsList) return;
+            
+            // Показываем загрузку
+            documentsList.innerHTML = `
+                <div class="loading-documents">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Загрузка документов...</p>
+                </div>
+            `;
+            
+            // Получаем документы с учетом наследования
+            fetch(`/api/user/catalogs/${catalogId}/documents-with-inheritance`, {
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    console.log(`📄 Загружено ${data.documents.length} документов`);
+                    
+                    // Сохраняем оригинальные документы
+                    window.currentDocuments = data.documents;
+                    
+                    // Обновляем счетчик
+                    updateDocumentCount(data.documents.length);
+                    
+                    if (data.documents.length === 0) {
+                        // Показываем пустое состояние
+                        documentsList.style.display = 'none';
+                        if (emptyState) {
+                            emptyState.style.display = 'block';
+                            
+                            // Показываем кнопку добавления, если есть права
+                            const addFirstBtn = document.getElementById('addFirstDocumentBtn');
+                            const addDocumentBtnContainer = document.getElementById('addDocumentBtnContainer');
+                            if ((permission === 'WRITE' || permission === 'ADMIN')) {
+                                if (addFirstBtn) {
+                                    addFirstBtn.style.display = 'inline-block';
+                                    addFirstBtn.onclick = () => showAddDocumentModal(catalogId);
+                                }
+                                if (addDocumentBtnContainer) {
+                                    addDocumentBtnContainer.innerHTML = `
+                                        <button class="btn btn-primary" onclick="showAddDocumentModal('${catalogId}')">
+                                            <i class="fas fa-plus me-1"></i> Добавить документ
+                                        </button>
+                                    `;
+                                }
+                            } else {
+                                if (addDocumentBtnContainer) {
+                                    addDocumentBtnContainer.innerHTML = `
+                                        <button class="btn btn-secondary" disabled title="Только для чтения">
+                                            <i class="fas fa-plus me-1"></i> Добавить документ
+                                        </button>
+                                    `;
+                                }
+                            }
+                        }
+                    } else {
+                        // Скрываем пустое состояние и отображаем документы
+                        if (emptyState) emptyState.style.display = 'none';
+                        documentsList.style.display = 'grid';
+                        
+                        // Рендерим документы
+                        renderDocuments(data.documents, permission);
+                        
+                        // Показываем кнопку добавления, если есть права
+                        const addDocumentBtnContainer = document.getElementById('addDocumentBtnContainer');
+                        if (addDocumentBtnContainer) {
+                            if (permission === 'WRITE' || permission === 'ADMIN') {
+                                addDocumentBtnContainer.innerHTML = `
+                                    <button class="btn btn-primary" onclick="showAddDocumentModal('${catalogId}')">
+                                        <i class="fas fa-plus me-1"></i> Добавить документ
+                                    </button>
+                                `;
+                            } else {
+                                addDocumentBtnContainer.innerHTML = `
+                                    <button class="btn btn-secondary" disabled title="Только для чтения">
+                                        <i class="fas fa-plus me-1"></i> Добавить документ
+                                    </button>
+                                `;
+                            }
+                        }
+                    }
+                    
+                } else {
+                    throw new Error(data.message || 'Не удалось загрузить документы');
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки документов:', error);
+                
+                documentsList.innerHTML = `
+                    <div class="error-state">
+                        <i class="fas fa-exclamation-triangle text-danger fa-3x"></i>
+                        <h4 class="mt-3">Ошибка загрузки документов</h4>
+                        <p class="text-muted">${error.message}</p>
+                        <button class="btn btn-outline-primary" onclick="refreshCatalog()">
+                            <i class="fas fa-redo"></i> Попробовать снова
+                        </button>
+                    </div>
+                `;
+            });
+        }
+        
+        /**
+         * Обновляет счетчик документов
+         */
+        function updateDocumentCount(count) {
+            const countElement = document.getElementById('documentCount');
+            const docsCountElement = document.getElementById('documentsCount');
+            if (countElement) countElement.textContent = count;
+            if (docsCountElement) docsCountElement.textContent = count;
+        }
+        
+        /**
+         * Отображает документы в сетке
+         */
+        function renderDocuments(documents, permission) {
+            const documentsList = document.getElementById('documentsList');
+            
+            if (!documentsList || !documents || documents.length === 0) return;
+            
+            documentsList.innerHTML = documents.map(doc => `
+                <div class="document-card" data-document-id="${doc.id}" 
+                     data-name="${doc.name.toLowerCase()}"
+                     data-date="${new Date(doc.uploadedAt).getTime()}"
+                     data-size="${doc.size}">
+                    
+                    <!-- Иконка типа файла -->
+                    <div class="document-icon ${getFileTypeClass(doc.fileType)}">
+                        <i class="${getFileIcon(doc.fileType)}"></i>
+                        ${doc.status === 'new' ? '<span class="badge bg-success badge-new">NEW</span>' : ''}
+                    </div>
+                    
+                    <!-- Информация о документе -->
+                    <div class="document-info">
+                        <h6 class="document-title" title="${doc.name}">${truncateText(doc.name, 30)}</h6>
+                        <div class="document-meta">
+                            <span class="meta-item" title="Версия">
+                                <i class="fas fa-code-branch"></i> ${doc.version || 'v1.0'}
+                            </span>
+                            <span class="meta-item" title="Размер">
+                                <i class="fas fa-weight-hanging"></i> ${doc.size || '0 KB'}
+                            </span>
+                        </div>
+                        <div class="document-meta">
+                            <span class="meta-item" title="Загрузил">
+                                <i class="fas fa-user"></i> ${doc.uploadedBy || 'Неизвестно'}
+                            </span>
+                            <span class="meta-item" title="Дата загрузки">
+                                <i class="fas fa-calendar"></i> ${formatDate(doc.uploadedAt) || 'Неизвестно'}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Действия с документом -->
+                    <div class="document-actions">
+                        <button class="btn btn-sm btn-outline-primary action-btn" 
+                                onclick="showVersionsModal('${doc.id}', '${doc.name}')"
+                                title="Версии">
+                            <i class="fas fa-code-branch"></i>
+                        </button>
+                        
+                        <button class="btn btn-sm btn-outline-success action-btn"
+                                onclick="downloadDocument('${doc.id}', '${doc.name}')"
+                                title="Скачать">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        
+                        ${(permission === 'WRITE' || permission === 'ADMIN') ? `
+                        <button class="btn btn-sm btn-outline-warning action-btn"
+                                onclick="showUpdateModal('${doc.id}')"
+                                title="Обновить версию">
+                            <i class="fas fa-upload"></i>
+                        </button>
+                        ` : ''}
+                        
+                        <button class="btn btn-sm btn-outline-info action-btn" 
+                                onclick="previewDocument('${doc.id}')"
+                                title="Предпросмотр">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        /**
+         * Настраивает панель управления
+         */
+        function setupControlPanel() {
+            const searchInput = document.getElementById('searchInput');
+            
+            if (searchInput) {
+                // Поиск при вводе
+                searchInput.addEventListener('input', function(e) {
+                    const searchTerm = e.target.value.toLowerCase().trim();
+                    filterDocuments(searchTerm);
+                });
+                
+                // Поиск при нажатии Enter
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        filterDocuments(e.target.value.toLowerCase().trim());
+                    }
+                });
+            }
+        }
+        
+        /**
+         * Фильтрует документы по поисковому запросу
+         */
+        function filterDocuments(searchTerm) {
+            const cards = document.querySelectorAll('.document-card');
+            
+            if (!searchTerm) {
+                // Показываем все документы
+                cards.forEach(card => card.style.display = 'flex');
+                updateDocumentCount(cards.length);
+                return;
+            }
+            
+            let visibleCount = 0;
+            cards.forEach(card => {
+                const name = card.getAttribute('data-name') || '';
+                const shouldShow = name.includes(searchTerm);
+                card.style.display = shouldShow ? 'flex' : 'none';
+                if (shouldShow) visibleCount++;
+            });
+            
+            updateDocumentCount(visibleCount);
+        }
+        
+        /**
+         * Сортирует документы
+         */
+        function sortDocuments() {
+            const sortSelect = document.getElementById('sortSelect');
+            if (!sortSelect || !window.currentDocuments) return;
+            
+            const sortType = sortSelect.value;
+            let sortedDocs = [...window.currentDocuments];
+            
+            switch(sortType) {
+                case 'date_desc':
+                    sortedDocs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+                    break;
+                case 'date_asc':
+                    sortedDocs.sort((a, b) => new Date(a.uploadedAt) - new Date(b.uploadedAt));
+                    break;
+                case 'name_asc':
+                    sortedDocs.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+                    break;
+                case 'name_desc':
+                    sortedDocs.sort((a, b) => b.name.localeCompare(a.name, 'ru'));
+                    break;
+            }
+            
+            const permission = window.currentPermission || 'READ';
+            renderDocuments(sortedDocs, permission);
+        }
+        
+        /**
+         * Обновляет каталог
+         */
+        function refreshCatalog() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const catalogId = urlParams.get('id');
+            if (catalogId) {
+                loadCatalogInfo(catalogId);
+            }
+        }
+        
+        /**
+         * Поиск документов
+         */
+        function searchDocuments() {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                filterDocuments(searchInput.value.toLowerCase().trim());
+            }
+        }
+        
+        /**
+         * Вспомогательные функции
+         */
+        
+        // Получает конфигурацию доступа
+        function getAccessConfig(accessType, permission) {
+            const config = {
+                badgeClass: '',
+                icon: '',
+                text: ''
+            };
+            
+            switch(accessType) {
+                case 'direct':
+                    config.badgeClass = 'direct';
+                    config.icon = 'fas fa-user-check';
+                    config.text = 'Прямой доступ';
+                    break;
+                case 'inherited':
+                    config.badgeClass = 'inherited';
+                    config.icon = 'fas fa-project-diagram';
+                    config.text = 'Наследуемый доступ';
+                    break;
+                case 'admin':
+                    config.badgeClass = 'admin';
+                    config.icon = 'fas fa-crown';
+                    config.text = 'Администратор';
+                    break;
+                default:
+                    config.badgeClass = 'none';
+                    config.icon = 'fas fa-ban';
+                    config.text = 'Нет доступа';
+            }
+            
+            return config;
+        }
+        
+        // Форматирует дату
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        }
+        
+        // Получает текст прав доступа
+        function getPermissionText(permission) {
+            switch(permission) {
+                case 'READ': return 'Чтение';
+                case 'WRITE': return 'Запись';
+                case 'ADMIN': return 'Администратор';
+                default: return 'Неизвестно';
+            }
+        }
+        
+        // Получает иконку для типа файла
+        function getFileIcon(fileType) {
+            if (!fileType) return 'fas fa-file';
+            
+            const type = fileType.toLowerCase();
+            if (type.includes('pdf')) return 'fas fa-file-pdf';
+            if (type.includes('doc')) return 'fas fa-file-word';
+            if (type.includes('xls') || type.includes('csv')) return 'fas fa-file-excel';
+            if (type.includes('ppt')) return 'fas fa-file-powerpoint';
+            if (type.includes('jpg') || type.includes('jpeg') || type.includes('png') || type.includes('gif')) 
+                return 'fas fa-file-image';
+            if (type.includes('zip') || type.includes('rar') || type.includes('tar') || type.includes('gz')) 
+                return 'fas fa-file-archive';
+            if (type.includes('txt') || type.includes('text')) return 'fas fa-file-alt';
+            return 'fas fa-file';
+        }
+        
+        // Получает класс для типа файла
+        function getFileTypeClass(fileType) {
+            if (!fileType) return 'default';
+            
+            const type = fileType.toLowerCase();
+            if (type.includes('pdf')) return 'pdf';
+            if (type.includes('doc')) return 'doc';
+            if (type.includes('xls') || type.includes('csv')) return 'xls';
+            if (type.includes('jpg') || type.includes('jpeg') || type.includes('png') || type.includes('gif')) 
+                return 'img';
+            return 'default';
+        }
+        
+        // Обрезает текст
+        function truncateText(text, maxLength) {
+            if (!text) return '';
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength) + '...';
+        }
+        
+        // Функция проверки доступа перед загрузкой
+        async function checkCatalogAccessBeforeUpload(catalogId) {
+            try {
+                const response = await fetch(`/api/user/catalog-access/${catalogId}`, {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (!data.hasAccess || (data.permission !== 'WRITE' && data.permission !== 'ADMIN')) {
+                    alert('❌ У вас нет прав для загрузки документов в этот каталог');
+                    return false;
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Ошибка проверки доступа:', error);
+                alert('❌ Ошибка проверки прав доступа');
+                return false;
+            }
+        }
+        
+        /**
+         * Показывает модальное окно добавления документа
+         */
+        async function showAddDocumentModal(catalogId) {
+            const hasAccess = await checkCatalogAccessBeforeUpload(catalogId);
+            if (!hasAccess) return;
+            
+            const modalId = 'addDocumentModal';
+            let modal = document.getElementById(modalId);
+            
+            if (!modal) {
+                modal = createAddDocumentModal(modalId);
+            }
+            
+            // Сброс формы
+            const form = document.getElementById('uploadDocumentForm');
+            if (form) {
+                form.reset();
+                document.getElementById('uploadCatalogId').value = catalogId;
+                
+                // Обновляем информацию о каталоге
+                const catalogTitle = document.getElementById('catalogTitle');
+                if (catalogTitle) {
+                    document.getElementById('uploadCatalogName').textContent = catalogTitle.textContent;
+                }
+            }
+            
+            // Сброс предпросмотра
+            const preview = document.getElementById('filePreview');
+            if (preview) {
+                preview.innerHTML = '';
+                preview.style.display = 'none';
+            }
+            
+            // Показать модальное окно
+            modal.style.display = 'flex';
+        }
+        
+        /**
+         * Создает модальное окно добавления документа
+         */
+        function createAddDocumentModal(modalId) {
+            const modalHTML = `
+                <div class="modal-overlay" id="${modalId}" style="display: none;">
+                    <div class="modal-content" style="max-width: 600px;">
+                        <div class="modal-header">
+                            <h3><i class="fas fa-upload"></i> Загрузить документ</h3>
+                            <button class="close-btn" onclick="closeModal('${modalId}')">&times;</button>
+                        </div>
+                        
+                        <form id="uploadDocumentForm" onsubmit="return uploadDocument(event)">
+                            <div class="modal-body">
+                                <input type="hidden" id="uploadCatalogId" name="catalogId">
+                                
+                                <div class="mb-3">
+                                    <p>Каталог: <strong id="uploadCatalogName">Неизвестно</strong></p>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="fileInput" class="form-label">
+                                        <i class="fas fa-file"></i> Выберите файл *
+                                    </label>
+                                    <input type="file" class="form-control" id="fileInput" name="file" required 
+                                           onchange="previewFile(this)">
+                                    <div class="form-text">
+                                        Максимальный размер: 100MB. Поддерживаемые форматы: PDF, DOC, DOCX, XLS, XLSX, изображения, текст.
+                                    </div>
+                                </div>
+                                
+                                <div id="filePreview" class="mb-3" style="display: none;">
+                                    <!-- Предпросмотр файла -->
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="fileDescription" class="form-label">
+                                        <i class="fas fa-align-left"></i> Описание (необязательно)
+                                    </label>
+                                    <textarea class="form-control" id="fileDescription" name="description" 
+                                              rows="3" placeholder="Опишите содержание документа..."></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="filePriority" class="form-label">
+                                        <i class="fas fa-flag"></i> Приоритет
+                                    </label>
+                                    <select class="form-select" id="filePriority" name="priority">
+                                        <option value="medium">Средний</option>
+                                        <option value="low">Низкий</option>
+                                        <option value="high">Высокий</option>
+                                        <option value="critical">Критический</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    <small>
+                                        Документ будет загружен как первая версия. В дальнейшем можно будет добавлять новые версии этого документа.
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" onclick="closeModal('${modalId}')">Отмена</button>
+                                <button type="submit" class="btn btn-primary" id="uploadBtn">
+                                    <i class="fas fa-upload"></i> Загрузить документ
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            return document.getElementById(modalId);
+        }
+        
+        /**
+         * Закрывает модальное окно
+         */
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        /**
+         * Предпросмотр файла перед загрузкой
+         */
+        function previewFile(input) {
+            const preview = document.getElementById('filePreview');
+            
+            if (!input.files || input.files.length === 0) {
+                preview.style.display = 'none';
+                return;
+            }
+            
+            const file = input.files[0];
+            const fileSize = formatFileSize(file.size);
+            const fileType = getFileIconClass(file.name);
+            
+            preview.innerHTML = `
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="${fileType.icon} fa-2x ${fileType.color}"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">${file.name}</h6>
+                                <div class="text-muted small">
+                                    <div>Размер: ${fileSize}</div>
+                                    <div>Тип: ${file.type || 'Неизвестно'}</div>
+                                    <div>Последнее изменение: ${new Date(file.lastModified).toLocaleString()}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            preview.style.display = 'block';
+        }
+        
+        /**
+         * Загружает документ на сервер
+         */
+        async function uploadDocument(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            const uploadBtn = document.getElementById('uploadBtn');
+            const originalBtnText = uploadBtn.innerHTML;
+            
+            // Валидация
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('Пожалуйста, выберите файл для загрузки');
+                return false;
+            }
+            
+            const file = fileInput.files[0];
+            if (file.size > 100 * 1024 * 1024) { // 100MB
+                alert('Файл слишком большой. Максимальный размер: 100MB');
+                return false;
+            }
+            
+            // Блокируем кнопку
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
+            uploadBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/documents/upload', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('✅ Документ успешно загружен!');
+                    closeModal('addDocumentModal');
+                    
+                    // Обновляем список документов
                     const urlParams = new URLSearchParams(window.location.search);
                     const catalogId = urlParams.get('id');
                     if (catalogId) {
-                        loadDocuments(catalogId);
+                        refreshCatalog();
                     }
-                });
+                } else {
+                    alert(`❌ Ошибка: ${data.message || 'Не удалось загрузить документ'}`);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+                alert('❌ Ошибка соединения с сервером');
+            } finally {
+                // Восстанавливаем кнопку
+                uploadBtn.innerHTML = originalBtnText;
+                uploadBtn.disabled = false;
             }
             
-            // Кнопка возврата на главную
-            const backToDashboardBtn = document.getElementById('backToDashboardBtn');
-            if (backToDashboardBtn) {
-                backToDashboardBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    window.location.href = '/dashboard';
-                });
-            }
+            return false;
         }
         
-        function handleAddDocument(e) {
-    e.preventDefault();
-    
-    const documentName = document.getElementById('documentName').value;
-    const documentDescription = document.getElementById('documentDescription').value;
-    const documentVersion = document.getElementById('documentVersion').value;
-    const documentFile = document.getElementById('documentFile').files[0];
-    
-    if (!documentName || !documentFile) {
-        alert('Заполните все обязательные поля');
-        return;
-    }
-    
-    const saveBtn = document.getElementById('saveDocumentBtn');
-    const originalText = saveBtn.innerHTML;
-    
-    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
-    saveBtn.disabled = true;
-    
-    // Получаем ID каталога
-    const urlParams = new URLSearchParams(window.location.search);
-    const catalogId = urlParams.get('id');
-    
-    if (!catalogId) {
-        alert('Ошибка: не указан каталог');
-        return;
-    }
-    
-    // Создаем FormData для отправки файла
-    const formData = new FormData();
-    formData.append('name', documentName);
-    formData.append('description', documentDescription);
-    formData.append('version', documentVersion);
-    formData.append('file', documentFile);
-    
-    // Отправляем запрос
-    fetch(`/api/user/catalogs/${catalogId}/documents`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include' // Для отправки cookies авторизации
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Документ успешно загружен!');
+        /**
+         * Форматирует размер файла
+         */
+        function formatFileSize(bytes) {
+            if (!bytes || bytes === 0) return '0 Bytes';
             
-            // Закрываем модальное окно
-            document.getElementById('addDocumentModal').style.display = 'none';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
             
-            // Сбрасываем форму
-            document.getElementById('addDocumentForm').reset();
-            
-            // Обновляем список документов
-            loadDocuments(catalogId);
-        } else {
-            alert('Ошибка: ' + data.message);
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
-    })
-    .catch(error => {
-        console.error('Ошибка загрузки документа:', error);
-        alert('Ошибка загрузки документа');
-    })
-    .finally(() => {
-        saveBtn.innerHTML = originalText;
-        saveBtn.disabled = false;
-    });
-}
         
-        // Функции для работы с документами
-        function downloadDocument(documentId) {
-    fetch(`/api/user/documents/${documentId}/download`, {
-        credentials: 'include'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Создаем временную ссылку для скачивания
+        /**
+         * Получает иконку и цвет для типа файла
+         */
+        function getFileIconClass(filename) {
+            if (!filename) return { icon: 'fas fa-file', color: 'text-secondary' };
+            
+            const ext = filename.split('.').pop().toLowerCase();
+            
+            if (ext === 'pdf') return { icon: 'fas fa-file-pdf', color: 'text-danger' };
+            if (ext === 'doc' || ext === 'docx') return { icon: 'fas fa-file-word', color: 'text-primary' };
+            if (ext === 'xls' || ext === 'xlsx' || ext === 'csv') return { icon: 'fas fa-file-excel', color: 'text-success' };
+            if (ext === 'jpg' || ext === 'jpeg' || ext === 'png' || ext === 'gif' || ext === 'bmp') 
+                return { icon: 'fas fa-file-image', color: 'text-info' };
+            if (ext === 'zip' || ext === 'rar' || ext === '7z' || ext === 'tar') 
+                return { icon: 'fas fa-file-archive', color: 'text-warning' };
+            if (ext === 'txt' || ext === 'rtf' || ext === 'md') 
+                return { icon: 'fas fa-file-alt', color: 'text-secondary' };
+            
+            return { icon: 'fas fa-file', color: 'text-secondary' };
+        }
+        
+        /**
+         * Скачивание документа
+         */
+        function downloadDocument(documentId, documentName) {
+            const url = `/api/documents/${documentId}/download`;
             const link = document.createElement('a');
-            link.href = data.document.downloadUrl;
-            link.download = data.document.name;
+            link.href = url;
+            link.download = documentName;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-        } else {
-            alert('Ошибка: ' + data.message);
         }
-    })
-    .catch(error => {
-        console.error('Ошибка скачивания:', error);
-        alert('Ошибка скачивания документа');
-    });
-}
-
-function viewVersions(documentId) {
-    // Открываем модальное окно или новую страницу с версиями
-    alert('Функция просмотра версий будет реализована в следующем обновлении');
-    // window.location.href = `/document-versions.html?id=${documentId}`;
-}
-
-function editDocument(documentId) {
-    // Открываем модальное окно редактирования
-    alert('Функция редактирования будет реализована в следующем обновлении');
-}
         
-        // Добавляем базовые стили для модальных окон
-        const style = document.createElement('style');
-        style.textContent = `
-            .modal-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0,0,0,0.5);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 10000;
+        /**
+         * Показывает модальное окно с версиями документа
+         */
+        function showVersionsModal(documentId, documentName) {
+            const modalId = 'versionsModal';
+            let modal = document.getElementById(modalId);
+            
+            if (!modal) {
+                modal = createVersionsModal(modalId);
             }
             
-            .modal-content {
-                background: white;
-                border-radius: 12px;
-                width: 90%;
-                max-width: 600px;
-                max-height: 90vh;
-                overflow-y: auto;
-                animation: fadeIn 0.3s ease;
+            // Устанавливаем заголовок
+            document.getElementById('versionsModalTitle').textContent = `Версии документа: ${documentName}`;
+            document.getElementById('versionsDocumentId').value = documentId;
+            
+            // Загружаем версии
+            loadDocumentVersions(documentId);
+            
+            // Показать модальное окно
+            modal.style.display = 'flex';
+        }
+        
+        /**
+         * Создает модальное окно для просмотра версий
+         */
+        function createVersionsModal(modalId) {
+            const modalHTML = `
+                <div class="modal-overlay" id="${modalId}" style="display: none;">
+                    <div class="modal-content" style="max-width: 800px;">
+                        <div class="modal-header">
+                            <h3 id="versionsModalTitle">
+                                <i class="fas fa-code-branch"></i> Версии документа
+                            </h3>
+                            <button class="close-btn" onclick="closeModal('${modalId}')">&times;</button>
+                        </div>
+                        
+                        <div class="modal-body">
+                            <input type="hidden" id="versionsDocumentId">
+                            
+                            <div id="versionsLoading" class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Загрузка...</span>
+                                </div>
+                                <p class="mt-2">Загрузка версий...</p>
+                            </div>
+                            
+                            <div id="versionsList" style="display: none;">
+                                <!-- Список версий -->
+                            </div>
+                            
+                            <div id="uploadNewVersionSection" class="mt-4" style="display: none;">
+                                <hr>
+                                <h5><i class="fas fa-plus"></i> Загрузить новую версию</h5>
+                                <form id="uploadVersionForm" onsubmit="return uploadNewVersion(event)">
+                                    <div class="mb-3">
+                                        <label for="versionFile" class="form-label">Новый файл *</label>
+                                        <input type="file" class="form-control" id="versionFile" name="file" required>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="versionComment" class="form-label">Комментарий к изменениям</label>
+                                        <textarea class="form-control" id="versionComment" name="comment" 
+                                                  rows="2" placeholder="Что изменилось в этой версии?"></textarea>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Тип хранения</label>
+                                        <div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="storageType" 
+                                                       id="storageFull" value="full" checked>
+                                                <label class="form-check-label" for="storageFull">
+                                                    Полный файл
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="storageType" 
+                                                       id="storageDelta" value="delta">
+                                                <label class="form-check-label" for="storageDelta">
+                                                    Только изменения (delta)
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <small class="form-text text-muted">
+                                            "Только изменения" экономит место, но требует предыдущую версию
+                                        </small>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary" id="uploadVersionBtn">
+                                        <i class="fas fa-upload"></i> Загрузить новую версию
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            return document.getElementById(modalId);
+        }
+        
+        /**
+         * Загружает список версий документа
+         */
+        async function loadDocumentVersions(documentId) {
+            try {
+                const response = await fetch(`/api/documents/${documentId}/versions`, {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                const loading = document.getElementById('versionsLoading');
+                const list = document.getElementById('versionsList');
+                const uploadSection = document.getElementById('uploadNewVersionSection');
+                
+                if (data.success) {
+                    loading.style.display = 'none';
+                    list.style.display = 'block';
+                    uploadSection.style.display = 'block';
+                    
+                    // Рендерим список версий
+                    const versionsHtml = data.versions.map(version => `
+                        <div class="card mb-2 ${version.isCurrent ? 'border-primary' : ''}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            ${version.versionName}
+                                            ${version.isCurrent ? '<span class="badge bg-primary ms-2">Текущая</span>' : ''}
+                                        </h6>
+                                        <div class="text-muted small">
+                                            <div>Создано: ${version.createdAt} ${version.createdBy ? 'пользователем ' + version.createdBy : ''}</div>
+                                            <div>Размер: ${version.size} | Тип: ${version.storageType === 'delta' ? 'Только изменения' : 'Полный файл'}</div>
+                                            <div>Контрольная сумма: <code>${version.checksum}</code></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-primary" 
+                                                onclick="downloadVersion('${documentId}', ${version.versionNumber}, '${data.document.name}')">
+                                            <i class="fas fa-download"></i> Скачать
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    list.innerHTML = versionsHtml;
+                    
+                } else {
+                    loading.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Ошибка загрузки версий: ${data.message}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки версий:', error);
+                
+                const loading = document.getElementById('versionsLoading');
+                loading.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Ошибка соединения с сервером
+                    </div>
+                `;
+            }
+        }
+        
+        /**
+         * Загружает новую версию документа
+         */
+        async function uploadNewVersion(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            const documentId = document.getElementById('versionsDocumentId').value;
+            const uploadBtn = document.getElementById('uploadVersionBtn');
+            const originalBtnText = uploadBtn.innerHTML;
+            
+            // Добавляем documentId в formData
+            formData.append('documentId', documentId);
+            
+            // Валидация
+            const fileInput = document.getElementById('versionFile');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('Пожалуйста, выберите файл для загрузки');
+                return false;
             }
             
-            @keyframes fadeIn {
-                from { opacity: 0; transform: scale(0.9); }
-                to { opacity: 1; transform: scale(1); }
+            // Блокируем кнопку
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
+            uploadBtn.disabled = true;
+            
+            try {
+                const response = await fetch(`/api/documents/${documentId}/versions/upload`, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Версия v${data.data.versionNumber} успешно загружена!`);
+                    
+                    // Обновляем список версий
+                    loadDocumentVersions(documentId);
+                    
+                    // Сбрасываем форму
+                    form.reset();
+                    
+                } else {
+                    alert(`❌ Ошибка: ${data.message || 'Не удалось загрузить версию'}`);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки версии:', error);
+                alert('❌ Ошибка соединения с сервером');
+            } finally {
+                // Восстанавливаем кнопку
+                uploadBtn.innerHTML = originalBtnText;
+                uploadBtn.disabled = false;
             }
             
-            .form-control {
-                width: 100%;
-                padding: 10px 14px;
-                border: 1px solid #d1d5db;
-                border-radius: 6px;
-                font-size: 14px;
-                margin-top: 8px;
-                font-family: 'Inter', sans-serif;
+            return false;
+        }
+        
+        /**
+         * Скачивает конкретную версию документа
+         */
+        function downloadVersion(documentId, versionNumber, documentName) {
+            const url = `/api/documents/${documentId}/versions/${versionNumber}/download`;
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `v${versionNumber}_${documentName}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        /**
+         * Показывает модальное окно для обновления версии документа
+         */
+        function showUpdateModal(documentId) {
+            const modalId = 'updateDocumentModal';
+            let modal = document.getElementById(modalId);
+            
+            if (!modal) {
+                modal = createUpdateModal(modalId);
             }
             
-            .form-control:focus {
-                outline: none;
-                border-color: #36d1dc;
-                box-shadow: 0 0 0 3px rgba(54, 209, 220, 0.1);
+            // Устанавливаем ID документа
+            document.getElementById('updateDocumentId').value = documentId;
+            
+            // Показать модальное окно
+            modal.style.display = 'flex';
+        }
+        
+        /**
+         * Создает модальное окно для обновления документа
+         */
+        function createUpdateModal(modalId) {
+            const modalHTML = `
+                <div class="modal-overlay" id="${modalId}" style="display: none;">
+                    <div class="modal-content" style="max-width: 600px;">
+                        <div class="modal-header">
+                            <h3><i class="fas fa-upload"></i> Обновить версию документа</h3>
+                            <button class="close-btn" onclick="closeModal('${modalId}')">&times;</button>
+                        </div>
+                        
+                        <form id="updateVersionForm">
+                            <input type="hidden" id="updateDocumentId" name="documentId">
+                            
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="updateVersionFile" class="form-label">Новый файл *</label>
+                                    <input type="file" class="form-control" id="updateVersionFile" name="file" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="updateVersionComment" class="form-label">Комментарий к изменениям</label>
+                                    <textarea class="form-control" id="updateVersionComment" name="comment" 
+                                              rows="2" placeholder="Что изменилось в этой версии?"></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Тип хранения</label>
+                                    <div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="storageType" 
+                                                   id="updateStorageFull" value="full" checked>
+                                            <label class="form-check-label" for="updateStorageFull">
+                                                Полный файл
+                                            </label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="storageType" 
+                                                   id="updateStorageDelta" value="delta">
+                                            <label class="form-check-label" for="updateStorageDelta">
+                                                Только изменения (delta)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        "Только изменения" экономит место, но требует предыдущую версию
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" onclick="closeModal('${modalId}')">Отмена</button>
+                                <button type="button" class="btn btn-primary" id="updateVersionBtn" onclick="uploadNewVersionForUpdate('${modalId}')">
+                                    <i class="fas fa-upload"></i> Загрузить новую версию
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            
+            return document.getElementById(modalId);
+        }
+        
+        /**
+         * Загружает новую версию документа из модального окна обновления
+         */
+        async function uploadNewVersionForUpdate(modalId) {
+            const documentId = document.getElementById('updateDocumentId').value;
+            const form = document.getElementById('updateVersionForm');
+            const formData = new FormData(form);
+            const uploadBtn = document.getElementById('updateVersionBtn');
+            const originalBtnText = uploadBtn.innerHTML;
+            
+            // Валидация
+            const fileInput = document.getElementById('updateVersionFile');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('Пожалуйста, выберите файл для загрузки');
+                return false;
             }
             
-            .form-text {
-                display: block;
-                margin-top: 6px;
-                font-size: 12px;
-                color: #6b7280;
-                line-height: 1.4;
+            // Блокируем кнопку
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
+            uploadBtn.disabled = true;
+            
+            try {
+                const response = await fetch(`/api/documents/${documentId}/versions/upload`, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Версия v${data.data.versionNumber} успешно загружена!`);
+                    closeModal(modalId);
+                    
+                    // Обновляем список документов
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const catalogId = urlParams.get('id');
+                    if (catalogId) {
+                        refreshCatalog();
+                    }
+                } else {
+                    alert(`❌ Ошибка: ${data.message || 'Не удалось загрузить версию'}`);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки версии:', error);
+                alert('❌ Ошибка соединения с сервером');
+            } finally {
+                // Восстанавливаем кнопку
+                uploadBtn.innerHTML = originalBtnText;
+                uploadBtn.disabled = false;
             }
-        `;
-        document.head.appendChild(style);
+        }
+        
+        /**
+         * Просмотр документа (предпросмотр в модальном окне)
+         */
+        function previewDocument(documentId) {
+            // Для простоты используем скачивание, в реальной системе можно добавить предпросмотр
+            alert('Предпросмотр документа доступен после скачивания. Для просмотра скачайте документ.');
+        }
+        
+        /**
+         * Показывает информацию об отказе в доступе
+         */
+        function showAccessDenied(message) {
+            const mainContent = document.getElementById('mainContent');
+            
+            mainContent.innerHTML = `
+                <div class="access-denied-container">
+                    <div class="access-denied-icon">
+                        <i class="fas fa-ban"></i>
+                    </div>
+                    <h1>Доступ запрещен</h1>
+                    <p class="lead">${message}</p>
+                    
+                    <div class="access-denied-info">
+                        <h5>Возможные причины:</h5>
+                        <ul>
+                            <li>У вас нет прямого доступа к этому каталогу</li>
+                            <li>Доступ не наследуется от родительских каталогов</li>
+                            <li>Вы не являетесь администратором системы</li>
+                            <li>Каталог может быть удален или заблокирован</li>
+                        </ul>
+                        <p class="mt-2">Обратитесь к администратору или редактору для получения доступа.</p>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button class="btn btn-primary me-2" onclick="window.location.href='/dashboard'">
+                            <i class="fas fa-arrow-left me-1"></i> Вернуться на главную
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="window.location.reload()">
+                            <i class="fas fa-redo me-1"></i> Обновить страницу
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        /**
+         * Показывает ошибку
+         */
+        function showError(title, message) {
+            const mainContent = document.getElementById('mainContent');
+            
+            mainContent.innerHTML = `
+                <div class="access-denied-container">
+                    <div class="access-denied-icon">
+                        <i class="fas fa-exclamation-triangle text-warning"></i>
+                    </div>
+                    <h1>${title}</h1>
+                    <p class="lead">${message}</p>
+                    
+                    <div class="mt-4">
+                        <button class="btn btn-primary" onclick="window.location.href='/dashboard'">
+                            <i class="fas fa-arrow-left me-1"></i> Вернуться на главную
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        /**
+         * Функция выхода из системы
+         */
+        async function logout() {
+            try {
+                console.log('📡 Выход из системы...');
+                const response = await fetch('/api/logout', { 
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                return response.ok;
+            } catch (error) {
+                console.error('❌ Ошибка выхода:', error);
+                return false;
+            }
+        }
+        
+        /**
+         * Модальное окно для смены пароля
+         */
+        function createPasswordChangeModal() {
+            if (document.getElementById('passwordChangeModal')) return;
+            
+            const modalHTML = `
+                <div class="modal-overlay" id="passwordChangeModal" style="display: none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3><i class="fas fa-key"></i> Смена пароля</h3>
+                            <button class="close-btn" id="closePasswordModal">&times;</button>
+                        </div>
+                        <form id="changePasswordForm">
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label for="currentPassword">
+                                        <i class="fas fa-lock"></i> Текущий пароль *
+                                    </label>
+                                    <input type="password" id="currentPassword" class="form-control" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="newPassword">
+                                        <i class="fas fa-lock"></i> Новый пароль *
+                                    </label>
+                                    <input type="password" id="newPassword" class="form-control" required>
+                                    <small class="form-text">
+                                        Минимум 6 символов, должен содержать буквы и цифры
+                                    </small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="confirmPassword">
+                                        <i class="fas fa-lock"></i> Подтвердите новый пароль *
+                                    </label>
+                                    <input type="password" id="confirmPassword" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" id="cancelPasswordChange">Отмена</button>
+                                <button type="submit" class="btn btn-primary" id="savePasswordBtn">
+                                    <i class="fas fa-save"></i> Сменить пароль
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            setupPasswordModalListeners();
+        }
+        
+        function setupPasswordModalListeners() {
+            const modal = document.getElementById('passwordChangeModal');
+            const closeBtn = document.getElementById('closePasswordModal');
+            const cancelBtn = document.getElementById('cancelPasswordChange');
+            const form = document.getElementById('changePasswordForm');
+            
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closePasswordChangeModal);
+            }
+            
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', closePasswordChangeModal);
+            }
+            
+            if (form) {
+                form.addEventListener('submit', handlePasswordChange);
+            }
+            
+            // Закрытие по клику на оверлей
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        closePasswordChangeModal();
+                    }
+                });
+            }
+        }
+        
+        function openPasswordChangeModal() {
+            createPasswordChangeModal();
+            const modal = document.getElementById('passwordChangeModal');
+            if (!modal) return;
+            
+            // Сброс формы
+            document.getElementById('changePasswordForm').reset();
+            
+            // Показываем модальное окно
+            modal.style.display = 'flex';
+        }
+        
+        function closePasswordChangeModal() {
+            const modal = document.getElementById('passwordChangeModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        async function handlePasswordChange(e) {
+            e.preventDefault();
+            
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const saveBtn = document.getElementById('savePasswordBtn');
+            
+            // Валидация
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                alert('Заполните все поля');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                alert('Новый пароль и подтверждение не совпадают');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                alert('Новый пароль должен содержать минимум 6 символов');
+                return;
+            }
+            
+            // Блокируем кнопку во время выполнения
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Меняем пароль...';
+            saveBtn.disabled = true;
+            
+            try {
+                const result = await changePassword(currentPassword, newPassword);
+                
+                if (result.success) {
+                    alert(result.message || 'Пароль успешно изменен');
+                    closePasswordChangeModal();
+                } else {
+                    alert(result.message || 'Ошибка при смене пароля');
+                }
+            } catch (error) {
+                console.error('Ошибка при смене пароля:', error);
+                alert('Ошибка при подключении к серверу');
+            } finally {
+                // Восстанавливаем кнопку
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }
+        }
+        
+        async function changePassword(currentPassword, newPassword) {
+            try {
+                console.log('📡 Отправляем запрос на смену пароля...');
+                const response = await fetch('/api/user/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        currentPassword: currentPassword,
+                        newPassword: newPassword
+                    }),
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                console.log('✅ Ответ на смену пароля:', data);
+                return data;
+                
+            } catch (error) {
+                console.error('❌ Ошибка смены пароля:', error);
+                return {
+                    success: false,
+                    message: 'Ошибка подключения к серверу'
+                };
+            }
+        }
+        
+        console.log('✅ Приложение инициализировано');
     </script>
 </body>
 </html>

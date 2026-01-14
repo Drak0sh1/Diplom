@@ -15,11 +15,13 @@
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.7",
     "express": "^5.2.1",
     "express-mysql-session": "^3.0.3",
     "express-session": "^1.18.2",
-    "mysql2": "^3.15.3",
     "jsonwebtoken": "^9.0.2",
-    "dotenv": "^16.4.7"
+    "multer": "^2.0.2",
+    "mysql2": "^3.15.3",
+    "uuid": "^13.0.0"
   }
 }
