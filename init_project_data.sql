@@ -55,3 +55,10 @@ SELECT name, password, LEFT(password, 30) as hash_start FROM Users WHERE name = 
 UPDATE Users 
 SET password = '$2a$10$ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuv' 
 WHERE name = 'valerka';
+
+ALTER TABLE UsersFolders 
+ADD COLUMN idUsersFolders INT NOT NULL AUTO_INCREMENT FIRST,
+ADD COLUMN createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+DROP PRIMARY KEY,
+ADD PRIMARY KEY (idUsersFolders),
+ADD UNIQUE KEY unique_user_folder (idUsers, idFolders);

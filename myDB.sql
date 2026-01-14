@@ -177,19 +177,6 @@ CREATE TABLE IF NOT EXISTS PasswordHistory (
     FOREIGN KEY (userId) REFERENCES Users(idUsers) ON DELETE CASCADE
 ) ENGINE = InnoDB;
 
--- Добавьте триггер для логирования смены паролей
-DELIMITER $$
-
-CREATE TRIGGER before_user_password_update 
-BEFORE UPDATE ON Users 
-FOR EACH ROW 
-BEGIN
-    IF OLD.password != NEW.password THEN
-        INSERT INTO PasswordHistory (userId, oldPassword, newPassword, changedAt)
-        VALUES (OLD.idUsers, OLD.password, NEW.password, NOW());
-    END IF;
-END$$
-
 DELIMITER ;
 
 -- Создайте представление для удобного просмотра информации о паролях
@@ -231,5 +218,18 @@ ADD CONSTRAINT fk_Files_ResponsibleUser
     REFERENCES Users(idUsers)
     ON DELETE SET NULL;
 
-    -- Отключить триггер
-DROP TRIGGER IF EXISTS before_user_password_update;
+
+-- Проверяем и создаем таблицу PasswordHistory если не существует
+CREATE TABLE IF NOT EXISTS PasswordHistory (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    userId INT NOT NULL,
+    oldPassword VARCHAR(60) NOT NULL,
+    newPassword VARCHAR(60) NOT NULL,
+    changedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ipAddress VARCHAR(45) NULL,
+    userAgent VARCHAR(255) NULL,
+    FOREIGN KEY (userId) REFERENCES Users(idUsers) ON DELETE CASCADE
+) ENGINE = InnoDB;
+
+-- Создаем индекс для быстрого поиска по пользователю
+CREATE INDEX idx_password_history_user ON PasswordHistory(userId, changedAt DESC);

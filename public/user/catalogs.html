@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Каталог документов</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/user/style.css">
+    <style>
+        /* Дополнительные стили для страницы каталога */
+        .documents-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-top: 20px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .documents-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            color: white;
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+        }
+        
+        .documents-header h3 {
+            margin: 0;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+        
+        .documents-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .btn-primary:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .documents-info {
+            background: #f8fafc;
+            padding: 15px 25px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+            color: #64748b;
+        }
+        
+        .documents-list {
+            padding: 20px;
+            min-height: 300px;
+        }
+        
+        .document-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
+        }
+        
+        .document-item:hover {
+            background: #f8fafc;
+        }
+        
+        .document-info {
+            flex: 1;
+        }
+        
+        .document-name {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 4px;
+            display: block;
+        }
+        
+        .document-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        .document-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-secondary {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+        
+        .no-documents {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+        
+        .no-documents i {
+            font-size: 48px;
+            color: #cbd5e1;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+        
+        .loading-state i {
+            font-size: 32px;
+            color: #3b82f6;
+            margin-bottom: 15px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Хэдер (такой же как в dashboard) -->
+    <header class="header">
+        <div class="header-left">
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="header-text">
+                <h1><i class="fas fa-folder-open"></i> Каталог документов</h1>
+                <p class="header-subtitle">Управление документами и версиями</p>
+            </div>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar" id="userAvatar">П</div>
+            <div class="user-details">
+                <span class="user-name" id="userName">Пользователь</span>
+                <span class="user-role" id="userRole">Пользователь</span>
+            </div>
+            <div class="user-menu-dropdown">
+                <button class="user-menu-btn" id="userMenuBtn">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="dropdown-content" id="userDropdown">
+                    <a href="#" id="changePasswordBtn"><i class="fas fa-key"></i> Сменить пароль</a>
+                    <a href="/dashboard" id="backToDashboardBtn"><i class="fas fa-arrow-left"></i> На главную</a>
+                    <a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Выход</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Сайдбар (такой же как в dashboard) -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <h2><i class="fas fa-bars"></i> Меню</h2>
+                <button class="close-sidebar-btn" id="closeSidebarBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <ul>
+                <li>
+                    <a href="/dashboard" class="sidebar-link" id="nav-dashboard">
+                        <div class="sidebar-icon">
+                            <i class="fas fa-home"></i>
+                        </div>
+                        <span class="sidebar-text">Главная</span>
+                    </a>
+                </li>
+                
+                <li class="has-submenu">
+                    <a href="#" class="sidebar-link" id="nav-journals">
+                        <div class="sidebar-icon">
+                            <i class="fas fa-journal-whills"></i>
+                        </div>
+                        <span class="sidebar-text">Журналы</span>
+                        <i class="fas fa-chevron-down submenu-arrow"></i>
+                    </a>
+                    <ul class="sidebar-submenu">
+                        <li>
+                            <a href="/journals/incoming" class="sidebar-submenu-link">
+                                <i class="fas fa-inbox"></i>
+                                <span>Входящая корреспонденция</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/journals/outgoing" class="sidebar-submenu-link">
+                                <i class="fas fa-paper-plane"></i>
+                                <span>Исходящая корреспонденция</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/journals/internal" class="sidebar-submenu-link">
+                                <i class="fas fa-envelope"></i>
+                                <span>Внутренняя переписка</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                
+                <li>
+                    <a href="/documents" class="sidebar-link" id="nav-documents">
+                        <div class="sidebar-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <span class="sidebar-text">Документы</span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a href="/catalogs" class="sidebar-link active" id="nav-catalogs">
+                        <div class="sidebar-icon">
+                            <i class="fas fa-folder-open"></i>
+                        </div>
+                        <span class="sidebar-text">Каталоги</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="sidebar-version">
+                <span>Версия 1.2.0</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Основной контент -->
+    <div class="content-area" id="contentArea">
+        <div class="page-header">
+            <h2 id="catalogTitle">Загрузка каталога...</h2>
+            <p id="catalogDescription">Загрузка информации о каталоге</p>
+        </div>
+        
+        <!-- Блок с документами каталога -->
+        <div class="documents-container" id="documentsContainer">
+            <div class="documents-header">
+                <h3><i class="fas fa-file-alt"></i> Документы в каталоге</h3>
+                <div class="documents-actions">
+                    <button class="btn-primary" id="addDocumentBtn">
+                        <i class="fas fa-plus"></i> Добавить документ
+                    </button>
+                    <button class="btn-primary" id="refreshDocumentsBtn">
+                        <i class="fas fa-sync-alt"></i> Обновить
+                    </button>
+                </div>
+            </div>
+            
+            <div class="documents-info">
+                <p><i class="fas fa-info-circle"></i> Здесь отображаются все документы в текущем каталоге. Вы можете добавлять новые документы и управлять их версиями.</p>
+            </div>
+            
+            <div class="documents-list" id="documentsList">
+                <div class="loading-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Загрузка документов...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для добавления документа -->
+    <div class="modal-overlay" id="addDocumentModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus"></i> Добавить документ</h3>
+                <button class="close-btn" id="closeAddDocumentModal">&times;</button>
+            </div>
+            <form id="addDocumentForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="documentName">
+                            <i class="fas fa-file"></i> Название документа *
+                        </label>
+                        <input type="text" id="documentName" class="form-control" required placeholder="Введите название документа">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="documentDescription">
+                            <i class="fas fa-align-left"></i> Описание
+                        </label>
+                        <textarea id="documentDescription" class="form-control" rows="3" placeholder="Введите описание документа"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="documentFile">
+                            <i class="fas fa-upload"></i> Файл документа *
+                        </label>
+                        <input type="file" id="documentFile" class="form-control" required>
+                        <small class="form-text">
+                            Поддерживаемые форматы: PDF, DOC, DOCX, XLS, XLSX, TXT (макс. 10MB)
+                        </small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="documentVersion">
+                            <i class="fas fa-code-branch"></i> Версия документа
+                        </label>
+                        <input type="text" id="documentVersion" class="form-control" placeholder="1.0.0" value="1.0.0">
+                        <small class="form-text">
+                            Формат версии: X.Y.Z (например: 1.0.0)
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="cancelAddDocument">Отмена</button>
+                    <button type="submit" class="btn-primary" id="saveDocumentBtn">
+                        <i class="fas fa-save"></i> Сохранить документ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Базовый скрипт для страницы каталога
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📂 Страница каталога загружена');
+            
+            // Получаем ID каталога из URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const catalogId = urlParams.get('id');
+            
+            if (!catalogId) {
+                alert('Каталог не выбран. Возвращаемся на главную страницу.');
+                window.location.href = '/dashboard';
+                return;
+            }
+            
+            // Проверяем, есть ли информация о каталоге в sessionStorage
+            let catalog = null;
+            try {
+                const catalogData = sessionStorage.getItem('currentCatalog');
+                if (catalogData) {
+                    catalog = JSON.parse(catalogData);
+                    console.log('📦 Загружен каталог из sessionStorage:', catalog);
+                }
+            } catch (error) {
+                console.error('❌ Ошибка загрузки каталога из sessionStorage:', error);
+            }
+            
+            // Если каталог найден, обновляем заголовок
+            if (catalog) {
+                updateCatalogInfo(catalog);
+            } else {
+                // Или запрашиваем информацию с сервера
+                loadCatalogInfo(catalogId);
+            }
+            
+            // Инициализируем интерфейс
+            initUI();
+            
+            // Загружаем документы
+            loadDocuments(catalogId);
+            
+            // Устанавливаем обработчики событий
+            setupEventListeners();
+        });
+        
+        function updateCatalogInfo(catalog) {
+            document.getElementById('catalogTitle').textContent = catalog.name || 'Каталог документов';
+            document.getElementById('catalogDescription').textContent = 
+                catalog.description || 'Управление документами в каталоге';
+            
+            // Обновляем заголовок страницы
+            document.title = catalog.name + ' - Каталог документов';
+        }
+        
+        function loadCatalogInfo(catalogId) {
+    fetch(`/api/user/catalogs/${catalogId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateCatalogInfo(data.catalog);
+            } else {
+                alert(data.message);
+                window.location.href = '/dashboard';
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки каталога:', error);
+            alert('Ошибка загрузки каталога');
+            window.location.href = '/dashboard';
+        });
+}
+        
+function loadDocuments(catalogId) {
+    const documentsList = document.getElementById('documentsList');
+    if (!documentsList) return;
+    
+    documentsList.innerHTML = `
+        <div class="loading-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Загрузка документов...</p>
+        </div>
+    `;
+    
+    // Сначала проверяем доступ
+    fetch(`/api/user/catalog-access/${catalogId}`, {
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(accessData => {
+        if (!accessData.success || !accessData.hasAccess) {
+            throw new Error(accessData.message || 'Доступ запрещен');
+        }
+        
+        // Если доступ есть, загружаем документы
+        return fetch(`/api/user/catalogs/${catalogId}/documents`, {
+            credentials: 'include'
+        });
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            renderDocuments(data.documents);
+            
+            // Обновляем заголовок каталога
+            if (data.catalog) {
+                document.getElementById('catalogTitle').textContent = data.catalog.name;
+                document.getElementById('catalogDescription').textContent = 
+                    data.catalog.description || `Документов: ${data.catalog.documentCount}`;
+                document.title = data.catalog.name + ' - Каталог документов';
+            }
+            
+            // Показываем/скрываем кнопку добавления в зависимости от прав
+            const addDocumentBtn = document.getElementById('addDocumentBtn');
+            if (data.permission && (data.permission === 'WRITE' || data.permission === 'ADMIN')) {
+                addDocumentBtn.style.display = 'flex';
+            } else {
+                addDocumentBtn.style.display = 'none';
+            }
+        } else {
+            throw new Error(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка загрузки документов:', error);
+        
+        let errorMessage = error.message || 'Неизвестная ошибка';
+        let errorDetails = '';
+        
+        if (errorMessage.includes('Доступ к каталогу запрещен')) {
+            errorDetails = `
+                <div style="margin-top: 15px; padding: 10px; background: #fef2f2; border-radius: 6px; border-left: 4px solid #dc2626;">
+                    <p style="margin: 0; color: #dc2626; font-size: 14px;">
+                        <i class="fas fa-info-circle"></i> 
+                        Возможные причины:
+                    </p>
+                    <ul style="margin: 5px 0 0 15px; color: #dc2626; font-size: 13px;">
+                        <li>Каталог не назначен вашему пользователю</li>
+                        <li>Каталог удален или неактивен</li>
+                        <li>Обратитесь к администратору для получения доступа</li>
+                    </ul>
+                </div>
+            `;
+        }
+        
+        documentsList.innerHTML = `
+            <div class="no-documents">
+                <i class="fas fa-exclamation-triangle" style="color: #dc2626;"></i>
+                <h4 style="color: #dc2626;">Ошибка загрузки документов</h4>
+                <p>${errorMessage}</p>
+                ${errorDetails}
+                <div style="margin-top: 20px;">
+                    <button onclick="window.location.href='/dashboard'" class="btn-secondary" style="padding: 8px 16px;">
+                        <i class="fas fa-arrow-left"></i> Вернуться на главную
+                    </button>
+                    <button onclick="loadDocuments('${catalogId}')" class="btn-secondary" style="padding: 8px 16px; margin-left: 10px;">
+                        <i class="fas fa-sync-alt"></i> Попробовать снова
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+}
+        // Функция для отладки - показывает все доступные каталоги пользователя
+function debugUserCatalogs() {
+    fetch('/api/user/assigned-catalogs', {
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('📋 Доступные каталоги пользователя:', data.catalogs);
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentCatalogId = urlParams.get('id');
+            
+            console.log('📍 Текущий каталог ID:', currentCatalogId);
+            console.log('🔍 Ищем среди доступных каталогов...');
+            
+            const findCatalog = (catalogs, targetId) => {
+                for (const catalog of catalogs) {
+                    if (catalog.id == targetId) {
+                        return catalog;
+                    }
+                    if (catalog.children) {
+                        const found = findCatalog(catalog.children, targetId);
+                        if (found) return found;
+                    }
+                }
+                return null;
+            };
+            
+            const foundCatalog = findCatalog(data.catalogs, currentCatalogId);
+            
+            if (foundCatalog) {
+                console.log('✅ Каталог найден среди доступных:', foundCatalog);
+            } else {
+                console.log('❌ Каталог НЕ найден среди доступных');
+                console.log('💡 Попробуйте выбрать один из доступных каталогов:');
+                data.catalogs.forEach(catalog => {
+                    console.log(`   📁 ${catalog.name} (ID: ${catalog.id})`);
+                    if (catalog.children) {
+                        catalog.children.forEach(child => {
+                            console.log(`      └── ${child.name} (ID: ${child.id})`);
+                        });
+                    }
+                });
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка отладки:', error);
+    });
+}
+
+// Добавьте эту кнопку в HTML для отладки (только в разработке)
+const debugButton = document.createElement('button');
+debugButton.innerHTML = '<i class="fas fa-bug"></i> Отладка';
+debugButton.className = 'btn-secondary';
+debugButton.style.position = 'fixed';
+debugButton.style.bottom = '20px';
+debugButton.style.right = '20px';
+debugButton.style.zIndex = '1000';
+debugButton.onclick = debugUserCatalogs;
+document.body.appendChild(debugButton);
+
+        function renderDocuments(documents) {
+            const documentsList = document.getElementById('documentsList');
+            if (!documentsList) return;
+            
+            if (!documents || documents.length === 0) {
+                documentsList.innerHTML = `
+                    <div class="no-documents">
+                        <i class="fas fa-file-excel"></i>
+                        <h4>В каталоге нет документов</h4>
+                        <p>Нажмите кнопку "Добавить документ", чтобы загрузить первый документ</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            
+            documents.forEach(doc => {
+                const uploadedDate = new Date(doc.uploadedAt).toLocaleDateString();
+                const fileIcon = getFileIcon(doc.fileType);
+                
+                html += `
+                    <div class="document-item">
+                        <div class="document-info">
+                            <span class="document-name">
+                                <i class="fas fa-${fileIcon}"></i> ${doc.name}
+                            </span>
+                            <div class="document-meta">
+                                <span><i class="fas fa-info-circle"></i> ${doc.description || 'Без описания'}</span>
+                                <span><i class="fas fa-code-branch"></i> Версия ${doc.version}</span>
+                                <span><i class="fas fa-user"></i> ${doc.uploadedBy}</span>
+                                <span><i class="fas fa-calendar"></i> ${uploadedDate}</span>
+                                <span><i class="fas fa-weight"></i> ${doc.size}</span>
+                            </div>
+                        </div>
+                        <div class="document-actions">
+                            <button class="btn-secondary" onclick="downloadDocument(${doc.id})">
+                                <i class="fas fa-download"></i> Скачать
+                            </button>
+                            <button class="btn-secondary" onclick="viewVersions(${doc.id})">
+                                <i class="fas fa-history"></i> Версии
+                            </button>
+                            <button class="btn-secondary" onclick="editDocument(${doc.id})">
+                                <i class="fas fa-edit"></i> Редактировать
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            documentsList.innerHTML = html;
+        }
+        
+        function getFileIcon(fileType) {
+            const icons = {
+                'pdf': 'file-pdf',
+                'doc': 'file-word',
+                'docx': 'file-word',
+                'xls': 'file-excel',
+                'xlsx': 'file-excel',
+                'txt': 'file-alt',
+                'jpg': 'file-image',
+                'png': 'file-image',
+                'zip': 'file-archive'
+            };
+            
+            return icons[fileType] || 'file';
+        }
+        
+        function initUI() {
+            // Инициализация мобильного меню
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const sidebar = document.getElementById('sidebar');
+            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+            
+            if (mobileMenuBtn && sidebar) {
+                mobileMenuBtn.addEventListener('click', () => {
+                    sidebar.classList.add('active');
+                });
+            }
+            
+            if (closeSidebarBtn && sidebar) {
+                closeSidebarBtn.addEventListener('click', () => {
+                    sidebar.classList.remove('active');
+                });
+            }
+            
+            // Инициализация меню пользователя
+            const userMenuBtn = document.getElementById('userMenuBtn');
+            const userDropdown = document.getElementById('userDropdown');
+            
+            if (userMenuBtn && userDropdown) {
+                userMenuBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    userDropdown.classList.toggle('show');
+                });
+                
+                document.addEventListener('click', (e) => {
+                    if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
+                        userDropdown.classList.remove('show');
+                    }
+                });
+            }
+        }
+        
+        function setupEventListeners() {
+            // Кнопка добавления документа
+            const addDocumentBtn = document.getElementById('addDocumentBtn');
+            const addDocumentModal = document.getElementById('addDocumentModal');
+            const closeAddDocumentModal = document.getElementById('closeAddDocumentModal');
+            const cancelAddDocument = document.getElementById('cancelAddDocument');
+            
+            if (addDocumentBtn && addDocumentModal) {
+                addDocumentBtn.addEventListener('click', () => {
+                    addDocumentModal.style.display = 'flex';
+                });
+            }
+            
+            if (closeAddDocumentModal && addDocumentModal) {
+                closeAddDocumentModal.addEventListener('click', () => {
+                    addDocumentModal.style.display = 'none';
+                });
+            }
+            
+            if (cancelAddDocument && addDocumentModal) {
+                cancelAddDocument.addEventListener('click', () => {
+                    addDocumentModal.style.display = 'none';
+                });
+            }
+            
+            // Закрытие модального окна по клику на оверлей
+            if (addDocumentModal) {
+                addDocumentModal.addEventListener('click', (e) => {
+                    if (e.target === addDocumentModal) {
+                        addDocumentModal.style.display = 'none';
+                    }
+                });
+            }
+            
+            // Форма добавления документа
+            const addDocumentForm = document.getElementById('addDocumentForm');
+            if (addDocumentForm) {
+                addDocumentForm.addEventListener('submit', handleAddDocument);
+            }
+            
+            // Кнопка обновления документов
+            const refreshDocumentsBtn = document.getElementById('refreshDocumentsBtn');
+            if (refreshDocumentsBtn) {
+                refreshDocumentsBtn.addEventListener('click', () => {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const catalogId = urlParams.get('id');
+                    if (catalogId) {
+                        loadDocuments(catalogId);
+                    }
+                });
+            }
+            
+            // Кнопка возврата на главную
+            const backToDashboardBtn = document.getElementById('backToDashboardBtn');
+            if (backToDashboardBtn) {
+                backToDashboardBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    window.location.href = '/dashboard';
+                });
+            }
+        }
+        
+        function handleAddDocument(e) {
+    e.preventDefault();
+    
+    const documentName = document.getElementById('documentName').value;
+    const documentDescription = document.getElementById('documentDescription').value;
+    const documentVersion = document.getElementById('documentVersion').value;
+    const documentFile = document.getElementById('documentFile').files[0];
+    
+    if (!documentName || !documentFile) {
+        alert('Заполните все обязательные поля');
+        return;
+    }
+    
+    const saveBtn = document.getElementById('saveDocumentBtn');
+    const originalText = saveBtn.innerHTML;
+    
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
+    saveBtn.disabled = true;
+    
+    // Получаем ID каталога
+    const urlParams = new URLSearchParams(window.location.search);
+    const catalogId = urlParams.get('id');
+    
+    if (!catalogId) {
+        alert('Ошибка: не указан каталог');
+        return;
+    }
+    
+    // Создаем FormData для отправки файла
+    const formData = new FormData();
+    formData.append('name', documentName);
+    formData.append('description', documentDescription);
+    formData.append('version', documentVersion);
+    formData.append('file', documentFile);
+    
+    // Отправляем запрос
+    fetch(`/api/user/catalogs/${catalogId}/documents`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include' // Для отправки cookies авторизации
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Документ успешно загружен!');
+            
+            // Закрываем модальное окно
+            document.getElementById('addDocumentModal').style.display = 'none';
+            
+            // Сбрасываем форму
+            document.getElementById('addDocumentForm').reset();
+            
+            // Обновляем список документов
+            loadDocuments(catalogId);
+        } else {
+            alert('Ошибка: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка загрузки документа:', error);
+        alert('Ошибка загрузки документа');
+    })
+    .finally(() => {
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+    });
+}
+        
+        // Функции для работы с документами
+        function downloadDocument(documentId) {
+    fetch(`/api/user/documents/${documentId}/download`, {
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Создаем временную ссылку для скачивания
+            const link = document.createElement('a');
+            link.href = data.document.downloadUrl;
+            link.download = data.document.name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } else {
+            alert('Ошибка: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка скачивания:', error);
+        alert('Ошибка скачивания документа');
+    });
+}
+
+function viewVersions(documentId) {
+    // Открываем модальное окно или новую страницу с версиями
+    alert('Функция просмотра версий будет реализована в следующем обновлении');
+    // window.location.href = `/document-versions.html?id=${documentId}`;
+}
+
+function editDocument(documentId) {
+    // Открываем модальное окно редактирования
+    alert('Функция редактирования будет реализована в следующем обновлении');
+}
+        
+        // Добавляем базовые стили для модальных окон
+        const style = document.createElement('style');
+        style.textContent = `
+            .modal-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+            }
+            
+            .modal-content {
+                background: white;
+                border-radius: 12px;
+                width: 90%;
+                max-width: 600px;
+                max-height: 90vh;
+                overflow-y: auto;
+                animation: fadeIn 0.3s ease;
+            }
+            
+            @keyframes fadeIn {
+                from { opacity: 0; transform: scale(0.9); }
+                to { opacity: 1; transform: scale(1); }
+            }
+            
+            .form-control {
+                width: 100%;
+                padding: 10px 14px;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                font-size: 14px;
+                margin-top: 8px;
+                font-family: 'Inter', sans-serif;
+            }
+            
+            .form-control:focus {
+                outline: none;
+                border-color: #36d1dc;
+                box-shadow: 0 0 0 3px rgba(54, 209, 220, 0.1);
+            }
+            
+            .form-text {
+                display: block;
+                margin-top: 6px;
+                font-size: 12px;
+                color: #6b7280;
+                line-height: 1.4;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

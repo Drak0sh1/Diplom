@@ -3,211 +3,24 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const path = require('path');
 const cookieParser = require('cookie-parser');
-const jwt = require('jsonwebtoken');
+const UserPasswordManager = require('./user-password-manager.js');
 const fs = require('fs');
-const crypto = require('crypto');
+
+const {
+    initTokenConfig,
+    generateAccessToken,
+    generateRefreshToken,
+    verifyToken,
+    requireRefreshToken
+} = require('./tokens');
+
 const app = express();
 const PORT = 3000;
 
 // ============ КОНФИГУРАЦИЯ JWT И RSA КЛЮЧИ ============
+let authConfig, privateKey, publicKey;
 
-let authConfig;
-let privateKey, publicKey;
-try {
-    // Загружаем конфигурацию Auth
-    const configPath = path.join(__dirname, 'config/auth.json');
-    
-    // Функция для загрузки и форматирования ключей
-    const loadKey = (filePath) => {
-        try {
-            const fullPath = path.resolve(__dirname, filePath.replace('./', ''));
-            console.log(`📁 Загрузка ключа: ${fullPath}`);
-            
-            if (!fs.existsSync(fullPath)) {
-                throw new Error(`Файл не существует: ${fullPath}`);
-            }
-            
-            let keyContent = fs.readFileSync(fullPath, 'utf8');
-            
-            // Проверяем минимальную длину ключа
-            if (keyContent.length < 100) {
-                throw new Error(`Ключ слишком короткий (${keyContent.length} символов). Должен быть > 100 символов`);
-            }
-            
-            // Проверяем формат PEM
-            if (!keyContent.includes('-----BEGIN')) {
-                throw new Error('Неверный формат ключа PEM (отсутствует BEGIN)');
-            }
-            
-            if (!keyContent.includes('-----END')) {
-                throw new Error('Неверный формат ключа PEM (отсутствует END)');
-            }
-            
-            // Форматируем ключ
-            keyContent = keyContent
-                .replace(/\r\n/g, '\n')
-                .replace(/\n{2,}/g, '\n')
-                .trim();
-            
-            console.log(`✅ Ключ загружен, длина: ${keyContent.length} символов`);
-            console.log(`   Формат: ${keyContent.includes('PRIVATE') ? 'Приватный' : 'Публичный'}`);
-            
-            return keyContent;
-        } catch (error) {
-            console.error(`❌ Ошибка загрузки ключа ${filePath}:`, error.message);
-            
-            // Пробуем перечитать как есть (без форматирования)
-            try {
-                const fullPath = path.resolve(__dirname, filePath.replace('./', ''));
-                const rawContent = fs.readFileSync(fullPath, 'utf8');
-                console.log(`⚠️  Сырое содержимое файла (${rawContent.length} символов):`);
-                console.log(rawContent.substring(0, 200));
-            } catch (e) {
-                console.error('Не могу прочитать файл даже в сыром виде:', e.message);
-            }
-            
-            throw error;
-        }
-    };
-    
-    // Функция для генерации ключей
-    const generateKeys = () => {
-        console.log('🔐 Генерация новых RSA ключей...');
-        const { publicKey: pub, privateKey: priv } = crypto.generateKeyPairSync('rsa', {
-            modulusLength: 2048,
-            publicKeyEncoding: { 
-                type: 'pkcs1', 
-                format: 'pem' 
-            },
-            privateKeyEncoding: { 
-                type: 'pkcs1', 
-                format: 'pem' 
-            }
-        });
-        
-        // Форматируем ключи
-        const formatKey = (key) => {
-            return key
-                .replace(/\r\n/g, '\n')
-                .replace(/\n{2,}/g, '\n')
-                .trim();
-        };
-        
-        return {
-            privateKey: formatKey(priv),
-            publicKey: formatKey(pub)
-        };
-    };
-    
-    if (fs.existsSync(configPath)) {
-        const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-        authConfig = configData.Auth;
-        
-        console.log('✅ Конфигурация JWT загружена');
-        console.log(`   Access Token TTL: ${authConfig.access_token_ttl / 1000000000} сек`);
-        console.log(`   Refresh Token TTL: ${authConfig.refresh_ttl / 1000000000} сек`);
-        
-        // Загружаем ключи из конфигурации
-        try {
-            privateKey = loadKey(authConfig.private_key_path);
-            publicKey = loadKey(authConfig.public_key_path);
-            
-            // Проверяем что ключи валидны для JWT
-            console.log('=== ПРОВЕРКА КЛЮЧЕЙ ===');
-            console.log('Приватный ключ валиден:', privateKey.startsWith('-----BEGIN RSA PRIVATE KEY-----'));
-            console.log('Публичный ключ валиден:', publicKey.startsWith('-----BEGIN RSA PUBLIC KEY-----'));
-            
-            // Тестируем создание JWT
-            try {
-                const testToken = jwt.sign({ test: true }, privateKey, { algorithm: 'RS256' });
-                console.log('✅ RSA ключи прошли проверку JWT');
-            } catch (jwtError) {
-                console.warn('⚠️  Ключи не прошли проверку JWT, пересоздаем...');
-                const newKeys = generateKeys();
-                privateKey = newKeys.privateKey;
-                publicKey = newKeys.publicKey;
-                
-                // Сохраняем новые ключи
-                fs.writeFileSync(
-                    path.resolve(__dirname, authConfig.private_key_path.replace('./', '')), 
-                    privateKey
-                );
-                fs.writeFileSync(
-                    path.resolve(__dirname, authConfig.public_key_path.replace('./', '')), 
-                    publicKey
-                );
-                console.log('✅ Новые ключи сохранены');
-            }
-            
-        } catch (keyError) {
-            console.warn('⚠️  Ошибка загрузки ключей из конфигурации, генерируем новые...');
-            const newKeys = generateKeys();
-            privateKey = newKeys.privateKey;
-            publicKey = newKeys.publicKey;
-        }
-        
-    } else {
-        console.warn('⚠️  Файл конфигурации auth.json не найден, создаем временную конфигурацию');
-        
-        // Создаем папку для ключей если не существует
-        const keysDir = path.join(__dirname, 'test_keys');
-        if (!fs.existsSync(keysDir)) {
-            fs.mkdirSync(keysDir, { recursive: true });
-        }
-        
-        // Генерируем ключи
-        const newKeys = generateKeys();
-        privateKey = newKeys.privateKey;
-        publicKey = newKeys.publicKey;
-        
-        // Сохраняем ключи в файлы
-        fs.writeFileSync(path.join(keysDir, 'private.pem'), privateKey);
-        fs.writeFileSync(path.join(keysDir, 'public.pem'), publicKey);
-        
-        // Создаем конфигурацию по умолчанию
-        authConfig = {
-            private_key_path: "./test_keys/private.pem",
-            public_key_path: "./test_keys/public.pem",
-            access_token_ttl: 1200000000000, // 20 минут
-            refresh_ttl: 14400000000000, // 4 часа
-            password_logging_limit: 4,
-            password_ttl: 7776000000000000, // 90 дней
-            password_salt: "casevault_salt"
-        };
-        
-        console.log('⚠️  Созданы временные RSA ключи для разработки');
-        console.log(`   Ключи сохранены в: ${keysDir}`);
-        
-        // Создаем файл конфигурации для будущих запусков
-        const configDir = path.join(__dirname, 'config');
-        if (!fs.existsSync(configDir)) {
-            fs.mkdirSync(configDir, { recursive: true });
-        }
-        fs.writeFileSync(
-            configPath,
-            JSON.stringify({ Auth: authConfig }, null, 2)
-        );
-        console.log(`✅ Конфигурация сохранена: ${configPath}`);
-    }
-    
-    // Финальная проверка ключей
-    console.log('\n=== ФИНАЛЬНАЯ ПРОВЕРКА КЛЮЧЕЙ ===');
-    console.log('Приватный ключ загружен:', !!privateKey);
-    console.log('Длина приватного ключа:', privateKey?.length || 0);
-    console.log('Публичный ключ загружен:', !!publicKey);
-    console.log('Длина публичного ключа:', publicKey?.length || 0);
-    
-    if (!privateKey || !publicKey) {
-        throw new Error('Не удалось загрузить или сгенерировать RSA ключи');
-    }
-    
-} catch (error) {
-    console.error('❌ Ошибка загрузки конфигурации JWT:', error.message);
-    console.error('Stack:', error.stack);
-    process.exit(1);
-}
 // ============ КОНФИГУРАЦИЯ БАЗЫ ДАННЫХ ============
-
 const dbConfig = {
     host: 'localhost',
     user: 'root',
@@ -221,109 +34,8 @@ const dbConfig = {
 let pool;
 
 // ============ ХРАНИЛИЩЕ СЕССИЙ ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ ============
-
 const sessions = new Map();
 
-// ============ JWT ФУНКЦИИ ============
-
-function generateAccessToken(payload) {
-    try {
-        console.log('🔐 Генерация Access Token (RS256)...');
-        
-        if (!privateKey) {
-            throw new Error('Приватный ключ не загружен');
-        }
-        
-        // Проверяем формат ключа
-        if (!privateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
-            throw new Error('Неверный формат приватного ключа');
-        }
-        
-        const token = jwt.sign(
-            { 
-                ...payload, 
-                tokenType: 'access',
-                exp: Math.floor(Date.now() / 1000) + (authConfig.access_token_ttl / 1000000000)
-            },
-            privateKey,
-            { 
-                algorithm: 'RS256'
-            }
-        );
-        
-        console.log('✅ Access Token создан, длина:', token.length);
-        return token;
-        
-    } catch (error) {
-        console.error('❌ Ошибка генерации Access Token:', error.message);
-        // Если RSA не работает, временно используем HS256
-        console.log('🔄 Пробую использовать HS256 как временное решение...');
-        
-        const JWT_SECRET = 'temporary-secret-for-development-' + Date.now();
-        return jwt.sign(
-            { 
-                ...payload, 
-                tokenType: 'access',
-                exp: Math.floor(Date.now() / 1000) + (authConfig.access_token_ttl / 1000000000)
-            },
-            JWT_SECRET,
-            { algorithm: 'HS256' }
-        );
-    }
-}
-
-function generateRefreshToken(payload) {
-    try {
-        console.log('🔐 Генерация Refresh Token...');
-        
-        if (!privateKey) {
-            throw new Error('Приватный ключ не загружен');
-        }
-        
-        return jwt.sign(
-            { 
-                ...payload, 
-                tokenType: 'refresh',
-                exp: Math.floor(Date.now() / 1000) + (authConfig.refresh_ttl / 1000000000)
-            },
-            privateKey,
-            { algorithm: 'RS256' }
-        );
-    } catch (error) {
-        console.error('❌ Ошибка генерации Refresh Token:', error.message);
-        // Временное решение с HS256
-        const JWT_SECRET = 'temporary-secret-for-development-' + Date.now();
-        return jwt.sign(
-            { 
-                ...payload, 
-                tokenType: 'refresh',
-                exp: Math.floor(Date.now() / 1000) + (authConfig.refresh_ttl / 1000000000)
-            },
-            JWT_SECRET,
-            { algorithm: 'HS256' }
-        );
-    }
-}
-
-function verifyToken(token) {
-    try {
-        console.log('🔍 Проверка токена...');
-        console.log('Public Key существует:', !!publicKey);
-        console.log('Public Key первые 50 символов:', publicKey?.substring(0, 50));
-        
-        if (!publicKey || !publicKey.includes('-----BEGIN RSA PUBLIC KEY-----')) {
-            throw new Error('Неверный формат публичного ключа');
-        }
-        
-        return jwt.verify(token, publicKey, { 
-            algorithms: ['RS256'],
-            ignoreExpiration: false
-        });
-    } catch (error) {
-        console.error('❌ Ошибка проверки токена:', error.message);
-        return null;
-    }
-}
 // ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ЛОГИРОВАНИЯ ============
 
 async function logAction(userId, actionType, details = '', module = 'system', targetType = null, targetId = null, status = 'info', ip = '', userAgent = '') {
@@ -619,50 +331,8 @@ function requireAuth(requiredRole = null) {
     };
 }
 
-// MIDDLEWARE ДЛЯ ПРОВЕРКИ REFRESH ТОКЕНА
-function requireRefreshToken() {
-    return (req, res, next) => {
-        try {
-            const token = req.headers['authorization']?.split(' ')[1] || 
-                         req.cookies?.refresh_token;
-
-            if (!token) {
-                return res.status(401).json({
-                    success: false,
-                    message: 'Требуется refresh токен'
-                });
-            }
-
-            const decoded = verifyToken(token);
-            
-            if (!decoded || decoded.tokenType !== 'refresh') {
-                return res.status(401).json({
-                    success: false,
-                    message: 'Неверный refresh токен'
-                });
-            }
-
-            req.refreshUser = {
-                id: decoded.id,
-                username: decoded.username,
-                role: decoded.role,
-                tokenType: 'refresh'
-            };
-
-            next();
-        } catch (error) {
-            console.error('❌ Ошибка проверки refresh токена:', error);
-            res.status(401).json({
-                success: false,
-                message: 'Ошибка проверки токена'
-            });
-        }
-    };
-}
-
 // ============ API ЭНДПОИНТЫ ============
 
-// АВТОРИЗАЦИЯ С ПОДДЕРЖКОЙ И СЕССИЙ, И JWT
 // Авторизация с JWT
 app.post('/api/login', async (req, res) => {
     try {
@@ -679,8 +349,6 @@ app.post('/api/login', async (req, res) => {
                 message: 'Заполните все поля' 
             });
         }
-        
-        console.log(`🔐 Поиск пользователя: ${username}`);
         
         let users;
         try {
@@ -907,7 +575,7 @@ app.get('/api/user-info', requireAuth(), (req, res) => {
     });
 });
 
-// ПРОВЕРКА ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ (оригинальный endpoint - сохраняем)
+// ПРОВЕРКА ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ
 app.get('/api/user', requireAuth(), async (req, res) => {
     try {
         if (!req.user) {
@@ -917,9 +585,6 @@ app.get('/api/user', requireAuth(), async (req, res) => {
             });
         }
         
-        console.log(`📊 Запрос данных пользователя для хедера: ${req.user.username} (ID: ${req.user.userId})`);
-        
-        // Прямой запрос к БД для получения актуальных данных
         const connection = await pool.getConnection();
         
         const [users] = await connection.execute(`
@@ -985,7 +650,133 @@ app.get('/api/user', requireAuth(), async (req, res) => {
     }
 });
 
-// СБРОС ПАРОЛЯ АДМИНИСТРАТОРА (оригинальный endpoint - сохраняем)
+app.get('/api/user/assigned-catalogs', requireAuth(), async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        
+        // Получаем назначенные каталоги
+        const [assigned] = await pool.execute(`
+            SELECT 
+                f.idFolder as id,
+                f.Name as name,
+                f.parentId,
+                p.Name as parentName,
+                f.createdAt,
+                f.status,
+                f.description,
+                uf.permission,
+                COUNT(DISTINCT fl.idFiles) as documentCount
+            FROM UsersFolders uf
+            JOIN Folder f ON uf.idFolders = f.idFolder
+            LEFT JOIN Folder p ON f.parentId = p.idFolder
+            LEFT JOIN Files fl ON f.idFolder = fl.idFolders
+            WHERE uf.idUsers = ? AND f.status = 'active'
+            GROUP BY f.idFolder, f.Name, f.parentId, p.Name, f.createdAt, f.status, f.description, uf.permission
+            ORDER BY f.parentId IS NULL DESC, f.Name
+        `, [userId]);
+        
+        // Получаем все дочерние каталоги для каждого назначенного
+        const catalogsWithChildren = await Promise.all(assigned.map(async (catalog) => {
+            // Если это родительский каталог, получаем всех детей
+            if (!catalog.parentId) {
+                const [children] = await pool.execute(`
+                    SELECT 
+                        f.idFolder as id,
+                        f.Name as name,
+                        f.parentId,
+                        f.createdAt,
+                        f.status,
+                        f.description,
+                        uf.permission,
+                        COUNT(DISTINCT fl.idFiles) as documentCount
+                    FROM Folder f
+                    LEFT JOIN UsersFolders uf ON f.idFolder = uf.idFolders AND uf.idUsers = ?
+                    LEFT JOIN Files fl ON f.idFolder = fl.idFolders
+                    WHERE f.parentId = ? AND f.status = 'active'
+                    GROUP BY f.idFolder, f.Name, f.parentId, f.createdAt, f.status, f.description, uf.permission
+                    ORDER BY f.Name
+                `, [userId, catalog.id]);
+                
+                catalog.children = children;
+            }
+            
+            return catalog;
+        }));
+        
+        res.json({
+            success: true,
+            catalogs: catalogsWithChildren
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения назначенных каталогов:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера при получении каталогов' 
+        });
+    }
+});
+
+// ПОЛУЧИТЬ ДОЧЕРНИЕ КАТАЛОГИ
+app.get('/api/user/catalogs/:parentId/children', requireAuth(), async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const parentId = req.params.parentId;
+        
+        // Проверяем доступ к родительскому каталогу
+        const [hasAccess] = await pool.execute(`
+            SELECT 1 FROM UsersFolders 
+            WHERE idUsers = ? AND idFolders = ?
+        `, [userId, parentId]);
+        
+        if (hasAccess.length === 0) {
+            return res.status(403).json({
+                success: false,
+                message: 'Нет доступа к этому каталогу'
+            });
+        }
+        
+        // Получаем дочерние каталоги
+        const [children] = await pool.execute(`
+            SELECT 
+                f.idFolder as id,
+                f.Name as name,
+                f.parentId,
+                f.createdAt,
+                f.status,
+                f.description,
+                uf.permission,
+                COUNT(DISTINCT fl.idFiles) as documentCount
+            FROM Folder f
+            LEFT JOIN UsersFolders uf ON f.idFolder = uf.idFolders AND uf.idUsers = ?
+            LEFT JOIN Files fl ON f.idFolder = fl.idFolders
+            WHERE f.parentId = ? AND f.status = 'active'
+            GROUP BY f.idFolder, f.Name, f.parentId, f.createdAt, f.status, f.description, uf.permission
+            ORDER BY f.Name
+        `, [userId, parentId]);
+        
+        res.json({
+            success: true,
+            children: children
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения дочерних каталогов:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера' 
+        });
+    }
+});
+
+
+
+
+
+
+
+
+// СБРОС ПАРОЛЯ АДМИНИСТРАТОРА
 app.post('/api/reset-admin', requireAuth('Администратор'), async (req, res) => {
     try {
         const { newPassword = 'admin123' } = req.body;
@@ -2202,7 +1993,8 @@ app.delete('/api/editor/directories/:id', requireEditorRole, async (req, res) =>
     }
 });
 
-// ПОЛУЧИТЬ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ ДЛЯ НАЗНАЧЕНИЯ
+// Исправленный эндпоинт в server.js
+// ПОЛУЧИТЬ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ ДЛЯ НАЗНАЧЕНИЯ (ТОЛЬКО ПОЛЬЗОВАТЕЛИ, без админов и редакторов)
 app.get('/api/editor/users', requireEditorRole, async (req, res) => {
     try {
         const connection = await pool.getConnection();
@@ -2211,12 +2003,11 @@ app.get('/api/editor/users', requireEditorRole, async (req, res) => {
             SELECT 
                 u.idUsers as id,
                 u.name,
-                u.email,
                 r.name as role,
                 u.createdAt
             FROM Users u
             LEFT JOIN Roles r ON u.idRoles = r.idRoles
-            WHERE r.name IN ('Пользователь', 'Редактор', 'Администратор')
+            WHERE r.name = 'Пользователь'
             ORDER BY u.name
         `);
         
@@ -2236,7 +2027,36 @@ app.get('/api/editor/users', requireEditorRole, async (req, res) => {
     }
 });
 
-// ПОЛУЧИТЬ НАЗНАЧЕНИЯ ДОСТУПА
+app.get('/api/editor/directories-list', requireEditorRole, async (req, res) => {
+    try {
+        const connection = await pool.getConnection();
+        
+        const [directories] = await connection.execute(`
+            SELECT 
+                f.idFolder as id,
+                f.Name as name,
+                f.status
+            FROM Folder f
+            WHERE f.status = 'active'
+            ORDER BY f.Name
+        `);
+        
+        connection.release();
+        
+        res.json({
+            success: true,
+            data: directories
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения списка справочников:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера' 
+        });
+    }
+});
+
 app.get('/api/editor/assignments', requireEditorRole, async (req, res) => {
     try {
         const { userId = null, directoryId = null } = req.query;
@@ -2250,7 +2070,6 @@ app.get('/api/editor/assignments', requireEditorRole, async (req, res) => {
                 uf.idFolders as directoryId,
                 uf.permission,
                 u.name as userName,
-                u.email as userEmail,
                 f.Name as directoryName,
                 uf.createdAt as assignedAt
             FROM UsersFolders uf
@@ -2291,7 +2110,7 @@ app.get('/api/editor/assignments', requireEditorRole, async (req, res) => {
     }
 });
 
-// НАЗНАЧИТЬ ДОСТУП К СПРАВОЧНИКУ
+// 2. В методе НАЗНАЧИТЬ ДОСТУП К СПРАВОЧНИКУ (строка ~1875)
 app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
     try {
         const { userId, directoryId, permission = 'READ' } = req.body;
@@ -2307,17 +2126,30 @@ app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
         
         const connection = await pool.getConnection();
         
-        // Проверяем существование пользователя
-        const [userExists] = await connection.execute(
-            'SELECT idUsers, name, email FROM Users WHERE idUsers = ?',
-            [userId]
-        );
+        // Проверяем существование пользователя и его роль
+        const [userExists] = await connection.execute(`
+            SELECT u.idUsers, u.name, r.name as role
+            FROM Users u
+            LEFT JOIN Roles r ON u.idRoles = r.idRoles
+            WHERE u.idUsers = ?
+        `, [userId]);
         
         if (userExists.length === 0) {
             connection.release();
             return res.json({
                 success: false,
                 message: 'Пользователь не найден'
+            });
+        }
+        
+        const user = userExists[0];
+        
+        // Проверяем, что пользователь имеет роль "Пользователь"
+        if (user.role !== 'Пользователь') {
+            connection.release();
+            return res.json({
+                success: false,
+                message: `Можно назначать доступ только пользователям с ролью "Пользователь". У ${user.name} роль "${user.role}"`
             });
         }
         
@@ -2335,8 +2167,7 @@ app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
             });
         }
         
-        const userName = userExists[0].name;
-        const userEmail = userExists[0].email;
+        const userName = user.name;
         const directoryName = directoryExists[0].Name;
         
         // Проверяем, не назначен ли уже доступ
@@ -3568,6 +3399,792 @@ app.get('/api/admin/tech-logs', requireAuth('Администратор'), async
         });
     }
 });
+// ============ КАТАЛОГИ ДЛЯ ПОЛЬЗОВАТЕЛЕЙ ============
+
+// ПОЛУЧИТЬ ИНФОРМАЦИЮ О КАТАЛОГЕ
+app.get('/api/user/catalogs/:id', requireAuth(), async (req, res) => {
+    try {
+        const catalogId = req.params.id;
+        const userId = req.user.userId;
+        
+        // Проверяем доступ пользователя к каталогу
+        const [catalogAccess] = await pool.execute(`
+            SELECT 
+                f.idFolder as id,
+                f.Name as name,
+                f.parentId,
+                f.createdAt,
+                f.status,
+                f.description,
+                uf.permission
+            FROM Folder f
+            LEFT JOIN UsersFolders uf ON f.idFolder = uf.idFolders AND uf.idUsers = ?
+            WHERE f.idFolder = ? AND f.status = 'active'
+        `, [userId, catalogId]);
+        
+        if (catalogAccess.length === 0) {
+            return res.status(403).json({
+                success: false,
+                message: 'Доступ к каталогу запрещен или каталог не существует'
+            });
+        }
+        
+        const catalog = catalogAccess[0];
+        
+        // Получаем количество документов в каталоге
+        const [docCount] = await pool.execute(`
+            SELECT COUNT(*) as count FROM Files WHERE idFolders = ?
+        `, [catalogId]);
+        
+        catalog.documentCount = docCount[0].count;
+        
+        res.json({
+            success: true,
+            catalog: catalog
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения информации о каталоге:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера при получении информации о каталоге' 
+        });
+    }
+});
+
+// ПОЛУЧИТЬ ДОКУМЕНТЫ В КАТАЛОГЕ
+// ПОЛУЧИТЬ ДОКУМЕНТЫ В КАТАЛОГЕ (ИСПРАВЛЕННЫЙ)
+app.get('/api/user/catalogs/:id/documents', requireAuth(), async (req, res) => {
+    try {
+        const catalogId = req.params.id;
+        const userId = req.user.userId;
+        
+        // Сначала проверяем доступ к каталогу через UsersFolders
+        const [access] = await pool.execute(`
+            SELECT permission FROM UsersFolders 
+            WHERE idUsers = ? AND idFolders = ?
+        `, [userId, catalogId]);
+        
+        if (access.length === 0) {
+            // Проверяем, может быть пользователь администратор?
+            const [userRole] = await pool.execute(`
+                SELECT r.name as role 
+                FROM Users u
+                LEFT JOIN Roles r ON u.idRoles = r.idRoles
+                WHERE u.idUsers = ?
+            `, [userId]);
+            
+            // Если пользователь администратор, разрешаем доступ
+            if (userRole[0]?.role === 'Администратор') {
+                console.log(`Администратор ${req.user.username} получает доступ к каталогу ${catalogId}`);
+            } else {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Доступ к каталогу запрещен. Каталог не назначен вашему пользователю.',
+                    code: 'ACCESS_DENIED'
+                });
+            }
+        }
+        
+        const permission = access[0]?.permission || 'ADMIN'; // Для администратора
+        
+        // Получаем информацию о каталоге
+        const [catalogInfo] = await pool.execute(`
+            SELECT Name, description FROM Folder WHERE idFolder = ? AND status = 'active'
+        `, [catalogId]);
+        
+        if (catalogInfo.length === 0) {
+            return res.json({
+                success: false,
+                message: 'Каталог не найден или неактивен'
+            });
+        }
+        
+        // Получаем документы в каталоге
+        const [documents] = await pool.execute(`
+            SELECT 
+                f.idFiles as id,
+                f.name,
+                f.fileSize,
+                f.createdAt as uploadedAt,
+                f.updatedAt,
+                f.fileStatus as status,
+                u.name as uploadedBy,
+                fv.versionNumber as currentVersion,
+                fv.createdAt as versionDate
+            FROM Files f
+            LEFT JOIN Users u ON f.idUsers = u.idUsers
+            LEFT JOIN FileVersions fv ON f.currentVersionId = fv.idFileVersions
+            WHERE f.idFolders = ?
+            ORDER BY f.updatedAt DESC
+        `, [catalogId]);
+        
+        // Форматируем данные для клиента
+        const formattedDocs = documents.map(doc => {
+            const sizeInKB = doc.fileSize ? Math.round(doc.fileSize / 1024) : 0;
+            const sizeText = sizeInKB > 1024 
+                ? (sizeInKB / 1024).toFixed(1) + ' MB' 
+                : sizeInKB + ' KB';
+            
+            const fileExtension = doc.name.split('.').pop().toLowerCase();
+            const uploadedDate = new Date(doc.uploadedAt).toLocaleDateString('ru-RU');
+            
+            return {
+                id: doc.id,
+                name: doc.name,
+                description: `Загружен: ${uploadedDate}`,
+                version: doc.currentVersion ? `v${doc.currentVersion}` : 'v1.0',
+                size: sizeText,
+                uploadedBy: doc.uploadedBy || 'Неизвестно',
+                uploadedAt: doc.uploadedAt,
+                fileType: fileExtension,
+                status: doc.status || 'new',
+                lastModified: doc.updatedAt
+            };
+        });
+        
+        res.json({
+            success: true,
+            documents: formattedDocs,
+            permission: permission,
+            catalog: {
+                name: catalogInfo[0].Name,
+                description: catalogInfo[0].description,
+                documentCount: documents.length
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения документов каталога:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера при получении документов',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
+// ДОБАВИТЬ ДОКУМЕНТ В КАТАЛОГ
+app.post('/api/user/catalogs/:id/documents', requireAuth(), async (req, res) => {
+    try {
+        const catalogId = req.params.id;
+        const userId = req.user.userId;
+        const ip = getClientIp(req);
+        const userAgent = req.headers['user-agent'] || '';
+        
+        // Проверяем, есть ли у пользователя права на запись
+        const [access] = await pool.execute(`
+            SELECT permission FROM UsersFolders 
+            WHERE idUsers = ? AND idFolders = ? AND permission IN ('WRITE', 'ADMIN')
+        `, [userId, catalogId]);
+        
+        if (access.length === 0) {
+            return res.status(403).json({
+                success: false,
+                message: 'Недостаточно прав для добавления документов'
+            });
+        }
+        
+        const { name, description = '', version = '1.0.0' } = req.body;
+        
+        if (!name || name.trim() === '') {
+            return res.json({
+                success: false,
+                message: 'Название документа не может быть пустым'
+            });
+        }
+        
+        // В реальной системе здесь будет обработка загружаемого файла
+        // Для примера используем тестовые данные
+        const connection = await pool.getConnection();
+        
+        // Начинаем транзакцию
+        await connection.beginTransaction();
+        
+        try {
+            // Создаем запись о файле
+            const [fileResult] = await connection.execute(`
+                INSERT INTO Files (name, idFolders, fileSize, idUsers)
+                VALUES (?, ?, ?, ?)
+            `, [name.trim(), catalogId, 0, userId]);
+            
+            const fileId = fileResult.insertId;
+            
+            // Создаем первую версию файла (в реальной системе тут будет физический файл)
+            const [versionResult] = await connection.execute(`
+                INSERT INTO FileVersions (versionNumber, storageType, storagePath, idFiles, checksum)
+                VALUES (1, 'full', ?, ?, ?)
+            `, [`/storage/documents/${fileId}/v1`, fileId, 'test_checksum']);
+            
+            const versionId = versionResult.insertId;
+            
+            // Обновляем файл с ссылкой на текущую версию
+            await connection.execute(`
+                UPDATE Files SET currentVersionId = ? WHERE idFiles = ?
+            `, [versionId, fileId]);
+            
+            // Завершаем транзакцию
+            await connection.commit();
+            
+            // Логируем действие
+            await logAction(
+                userId,
+                'document_create',
+                `Пользователь ${req.user.username} добавил документ "${name}" в каталог ID:${catalogId}`,
+                'documents',
+                'file',
+                fileId,
+                'success',
+                ip,
+                userAgent
+            );
+            
+            connection.release();
+            
+            res.json({
+                success: true,
+                message: 'Документ успешно добавлен',
+                documentId: fileId,
+                versionId: versionId
+            });
+            
+        } catch (transactionError) {
+            await connection.rollback();
+            connection.release();
+            throw transactionError;
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка добавления документа:', error);
+        
+        // Логируем ошибку
+        await logAction(
+            req.user?.userId || null,
+            'document_create',
+            `Ошибка добавления документа: ${error.message}`,
+            'documents',
+            'file',
+            null,
+            'failed',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера при добавлении документа'
+        });
+    }
+});
+
+// ЗАГРУЗИТЬ ФАЙЛ ДОКУМЕНТА
+app.post('/api/user/documents/:id/upload', requireAuth(), async (req, res) => {
+    try {
+        const documentId = req.params.id;
+        const userId = req.user.userId;
+        
+        // Здесь будет обработка multipart/form-data загрузки файла
+        // Пока возвращаем заглушку
+        
+        res.json({
+            success: true,
+            message: 'Файл загружен (заглушка)',
+            fileUrl: `/storage/documents/${documentId}/latest`
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки файла:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера при загрузке файла' 
+        });
+    }
+});
+
+// СКАЧАТЬ ДОКУМЕНТ
+app.get('/api/user/documents/:id/download', requireAuth(), async (req, res) => {
+    try {
+        const documentId = req.params.id;
+        const userId = req.user.userId;
+        
+        // Проверяем доступ к документу
+        const [access] = await pool.execute(`
+            SELECT uf.permission, f.idFolders as catalogId
+            FROM Files f
+            LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
+            WHERE f.idFiles = ?
+        `, [userId, documentId]);
+        
+        if (access.length === 0) {
+            return res.status(403).json({
+                success: false,
+                message: 'Доступ к документу запрещен'
+            });
+        }
+        
+        // Получаем информацию о файле
+        const [fileInfo] = await pool.execute(`
+            SELECT 
+                f.name,
+                fv.storagePath,
+                fv.versionNumber
+            FROM Files f
+            LEFT JOIN FileVersions fv ON f.currentVersionId = fv.idFileVersions
+            WHERE f.idFiles = ?
+        `, [documentId]);
+        
+        if (fileInfo.length === 0) {
+            return res.json({
+                success: false,
+                message: 'Документ не найден'
+            });
+        }
+        
+        const fileName = fileInfo[0].name;
+        const filePath = fileInfo[0].storagePath;
+        const version = fileInfo[0].versionNumber;
+        
+        // В реальной системе здесь будет отдача файла
+        // Пока возвращаем информацию о файле
+        
+        res.json({
+            success: true,
+            message: 'Документ доступен для скачивания',
+            document: {
+                id: documentId,
+                name: fileName,
+                version: version,
+                downloadUrl: `/storage/download/${documentId}`, // Заглушка
+                directUrl: filePath
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка скачивания документа:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера при скачивании документа' 
+        });
+    }
+});
+
+// ПОЛУЧИТЬ ВЕРСИИ ДОКУМЕНТА
+app.get('/api/user/documents/:id/versions', requireAuth(), async (req, res) => {
+    try {
+        const documentId = req.params.id;
+        const userId = req.user.userId;
+        
+        // Проверяем доступ к документу
+        const [access] = await pool.execute(`
+            SELECT 1 FROM Files f
+            LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
+            WHERE f.idFiles = ?
+        `, [userId, documentId]);
+        
+        if (access.length === 0) {
+            return res.status(403).json({
+                success: false,
+                message: 'Доступ к документу запрещен'
+            });
+        }
+        
+        // Получаем все версии документа
+        const [versions] = await pool.execute(`
+            SELECT 
+                fv.idFileVersions as versionId,
+                fv.versionNumber,
+                fv.storageType,
+                fv.storagePath,
+                fv.baseVersionId,
+                fv.createdAt as versionDate,
+                fv.checksum,
+                u.name as createdBy
+            FROM FileVersions fv
+            LEFT JOIN Files f ON fv.idFiles = f.idFiles
+            LEFT JOIN Users u ON f.idUsers = u.idUsers
+            WHERE fv.idFiles = ?
+            ORDER BY fv.versionNumber DESC
+        `, [documentId]);
+        
+        // Форматируем версии
+        const formattedVersions = versions.map(version => ({
+            id: version.versionId,
+            versionNumber: version.versionNumber,
+            versionName: `v${version.versionNumber}.0.0`,
+            storageType: version.storageType,
+            size: '0 MB', // В реальной системе нужно получать размер файла
+            createdAt: version.versionDate,
+            createdBy: version.createdBy || 'Неизвестно',
+            checksum: version.checksum,
+            isCurrent: version.versionNumber === versions[0]?.versionNumber
+        }));
+        
+        res.json({
+            success: true,
+            versions: formattedVersions,
+            totalVersions: versions.length
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения версий документа:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера при получении версий документа' 
+        });
+    }
+});
+
+// СОЗДАТЬ НОВУЮ ВЕРСИЮ ДОКУМЕНТА
+app.post('/api/user/documents/:id/versions', requireAuth(), async (req, res) => {
+    try {
+        const documentId = req.params.id;
+        const userId = req.user.userId;
+        const ip = getClientIp(req);
+        const userAgent = req.headers['user-agent'] || '';
+        
+        // Проверяем права на запись
+        const [access] = await pool.execute(`
+            SELECT uf.permission, f.idFolders as catalogId
+            FROM Files f
+            LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
+            WHERE f.idFiles = ? AND uf.permission IN ('WRITE', 'ADMIN')
+        `, [userId, documentId]);
+        
+        if (access.length === 0) {
+            return res.status(403).json({
+                success: false,
+                message: 'Недостаточно прав для создания новой версии'
+            });
+        }
+        
+        const { comment = '', storageType = 'full', baseVersionId = null } = req.body;
+        
+        const connection = await pool.getConnection();
+        
+        try {
+            // Получаем текущую версию документа
+            const [currentVersion] = await connection.execute(`
+                SELECT MAX(versionNumber) as currentVersion FROM FileVersions WHERE idFiles = ?
+            `, [documentId]);
+            
+            const nextVersion = (currentVersion[0].currentVersion || 0) + 1;
+            
+            // Создаем новую версию
+            const [versionResult] = await connection.execute(`
+                INSERT INTO FileVersions (versionNumber, storageType, storagePath, baseVersionId, idFiles, checksum)
+                VALUES (?, ?, ?, ?, ?, ?)
+            `, [
+                nextVersion,
+                storageType,
+                `/storage/documents/${documentId}/v${nextVersion}`,
+                baseVersionId,
+                documentId,
+                `checksum_v${nextVersion}`
+            ]);
+            
+            const newVersionId = versionResult.insertId;
+            
+            // Обновляем текущую версию в файле
+            await connection.execute(`
+                UPDATE Files SET currentVersionId = ?, updatedAt = CURRENT_TIMESTAMP WHERE idFiles = ?
+            `, [newVersionId, documentId]);
+            
+            connection.release();
+            
+            // Логируем создание версии
+            await logAction(
+                userId,
+                'version_create',
+                `Пользователь ${req.user.username} создал новую версию v${nextVersion} для документа ID:${documentId}`,
+                'documents',
+                'file_version',
+                documentId,
+                'success',
+                ip,
+                userAgent
+            );
+            
+            res.json({
+                success: true,
+                message: `Версия v${nextVersion} успешно создана`,
+                versionId: newVersionId,
+                versionNumber: nextVersion
+            });
+            
+        } catch (error) {
+            connection.release();
+            throw error;
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка создания версии документа:', error);
+        
+        await logAction(
+            req.user?.userId || null,
+            'version_create',
+            `Ошибка создания версии документа: ${error.message}`,
+            'documents',
+            'file_version',
+            req.params.id,
+            'failed',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера при создании версии'
+        });
+    }
+});
+
+// ОБНОВИТЬ ДОКУМЕНТ
+app.put('/api/user/documents/:id', requireAuth(), async (req, res) => {
+    try {
+        const documentId = req.params.id;
+        const userId = req.user.userId;
+        const ip = getClientIp(req);
+        const userAgent = req.headers['user-agent'] || '';
+        
+        // Проверяем права на запись
+        const [access] = await pool.execute(`
+            SELECT uf.permission FROM Files f
+            LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
+            WHERE f.idFiles = ? AND uf.permission IN ('WRITE', 'ADMIN')
+        `, [userId, documentId]);
+        
+        if (access.length === 0) {
+            return res.status(403).json({
+                success: false,
+                message: 'Недостаточно прав для редактирования документа'
+            });
+        }
+        
+        const { name, description = '', status = null } = req.body;
+        
+        if (!name || name.trim() === '') {
+            return res.json({
+                success: false,
+                message: 'Название документа не может быть пустым'
+            });
+        }
+        
+        // Обновляем документ
+        const connection = await pool.getConnection();
+        
+        // Собираем поля для обновления
+        let updateFields = ['name = ?'];
+        let params = [name.trim()];
+        
+        if (status) {
+            updateFields.push('fileStatus = ?');
+            params.push(status);
+        }
+        
+        params.push(documentId);
+        
+        await connection.execute(
+            `UPDATE Files SET ${updateFields.join(', ')}, updatedAt = CURRENT_TIMESTAMP WHERE idFiles = ?`,
+            params
+        );
+        
+        connection.release();
+        
+        // Логируем обновление
+        await logAction(
+            userId,
+            'document_update',
+            `Пользователь ${req.user.username} обновил документ ID:${documentId}`,
+            'documents',
+            'file',
+            documentId,
+            'success',
+            ip,
+            userAgent
+        );
+        
+        res.json({
+            success: true,
+            message: 'Документ успешно обновлен'
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка обновления документа:', error);
+        
+        await logAction(
+            req.user?.userId || null,
+            'document_update',
+            `Ошибка обновления документа: ${error.message}`,
+            'documents',
+            'file',
+            req.params.id,
+            'failed',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера при обновлении документа'
+        });
+    }
+});
+
+// УДАЛИТЬ ДОКУМЕНТ
+app.delete('/api/user/documents/:id', requireAuth(), async (req, res) => {
+    try {
+        const documentId = req.params.id;
+        const userId = req.user.userId;
+        const ip = getClientIp(req);
+        const userAgent = req.headers['user-agent'] || '';
+        
+        // Проверяем права на удаление (только ADMIN)
+        const [access] = await pool.execute(`
+            SELECT uf.permission FROM Files f
+            LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
+            WHERE f.idFiles = ? AND uf.permission = 'ADMIN'
+        `, [userId, documentId]);
+        
+        if (access.length === 0) {
+            return res.status(403).json({
+                success: false,
+                message: 'Недостаточно прав для удаления документа. Требуется роль ADMIN'
+            });
+        }
+        
+        // Удаляем документ (каскадное удаление настроено в БД)
+        await pool.execute(
+            'DELETE FROM Files WHERE idFiles = ?',
+            [documentId]
+        );
+        
+        // Логируем удаление
+        await logAction(
+            userId,
+            'document_delete',
+            `Пользователь ${req.user.username} удалил документ ID:${documentId}`,
+            'documents',
+            'file',
+            documentId,
+            'warning',
+            ip,
+            userAgent
+        );
+        
+        res.json({
+            success: true,
+            message: 'Документ успешно удален'
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка удаления документа:', error);
+        
+        await logAction(
+            req.user?.userId || null,
+            'document_delete',
+            `Ошибка удаления документа: ${error.message}`,
+            'documents',
+            'file',
+            req.params.id,
+            'failed',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера при удалении документа'
+        });
+    }
+});
+
+// ПРОВЕРИТЬ ДОСТУП К КАТАЛОГУ
+app.get('/api/user/catalog-access/:id', requireAuth(), async (req, res) => {
+    try {
+        const catalogId = req.params.id;
+        const userId = req.user.userId;
+        
+        // Проверяем доступ пользователя к каталогу
+        const [access] = await pool.execute(`
+            SELECT 
+                uf.permission,
+                f.Name as catalogName,
+                f.description
+            FROM UsersFolders uf
+            JOIN Folder f ON uf.idFolders = f.idFolder
+            WHERE uf.idUsers = ? AND uf.idFolders = ? AND f.status = 'active'
+        `, [userId, catalogId]);
+        
+        if (access.length === 0) {
+            return res.json({
+                success: false,
+                message: 'Доступ к каталогу запрещен',
+                hasAccess: false
+            });
+        }
+        
+        res.json({
+            success: true,
+            hasAccess: true,
+            permission: access[0].permission,
+            catalogName: access[0].catalogName,
+            description: access[0].description
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка проверки доступа к каталогу:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера' 
+        });
+    }
+});
+
+// ПОЛУЧИТЬ ПУТЬ К КАТАЛОГУ (ИЕРАРХИЮ)
+app.get('/api/user/catalogs/:id/path', requireAuth(), async (req, res) => {
+    try {
+        const catalogId = req.params.id;
+        const userId = req.user.userId;
+        
+        // Рекурсивно получаем путь к каталогу
+        let path = [];
+        let currentId = catalogId;
+        
+        while (currentId) {
+            const [catalog] = await pool.execute(`
+                SELECT f.idFolder, f.Name, f.parentId 
+                FROM Folder f
+                LEFT JOIN UsersFolders uf ON f.idFolder = uf.idFolders AND uf.idUsers = ?
+                WHERE f.idFolder = ? AND (uf.idUsers = ? OR ? IN (
+                    SELECT idUsers FROM Users u 
+                    LEFT JOIN Roles r ON u.idRoles = r.idRoles 
+                    WHERE r.name = 'Администратор' AND u.idUsers = ?
+                ))
+            `, [userId, currentId, userId, userId, userId]);
+            
+            if (catalog.length === 0) break;
+            
+            path.unshift({
+                id: catalog[0].idFolder,
+                name: catalog[0].Name
+            });
+            
+            currentId = catalog[0].parentId;
+        }
+        
+        res.json({
+            success: true,
+            path: path
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка получения пути каталога:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Ошибка сервера' 
+        });
+    }
+});
 
 // ============ СТРАНИЦЫ ============
 
@@ -3594,7 +4211,24 @@ app.get('/editor', requireAuth('Редактор'), (req, res) => {
 
 // Страница пользователя
 app.get('/dashboard', requireAuth(), (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+    res.sendFile(path.join(__dirname, 'public','user', 'dashboard.html'));
+});
+
+// Страница каталога документов
+app.get('/catalog.html', requireAuth(), (req, res) => {
+    const catalogId = req.query.id;
+    
+    if (!catalogId) {
+        return res.redirect('/dashboard');
+    }
+    
+    // Отправляем HTML страницу
+    res.sendFile(path.join(__dirname, 'public', 'user', 'catalogs.html'));
+});
+
+// Страница каталогов (список каталогов)
+app.get('/catalogs.html', requireAuth(), (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'user', 'catalogs.html'));
 });
 
 // ПРОВЕРКА ДОСТУПНОСТИ СЕРВЕРА
@@ -3605,6 +4239,7 @@ app.get('/api/health', (req, res) => {
         timestamp: new Date().toISOString()
     });
 });
+
 // Создание тестового пользователя (только для разработки)
 app.post('/api/create-test-admin', async (req, res) => {
     try {
@@ -3649,10 +4284,17 @@ app.post('/api/create-test-admin', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
 // ============ ЗАПУСК СЕРВЕРА ============
 
 async function startServer() {
     try {
+        // Инициализируем конфигурацию токенов
+        const tokenConfig = await initTokenConfig();
+        authConfig = tokenConfig.authConfig;
+        privateKey = tokenConfig.privateKey;
+        publicKey = tokenConfig.publicKey;
+        
         await initDatabase();
         
         app.listen(PORT, () => {
@@ -3661,9 +4303,9 @@ async function startServer() {
             console.log('║          ГИБРИДНАЯ АВТОРИЗАЦИЯ (СЕССИИ + JWT ТОКЕНЫ)                  ║');
             console.log('╚════════════════════════════════════════════════════════════════════════╝');
             console.log(`🌐 Сервер запущен: http://localhost:${PORT}`);
-            console.log('🔐 Аутентификация: Гибридная (сессии + JWT с RSA ключами)');
             console.log('📊 База данных: MySQL (Project)');
             console.log('📝 Система логирования: АКТИВНА');
+            console.log('🔐 Токены: JWT с RSA ключами');
             console.log('⏰ Время запуска:', new Date().toLocaleTimeString());
             console.log('════════════════════════════════════════════════════════════════════════');
         });
@@ -3673,4 +4315,5 @@ async function startServer() {
     }
 }
 
+// Запускаем сервер
 startServer();

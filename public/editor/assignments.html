@@ -37,12 +37,6 @@
             font-size: 13px;
         }
         
-        .user-email-small {
-            font-size: 11px;
-            color: #718096;
-            margin-top: 2px;
-        }
-        
         /* Информация о справочнике в таблице */
         .directory-info-small {
             display: flex;
@@ -155,6 +149,75 @@
             color: #718096;
             font-weight: 500;
         }
+
+        /* Стили для поиска справочников */
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-results.active {
+            display: block;
+        }
+
+        .search-result-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border-bottom: 1px solid #f7fafc;
+        }
+
+        .search-result-item:hover {
+            background-color: #f7fafc;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item .directory-path {
+            font-size: 12px;
+            color: #718096;
+            margin-top: 2px;
+        }
+
+        .directory-input-wrapper {
+            position: relative;
+        }
+
+        .directory-input-wrapper input {
+            width: 100%;
+        }
+
+        /* Стили для отображения иерархии в таблице */
+        .directory-path-cell {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .directory-path-cell:hover {
+            overflow: visible;
+            white-space: normal;
+            position: relative;
+            z-index: 10;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 5px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -257,7 +320,7 @@
                 <div class="search-filters">
                     <div class="search-box">
                         <i class="fas fa-search"></i>
-                        <input type="text" id="searchAssignments" placeholder="Поиск по пользователю...">
+                        <input type="text" id="searchAssignments" placeholder="Поиск по пользователю или справочнику...">
                     </div>
                     <div class="filter-group">
                         <select id="filterUser" class="form-control">
@@ -286,6 +349,7 @@
                             <tr>
                                 <th>Пользователь</th>
                                 <th>Справочник</th>
+                                <th>Путь</th>
                                 <th>Права доступа</th>
                                 <th>Дата назначения</th>
                                 <th>Истекает</th>
@@ -320,63 +384,80 @@
                     </button>
                 </div>
                 
-                <form id="assignmentForm">
-                    <input type="hidden" id="assignmentId" value="">
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="assignUser">
-                                <i class="fas fa-user"></i> Пользователь *
-                            </label>
-                            <select id="assignUser" class="form-control" required>
-                                <option value="">Выберите пользователя</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="assignDirectory">
-                                <i class="fas fa-folder"></i> Справочник *
-                            </label>
-                            <select id="assignDirectory" class="form-control" required>
-                                <option value="">Выберите справочник</option>
-                            </select>
-                        </div>
-                    </div>
+                <!-- В форме добавления/редактирования назначений добавьте чекбокс -->
+<form id="assignmentForm">
+    <input type="hidden" id="assignmentId" value="">
+    <input type="hidden" id="assignDirectoryId" value="">
+    
+    <div class="form-row">
+        <div class="form-group">
+            <label for="assignUser">
+                <i class="fas fa-user"></i> Пользователь *
+            </label>
+            <select id="assignUser" class="form-control" required>
+                <option value="">Выберите пользователя</option>
+            </select>
+        </div>
+        <div class="form-group directory-input-wrapper">
+            <label for="assignDirectoryInput">
+                <i class="fas fa-folder"></i> Справочник *
+            </label>
+            <input type="text" id="assignDirectoryInput" class="form-control" 
+                   placeholder="Начните вводить название справочника..." 
+                   autocomplete="off" required>
+            <div id="directory-search-results" class="search-results"></div>
+        </div>
+    </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="assignPermission">
-                                <i class="fas fa-key"></i> Права доступа *
-                            </label>
-                            <select id="assignPermission" class="form-control" required>
-                                <option value="READ">Только чтение</option>
-                                <option value="WRITE">Чтение и запись</option>
-                                <option value="ADMIN">Полный доступ</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="assignExpiresAt">
-                                <i class="fas fa-calendar-times"></i> Действует до
-                            </label>
-                            <input type="date" id="assignExpiresAt" class="form-control">
-                        </div>
-                    </div>
+    <div class="form-row">
+        <div class="form-group">
+            <label for="assignPermission">
+                <i class="fas fa-key"></i> Права доступа *
+            </label>
+            <select id="assignPermission" class="form-control" required>
+                <option value="READ">Только чтение</option>
+                <option value="WRITE">Чтение и запись</option>
+                <option value="ADMIN">Полный доступ</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="assignExpiresAt">
+                <i class="fas fa-calendar-times"></i> Действует до
+            </label>
+            <input type="date" id="assignExpiresAt" class="form-control">
+        </div>
+    </div>
 
-                    <div class="form-group">
-                        <label for="assignNotes">
-                            <i class="fas fa-sticky-note"></i> Примечания
-                        </label>
-                        <textarea id="assignNotes" class="form-control" rows="3"></textarea>
-                    </div>
+    <!-- Добавьте этот блок после полей с правами и датой -->
+    <div class="form-group" id="childrenOptions" style="display: none;">
+        <div class="checkbox-group">
+            <label>
+                <input type="checkbox" id="includeChildren" checked>
+                <i class="fas fa-folder-tree"></i>
+                <span><strong>Назначить права на все дочерние каталоги</strong></span>
+                <small style="display: block; color: #718096; margin-top: 5px;">
+                    При включении этой опции пользователь получит те же права на все подкаталоги и документы внутри выбранного каталога
+                </small>
+            </label>
+        </div>
+    </div>
 
-                    <div class="form-actions">
-                        <button type="submit" class="btn-primary">
-                            <i class="fas fa-save"></i> Сохранить
-                        </button>
-                        <button type="reset" class="btn-secondary" id="resetFormBtn">
-                            <i class="fas fa-undo"></i> Сбросить
-                        </button>
-                    </div>
-                </form>
+    <div class="form-group">
+        <label for="assignNotes">
+            <i class="fas fa-sticky-note"></i> Примечания
+        </label>
+        <textarea id="assignNotes" class="form-control" rows="3"></textarea>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn-primary">
+            <i class="fas fa-save"></i> Сохранить
+        </button>
+        <button type="reset" class="btn-secondary" id="resetFormBtn">
+            <i class="fas fa-undo"></i> Сбросить
+        </button>
+    </div>
+</form>
             </div>
         </main>
 
@@ -526,135 +607,347 @@
         const AssignmentsAPI = {
             // Получить все назначения
             async getAssignments() {
+        try {
+            console.log('📡 Отправляем запрос на получение назначений...');
+            const response = await fetch('/api/editor/assignments');
+            if (!response.ok) {
+                throw new Error('Ошибка получения назначений');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('❌ Ошибка получения назначений:', error);
+            return {
+                success: false,
+                message: 'Ошибка соединения с сервером: ' + error.message
+            };
+        }
+    },
+    
+    // Получить одно назначение
+    async getAssignment(id) {
+        try {
+            console.log('📡 Запрашиваем назначение ID:', id);
+            const response = await fetch(`/api/editor/assignments/${id}`);
+            if (!response.ok) {
+                throw new Error('Ошибка получения назначения');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('❌ Ошибка получения назначения:', error);
+            return {
+                success: false,
+                message: 'Ошибка загрузки назначения'
+            };
+        }
+    },
+            
+    async createAssignment(data) {
+        try {
+            console.log('📡 Создаем назначение:', data);
+            
+            // Сначала создаем основное назначение
+            const response = await fetch('/api/editor/assignments', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (!response.ok || !result.success) {
+                return result;
+            }
+            
+            // Если назначение успешно создано, получаем всех дочерних каталогов
+            if (data.includeChildren === true || data.includeChildren === undefined) {
                 try {
-                    console.log('📡 Отправляем запрос на получение назначений...');
-                    const response = await fetch('/api/assignments');
-                    if (!response.ok) {
-                        throw new Error('Ошибка получения назначений');
+                    // Получаем все дочерние каталоги рекурсивно
+                    const childrenResponse = await this.getAllChildDirectories(data.directoryId);
+                    
+                    if (childrenResponse.success && childrenResponse.data && childrenResponse.data.length > 0) {
+                        console.log(`📦 Найдено ${childrenResponse.data.length} дочерних каталогов для автоматического назначения`);
+                        
+                        // Создаем назначения для каждого дочернего каталога
+                        const childPromises = childrenResponse.data.map(async (childDirectory) => {
+                            const childData = {
+                                userId: data.userId,
+                                directoryId: childDirectory.id,
+                                permission: data.permission,
+                                notes: data.notes ? `${data.notes} (наследовано от родителя)` : 'Наследовано от родительского каталога',
+                                parentAssignmentId: result.data?.id, // Сохраняем ID родительского назначения
+                                inheritedFrom: data.directoryId
+                            };
+                            
+                            if (data.expiresAt) {
+                                childData.expiresAt = data.expiresAt;
+                            }
+                            
+                            return this.createAssignment(childData);
+                        });
+                        
+                        // Ждем завершения всех назначений
+                        await Promise.all(childPromises);
+                        
+                        console.log(`✅ Созданы назначения для всех дочерних каталогов`);
+                        
+                        // Обновляем сообщение результата
+                        result.message = `Назначение создано. Также предоставлен доступ к ${childrenResponse.data.length} дочерним каталогам`;
+                        result.childrenCreated = childrenResponse.data.length;
                     }
-                    return await response.json();
-                } catch (error) {
-                    console.error('❌ Ошибка получения назначений:', error);
-                    return {
-                        success: false,
-                        message: 'Ошибка соединения с сервером: ' + error.message
-                    };
-                }
-            },
-            
-            // Получить одно назначение
-            async getAssignment(id) {
-                try {
-                    console.log('📡 Запрашиваем назначение ID:', id);
-                    const response = await fetch(`/api/assignments/${id}`);
-                    if (!response.ok) {
-                        throw new Error('Ошибка получения назначения');
-                    }
-                    return await response.json();
-                } catch (error) {
-                    console.error('❌ Ошибка получения назначения:', error);
-                    return {
-                        success: false,
-                        message: 'Ошибка загрузки назначения'
-                    };
-                }
-            },
-            
-            // Создать назначение
-            async createAssignment(data) {
-                try {
-                    console.log('📡 Создаем назначение:', data);
-                    const response = await fetch('/api/assignments', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(data)
-                    });
-                    return await response.json();
-                } catch (error) {
-                    console.error('❌ Ошибка создания назначения:', error);
-                    return {
-                        success: false,
-                        message: 'Ошибка создания назначения'
-                    };
-                }
-            },
-            
-            // Обновить назначение
-            async updateAssignment(id, data) {
-                try {
-                    console.log('📡 Обновляем назначение ID:', id, 'данные:', data);
-                    const response = await fetch(`/api/assignments/${id}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(data)
-                    });
-                    return await response.json();
-                } catch (error) {
-                    console.error('❌ Ошибка обновления назначения:', error);
-                    return {
-                        success: false,
-                        message: 'Ошибка обновления назначения'
-                    };
-                }
-            },
-            
-            // Удалить назначение
-            async deleteAssignment(id) {
-                try {
-                    console.log('📡 Удаляем назначение ID:', id);
-                    const response = await fetch(`/api/assignments/${id}`, {
-                        method: 'DELETE'
-                    });
-                    return await response.json();
-                } catch (error) {
-                    console.error('❌ Ошибка удаления назначения:', error);
-                    return {
-                        success: false,
-                        message: 'Ошибка удаления назначения'
-                    };
-                }
-            },
-            
-            // Получить всех пользователей
-            async getUsers() {
-                try {
-                    console.log('📡 Запрашиваем список пользователей...');
-                    const response = await fetch('/api/users');
-                    if (!response.ok) {
-                        throw new Error('Ошибка получения пользователей');
-                    }
-                    return await response.json();
-                } catch (error) {
-                    console.error('❌ Ошибка получения пользователей:', error);
-                    return {
-                        success: false,
-                        message: 'Ошибка загрузки пользователей'
-                    };
-                }
-            },
-            
-            // Получить все справочники
-            async getDirectories() {
-                try {
-                    console.log('📡 Запрашиваем список справочников...');
-                    const response = await fetch('/api/directories');
-                    if (!response.ok) {
-                        throw new Error('Ошибка получения справочников');
-                    }
-                    return await response.json();
-                } catch (error) {
-                    console.error('❌ Ошибка получения справочников:', error);
-                    return {
-                        success: false,
-                        message: 'Ошибка загрузки справочников'
-                    };
+                } catch (childError) {
+                    console.error('❌ Ошибка создания дочерних назначений:', childError);
+                    // Не прерываем процесс, просто логируем ошибку
+                    // Основное назначение уже создано
                 }
             }
-        };
+            
+            return result;
+            
+        } catch (error) {
+            console.error('❌ Ошибка создания назначения:', error);
+            return {
+                success: false,
+                message: 'Ошибка создания назначения'
+            };
+        }
+    },
+    
+    // Обновить назначение
+    async updateAssignment(id, data) {
+        try {
+            console.log('📡 Обновляем назначение ID:', id, 'данные:', data);
+            
+            // Сначала обновляем основное назначение
+            const response = await fetch(`/api/editor/assignments/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (!response.ok || !result.success) {
+                return result;
+            }
+            
+            // Если нужно обновить дочерние назначения
+            if (data.updateChildren === true) {
+                try {
+                    // Получаем все дочерние назначения для этого основного назначения
+                    const childrenAssignments = await this.getChildAssignments(id);
+                    
+                    if (childrenAssignments.success && childrenAssignments.data && childrenAssignments.data.length > 0) {
+                        console.log(`📦 Найдено ${childrenAssignments.data.length} дочерних назначений для обновления`);
+                        
+                        // Обновляем каждое дочернее назначение
+                        const updatePromises = childrenAssignments.data.map(async (childAssignment) => {
+                            const updateData = {
+                                permission: data.permission,
+                                notes: data.notes ? `${data.notes} (обновлено из родителя)` : childAssignment.notes,
+                                inheritedFrom: data.directoryId
+                            };
+                            
+                            if (data.expiresAt) {
+                                updateData.expiresAt = data.expiresAt;
+                            }
+                            
+                            return this.updateAssignment(childAssignment.id, updateData);
+                        });
+                        
+                        await Promise.all(updatePromises);
+                        
+                        console.log(`✅ Обновлены ${childrenAssignments.data.length} дочерних назначений`);
+                        
+                        result.message = `Назначение обновлено. Также обновлено ${childrenAssignments.data.length} дочерних назначений`;
+                        result.childrenUpdated = childrenAssignments.data.length;
+                    }
+                } catch (childError) {
+                    console.error('❌ Ошибка обновления дочерних назначений:', childError);
+                }
+            }
+            
+            return result;
+            
+        } catch (error) {
+            console.error('❌ Ошибка обновления назначения:', error);
+            return {
+                success: false,
+                message: 'Ошибка обновления назначения'
+            };
+        }
+    },
+            
+    async deleteAssignment(id, deleteChildren = false) {
+        try {
+            console.log('📡 Удаляем назначение ID:', id, 'deleteChildren:', deleteChildren);
+            
+            if (deleteChildren) {
+                try {
+                    // Получаем все дочерние назначения
+                    const childrenAssignments = await this.getChildAssignments(id);
+                    
+                    if (childrenAssignments.success && childrenAssignments.data && childrenAssignments.data.length > 0) {
+                        console.log(`🗑️  Удаляем ${childrenAssignments.data.length} дочерних назначений`);
+                        
+                        // Удаляем дочерние назначения
+                        const deletePromises = childrenAssignments.data.map(async (childAssignment) => {
+                            return fetch(`/api/editor/assignments/${childAssignment.id}`, {
+                                method: 'DELETE'
+                            });
+                        });
+                        
+                        await Promise.all(deletePromises);
+                        console.log(`✅ Удалены дочерние назначения`);
+                    }
+                } catch (childError) {
+                    console.error('❌ Ошибка удаления дочерних назначений:', childError);
+                }
+            }
+            
+            // Удаляем основное назначение
+            const response = await fetch(`/api/editor/assignments/${id}`, {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            
+            if (deleteChildren && result.success) {
+                result.message = `Назначение и все дочерние назначения удалены`;
+            }
+            
+            return result;
+            
+        } catch (error) {
+            console.error('❌ Ошибка удаления назначения:', error);
+            return {
+                success: false,
+                message: 'Ошибка удаления назначения'
+            };
+        }
+    },
+
+    async getAllChildDirectories(parentId) {
+        try {
+            console.log(`📡 Получаем все дочерние каталоги для ${parentId}`);
+            
+            const response = await fetch(`/api/editor/directories/${parentId}/all-children`);
+            
+            if (!response.ok) {
+                throw new Error('Ошибка получения дочерних каталогов');
+            }
+            
+            return await response.json();
+            
+        } catch (error) {
+            console.error('❌ Ошибка получения дочерних каталогов:', error);
+            return {
+                success: false,
+                message: 'Ошибка получения дочерних каталогов'
+            };
+        }
+    },
+    
+    async getChildAssignments(parentAssignmentId) {
+        try {
+            console.log(`📡 Получаем дочерние назначения для ${parentAssignmentId}`);
+            
+            const response = await fetch(`/api/editor/assignments/${parentAssignmentId}/children`);
+            
+            if (!response.ok) {
+                // Если эндпоинт не существует, возвращаем пустой массив
+                console.log('ℹ️  Эндпоинт дочерних назначений не доступен');
+                return {
+                    success: true,
+                    data: []
+                };
+            }
+            
+            return await response.json();
+            
+        } catch (error) {
+            console.error('❌ Ошибка получения дочерних назначений:', error);
+            return {
+                success: false,
+                message: 'Ошибка получения дочерних назначений',
+                data: []
+            };
+        }
+    },
+    
+    // Получить всех пользователей (ТОЛЬКО С РОЛЬЮ "ПОЛЬЗОВАТЕЛЬ")
+    async getUsers() {
+        try {
+            console.log('📡 Запрашиваем список пользователей (только с ролью "Пользователь")...');
+            const response = await fetch('/api/editor/users');
+            if (!response.ok) {
+                throw new Error('Ошибка получения пользователей');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('❌ Ошибка получения пользователей:', error);
+            return {
+                success: false,
+                message: 'Ошибка загрузки пользователей'
+            };
+        }
+    },
+            
+    async getDirectories() {
+        try {
+            console.log('📡 Запрашиваем список справочников...');
+            const response = await fetch('/api/editor/directories-list');
+            if (!response.ok) {
+                throw new Error('Ошибка получения справочников');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('❌ Ошибка получения справочников:', error);
+            return {
+                success: false,
+                message: 'Ошибка загрузки справочников'
+            };
+        }
+    },
+    
+    // Поиск справочников по названию (используем тот же эндпоинт с параметром query)
+    async searchDirectories(query) {
+        try {
+            console.log('📡 Ищем справочники по запросу:', query);
+            // Используем тот же эндпоинт, но фильтруем на клиенте
+            const response = await fetch('/api/editor/directories-list');
+            if (!response.ok) {
+                throw new Error('Ошибка получения справочников');
+            }
+            
+            const data = await response.json();
+            
+            if (!data.success) {
+                return data;
+            }
+            
+            // Фильтруем на клиенте
+            const filteredDirectories = data.data.filter(dir => 
+                dir.name.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            return {
+                success: true,
+                data: filteredDirectories
+            };
+            
+        } catch (error) {
+            console.error('❌ Ошибка поиска справочников:', error);
+            return {
+                success: false,
+                message: 'Ошибка поиска справочников'
+            };
+        }
+    }
+};
 
         class UserManager {
             constructor() {
@@ -896,7 +1189,8 @@
                 this.filteredAssignments = [];
                 this.currentAssignmentId = null;
                 this.users = [];
-                this.directories = [];
+                this.directoriesHierarchy = [];
+                this.allDirectories = [];
                 this.init();
             }
             
@@ -929,7 +1223,35 @@
                     this.showNotification('Ошибка загрузки данных', 'error');
                 }
             }
-            
+            async checkDirectoryHasChildren(directoryId) {
+    try {
+        if (!directoryId) return false;
+        
+        // Ищем каталог в загруженном списке
+        const directory = this.allDirectories.find(dir => dir.id == directoryId);
+        
+        if (!directory) return false;
+        
+        // Проверяем, есть ли у этого каталога дети в списке allDirectories
+        const hasChildren = this.allDirectories.some(dir => dir.parentId == directoryId);
+        
+        // Показываем или скрываем блок с опциями
+        const childrenOptions = document.getElementById('childrenOptions');
+        if (childrenOptions) {
+            if (hasChildren) {
+                childrenOptions.style.display = 'block';
+            } else {
+                childrenOptions.style.display = 'none';
+            }
+        }
+        
+        return hasChildren;
+        
+    } catch (error) {
+        console.error('Ошибка проверки дочерних каталогов:', error);
+        return false;
+    }
+}
             async loadAssignments() {
                 console.log('🔄 Начинаем загрузку назначений...');
                 try {
@@ -961,28 +1283,206 @@
             }
             
             async loadUsers() {
-                try {
-                    const response = await AssignmentsAPI.getUsers();
-                    if (response && response.success) {
-                        this.users = response.data || [];
-                        this.populateUserSelects();
-                    }
-                } catch (error) {
-                    console.error('❌ Ошибка загрузки пользователей:', error);
-                }
-            }
+    try {
+        // Используем эндпоинт редактора вместо общего
+        const response = await fetch('/api/editor/users');
+        if (!response.ok) {
+            throw new Error('Ошибка получения пользователей');
+        }
+        const data = await response.json();
+        
+        console.log('📊 Ответ от /api/editor/users:', data);
+        
+        if (data && data.success) {
+            this.users = data.data || [];
+            console.log('👥 Загружены пользователи для назначений:', this.users.length);
+            console.log('📋 Список пользователей:', this.users);
+            this.populateUserSelects();
+        } else {
+            throw new Error(data?.message || 'Не удалось загрузить пользователей');
+        }
+    } catch (error) {
+        console.error('❌ Ошибка загрузки пользователей:', error);
+        this.showNotification('Ошибка загрузки пользователей', 'error');
+    }
+}
             
             async loadDirectories() {
-                try {
-                    const response = await AssignmentsAPI.getDirectories();
-                    if (response && response.success) {
-                        this.directories = response.data || [];
-                        this.populateDirectorySelects();
+    try {
+        const response = await AssignmentsAPI.getDirectories();
+        if (response && response.success) {
+            this.allDirectories = response.data || [];
+            console.log('📁 Загружены справочники для поиска:', this.allDirectories.length);
+            
+            this.populateDirectorySelects();
+            this.initDirectorySearch();
+        } else {
+            throw new Error(response?.message || 'Не удалось загрузить справочники');
+        }
+    } catch (error) {
+        console.error('❌ Ошибка загрузки справочников:', error);
+        this.showNotification('Ошибка загрузки справочников', 'error');
+    }
+}
+            
+initDirectorySearch() {
+    const searchResults = document.getElementById('directory-search-results');
+    const directoryInput = document.getElementById('assignDirectoryInput');
+    const directoryIdInput = document.getElementById('assignDirectoryId');
+    
+    if (!searchResults || !directoryInput) return;
+    
+    // Очистка результатов при клике вне поля
+    document.addEventListener('click', (e) => {
+        if (!directoryInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.classList.remove('active');
+        }
+    });
+    
+    // Обработчик ввода
+    let searchTimeout;
+    directoryInput.addEventListener('input', async (e) => {
+        clearTimeout(searchTimeout);
+        const query = e.target.value.trim();
+        
+        // Сброс ID если поле очищено
+        if (query === '') {
+            directoryIdInput.value = '';
+            searchResults.classList.remove('active');
+            searchResults.innerHTML = '';
+            return;
+        }
+        
+        searchTimeout = setTimeout(async () => {
+            try {
+                const response = await AssignmentsAPI.searchDirectories(query);
+                
+                searchResults.innerHTML = '';
+                
+                if (response && response.success && response.data && response.data.length > 0) {
+                    response.data.forEach(directory => {
+                        const item = document.createElement('div');
+                        item.className = 'search-result-item';
+                        item.dataset.directoryId = directory.id; // Сохраняем ID в data-атрибуте
+                        item.innerHTML = `
+                            <div><strong>${directory.name}</strong></div>
+                        `;
+                        
+                        // Добавляем обработчик с проверкой дочерних каталогов
+                        item.addEventListener('click', async () => {
+                            directoryInput.value = directory.name;
+                            directoryIdInput.value = directory.id;
+                            
+                            // После выбора каталога проверяем наличие дочерних каталогов
+                            if (this.checkDirectoryHasChildren) {
+                                const hasChildren = await this.checkDirectoryHasChildren(directory.id);
+                                
+                                // Показываем или скрываем опцию наследования
+                                const childrenOptions = document.getElementById('childrenOptions');
+                                if (childrenOptions) {
+                                    if (hasChildren) {
+                                        childrenOptions.style.display = 'block';
+                                    } else {
+                                        childrenOptions.style.display = 'none';
+                                    }
+                                }
+                            }
+                            
+                            searchResults.classList.remove('active');
+                            searchResults.innerHTML = '';
+                        });
+                        
+                        searchResults.appendChild(item);
+                    });
+                    
+                    searchResults.classList.add('active');
+                } else {
+                    const noResults = document.createElement('div');
+                    noResults.className = 'search-result-item';
+                    noResults.innerHTML = '<div><em>Справочники не найдены</em></div>';
+                    searchResults.appendChild(noResults);
+                    searchResults.classList.add('active');
+                }
+            } catch (error) {
+                console.error('Ошибка поиска справочников:', error);
+            }
+        }, 300);
+    });
+    
+    // Обработчик фокуса
+    directoryInput.addEventListener('focus', () => {
+        if (directoryInput.value.trim() === '' && this.allDirectories.length > 0) {
+            // Показываем все справочники при фокусе на пустом поле
+            searchResults.innerHTML = '';
+            
+            // Показываем первые 10 справочников
+            this.allDirectories.slice(0, 10).forEach(directory => {
+                const item = document.createElement('div');
+                item.className = 'search-result-item';
+                item.dataset.directoryId = directory.id; // Сохраняем ID в data-атрибуте
+                item.innerHTML = `
+                    <div><strong>${directory.name}</strong></div>
+                `;
+                
+                // Добавляем обработчик с проверкой дочерних каталогов
+                item.addEventListener('click', async () => {
+                    directoryInput.value = directory.name;
+                    directoryIdInput.value = directory.id;
+                    
+                    // После выбора каталога проверяем наличие дочерних каталогов
+                    if (this.checkDirectoryHasChildren) {
+                        const hasChildren = await this.checkDirectoryHasChildren(directory.id);
+                        
+                        // Показываем или скрываем опцию наследования
+                        const childrenOptions = document.getElementById('childrenOptions');
+                        if (childrenOptions) {
+                            if (hasChildren) {
+                                childrenOptions.style.display = 'block';
+                            } else {
+                                childrenOptions.style.display = 'none';
+                            }
+                        }
                     }
-                } catch (error) {
-                    console.error('❌ Ошибка загрузки справочников:', error);
+                    
+                    searchResults.classList.remove('active');
+                    searchResults.innerHTML = '';
+                });
+                
+                searchResults.appendChild(item);
+            });
+            
+            if (this.allDirectories.length > 10) {
+                const moreItem = document.createElement('div');
+                moreItem.className = 'search-result-item';
+                moreItem.style.fontSize = '12px';
+                moreItem.style.color = '#718096';
+                moreItem.innerHTML = `<em>и еще ${this.allDirectories.length - 10} справочников...</em>`;
+                searchResults.appendChild(moreItem);
+            }
+            
+            searchResults.classList.add('active');
+        }
+    });
+    
+    // Также проверяем при загрузке формы редактирования
+    if (directoryIdInput.value) {
+        // Если уже есть выбранный каталог (при редактировании), проверяем его
+        setTimeout(async () => {
+            if (this.checkDirectoryHasChildren) {
+                const hasChildren = await this.checkDirectoryHasChildren(directoryIdInput.value);
+                
+                const childrenOptions = document.getElementById('childrenOptions');
+                if (childrenOptions) {
+                    if (hasChildren) {
+                        childrenOptions.style.display = 'block';
+                    } else {
+                        childrenOptions.style.display = 'none';
+                    }
                 }
             }
+        }, 100);
+    }
+}
             
             renderErrorState(errorMessage) {
                 const tbody = document.getElementById('assignmentsTable');
@@ -990,7 +1490,7 @@
                 
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="empty-state">
+                        <td colspan="8" class="empty-state">
                             <i class="fas fa-exclamation-triangle" style="color: #f56565;"></i>
                             <h3>Ошибка загрузки назначений</h3>
                             <p>${errorMessage}</p>
@@ -1003,157 +1503,182 @@
             }
             
             renderTable() {
-                const tbody = document.getElementById('assignmentsTable');
-                if (!tbody) return;
-                
-                console.log('🎨 Рендерим таблицу с', this.filteredAssignments.length, 'назначениями');
-                
-                // Применяем пагинацию
-                const startIndex = (this.currentPage - 1) * this.pageSize;
-                const endIndex = startIndex + this.pageSize;
-                const pageData = this.filteredAssignments.slice(startIndex, endIndex);
-                
-                if (pageData.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="7" class="empty-state">
-                                <i class="fas fa-user-check"></i>
-                                <h3>Назначения не найдены</h3>
-                                <p>Создайте первое назначение или измените критерии поиска</p>
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-                
-                let html = '';
-                pageData.forEach(assignment => {
-                    console.log('👤 Рендерим назначение:', assignment);
-                    
-                    // Находим пользователя и справочник
-                    const user = this.users.find(u => u.id == assignment.userId);
-                    const directory = this.directories.find(d => d.id == assignment.directoryId);
-                    
-                    const userName = user ? user.username : 'Неизвестный';
-                    const directoryName = directory ? directory.name : 'Неизвестный справочник';
-                    const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString('ru-RU') : '—';
-                    const expiresDate = assignment.expiresAt ? new Date(assignment.expiresAt).toLocaleDateString('ru-RU') : '—';
-                    
-                    // Определяем статус
-                    const status = this.getAssignmentStatus(assignment);
-                    const statusClass = `status-${status}`;
-                    const statusText = this.getStatusText(status);
-                    
-                    // Определяем цвет прав доступа
-                    const permissionClass = `permission-${assignment.permission}`;
-                    
-                    html += `
-                        <tr>
-                            <td>
-                                <div class="user-info-small">
-                                    <div class="user-avatar-small">${userName.charAt(0).toUpperCase()}</div>
-                                    <div>
-                                        <div class="user-name-small">${userName}</div>
-                                        <div class="user-email-small">${user ? user.email || '' : ''}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="directory-info-small">
-                                    <i class="fas fa-folder"></i>
-                                    <span>${directoryName}</span>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="permission-badge ${permissionClass}">
-                                    ${this.getPermissionText(assignment.permission)}
-                                </span>
-                            </td>
-                            <td>${assignedDate}</td>
-                            <td class="${this.isExpiringSoon(assignment) ? 'expiring-soon' : ''}">
-                                ${expiresDate}
-                                ${this.isExpiringSoon(assignment) ? '<i class="fas fa-exclamation-circle" title="Скоро истекает"></i>' : ''}
-                            </td>
-                            <td>
-                                <span class="status-badge ${statusClass}">
-                                    <span class="status-indicator ${status}"></span>
-                                    ${statusText}
-                                </span>
-                            </td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="btn-action btn-action-edit" onclick="assignmentsPage.editAssignment(${assignment.id})" 
-                                            title="Редактировать">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn-action btn-action-delete" onclick="assignmentsPage.confirmDelete(${assignment.id})" 
-                                            title="Удалить">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                });
-                
-                tbody.innerHTML = html;
-                this.updatePagination();
-            }
+    const tbody = document.getElementById('assignmentsTable');
+    if (!tbody) return;
+    
+    console.log('🎨 Рендерим таблицу с', this.filteredAssignments.length, 'назначениями');
+    
+    // Отладка: выводим первое назначение
+    if (this.filteredAssignments.length > 0) {
+        console.log('🔍 Первое назначение для отладки:', this.filteredAssignments[0]);
+        console.log('👥 Доступные пользователи:', this.users);
+    }
+    
+    // Применяем пагинацию
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const endIndex = startIndex + this.pageSize;
+    const pageData = this.filteredAssignments.slice(startIndex, endIndex);
+    
+    if (pageData.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="empty-state">
+                    <i class="fas fa-user-check"></i>
+                    <h3>Назначения не найдены</h3>
+                    <p>Создайте первое назначение или измените критерии поиска</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    let html = '';
+    pageData.forEach(assignment => {
+        console.log('👤 Рендерим назначение:', assignment);
+        
+        // ВАЖНО: Проверяем, какие поля есть в объекте assignment
+        console.log('📊 Поля назначения:', Object.keys(assignment));
+        console.log('🆔 userId:', assignment.userId, 'userName:', assignment.userName);
+        
+        // Способ 1: Используем userName из данных назначения (если он есть)
+        const userName = assignment.userName || 'Неизвестный';
+        
+        // Способ 2: Ищем пользователя в списке users (резервный вариант)
+        const userFromList = this.users.find(u => u.id == assignment.userId);
+        const userNameFromList = userFromList ? userFromList.name : null;
+        
+        // Используем userName из данных назначения, если он есть, иначе из списка
+        const displayUserName = assignment.userName || userNameFromList || 'Неизвестный';
+        
+        const directoryName = assignment.directoryName || 'Неизвестный справочник';
+        const directoryPath = assignment.fullDirectoryPath || directoryName;
+        const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString('ru-RU') : '—';
+        const expiresDate = assignment.expiresAt ? new Date(assignment.expiresAt).toLocaleDateString('ru-RU') : '—';
+        
+        // Определяем статус
+        const status = this.getAssignmentStatus(assignment);
+        const statusClass = `status-${status}`;
+        const statusText = this.getStatusText(status);
+        
+        // Определяем цвет прав доступа
+        const permissionClass = `permission-${assignment.permission}`;
+        
+        html += `
+            <tr>
+                <td>
+                    <div class="user-info-small">
+                        <div class="user-avatar-small">${displayUserName.charAt(0)}</div>
+                        <div class="user-name-small">${displayUserName}</div>
+                    </div>
+                </td>
+                <td>
+                    <div class="directory-info-small">
+                        <i class="fas fa-folder"></i>
+                        <span>${directoryName}</span>
+                    </div>
+                </td>
+                <td>
+                    ${directoryPath}
+                </td>
+                <td>
+                    <span class="permission-badge ${permissionClass}">
+                        ${this.getPermissionText(assignment.permission)}
+                    </span>
+                </td>
+                <td>${assignedDate}</td>
+                <td class="${this.isExpiringSoon(assignment) ? 'expiring-soon' : ''}">
+                    ${expiresDate}
+                    ${this.isExpiringSoon(assignment) ? '<i class="fas fa-exclamation-circle" title="Скоро истекает"></i>' : ''}
+                </td>
+                <td>
+                    <span class="status-badge ${statusClass}">
+                        <span class="status-indicator ${status}"></span>
+                        ${statusText}
+                    </span>
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-action btn-action-edit" onclick="assignmentsPage.editAssignment(${assignment.id})" 
+                                title="Редактировать">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-action btn-action-delete" onclick="assignmentsPage.confirmDelete(${assignment.id})" 
+                                title="Удалить">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html;
+    this.updatePagination();
+}
             
-            populateUserSelects() {
-                const filterSelect = document.getElementById('filterUser');
-                const formSelect = document.getElementById('assignUser');
-                
-                if (!filterSelect || !formSelect) return;
-                
-                console.log('👥 Заполняем выпадающие списки пользователей');
-                
-                // Очищаем опции кроме первой
-                while (filterSelect.options.length > 1) filterSelect.remove(1);
-                while (formSelect.options.length > 1) formSelect.remove(1);
-                
-                this.users.forEach(user => {
-                    // Для фильтра
-                    const option1 = document.createElement('option');
-                    option1.value = user.id;
-                    option1.textContent = user.username + (user.email ? ` (${user.email})` : '');
-                    filterSelect.appendChild(option1);
-                    
-                    // Для формы
-                    const option2 = document.createElement('option');
-                    option2.value = user.id;
-                    option2.textContent = user.username + (user.email ? ` (${user.email})` : '');
-                    formSelect.appendChild(option2);
-                });
-            }
+populateUserSelects() {
+    const filterSelect = document.getElementById('filterUser');
+    const formSelect = document.getElementById('assignUser');
+    
+    if (!filterSelect || !formSelect) return;
+    
+    console.log('👥 Заполняем выпадающие списки пользователей');
+    console.log('📊 Данные пользователей:', this.users);
+    
+    // Очищаем опции кроме первой
+    while (filterSelect.options.length > 1) filterSelect.remove(1);
+    while (formSelect.options.length > 1) formSelect.remove(1);
+    
+    if (this.users.length === 0) {
+        console.log('⚠️ Нет пользователей для назначений');
+        
+        // Добавляем опцию для информирования
+        const noUsersOption = document.createElement('option');
+        noUsersOption.value = '';
+        noUsersOption.textContent = 'Нет доступных пользователей';
+        noUsersOption.disabled = true;
+        noUsersOption.selected = true;
+        formSelect.appendChild(noUsersOption);
+        
+        return;
+    }
+    
+    this.users.forEach(user => {
+        console.log(`👤 Добавляем пользователя: ID=${user.id}, Name=${user.name}`);
+        
+        // Для фильтра
+        const option1 = document.createElement('option');
+        option1.value = user.id;
+        option1.textContent = user.name;
+        filterSelect.appendChild(option1);
+        
+        // Для формы
+        const option2 = document.createElement('option');
+        option2.value = user.id;
+        option2.textContent = user.name;
+        formSelect.appendChild(option2);
+    });
+}
             
             populateDirectorySelects() {
                 const filterSelect = document.getElementById('filterDirectory');
-                const formSelect = document.getElementById('assignDirectory');
                 
-                if (!filterSelect || !formSelect) return;
+                if (!filterSelect) return;
                 
-                console.log('📁 Заполняем выпадающие списки справочников');
+                console.log('📁 Заполняем выпадающий список справочников для фильтра');
                 
                 // Очищаем опции кроме первой
                 while (filterSelect.options.length > 1) filterSelect.remove(1);
-                while (formSelect.options.length > 1) formSelect.remove(1);
                 
                 // Фильтруем только активные справочники
-                const activeDirectories = this.directories.filter(dir => (dir.status || 'active') === 'active');
+                const activeDirectories = this.allDirectories.filter(dir => (dir.status || 'active') === 'active');
                 
                 activeDirectories.forEach(dir => {
                     // Для фильтра
-                    const option1 = document.createElement('option');
-                    option1.value = dir.id;
-                    option1.textContent = dir.name || `Каталог ${dir.id}`;
-                    filterSelect.appendChild(option1);
-                    
-                    // Для формы
-                    const option2 = document.createElement('option');
-                    option2.value = dir.id;
-                    option2.textContent = dir.name || `Каталог ${dir.id}`;
-                    formSelect.appendChild(option2);
+                    const option = document.createElement('option');
+                    option.value = dir.id;
+                    option.textContent = dir.name || `Каталог ${dir.id}`;
+                    filterSelect.appendChild(option);
                 });
             }
             
@@ -1169,26 +1694,150 @@
                 document.getElementById('adminAssignments').textContent = admin;
             }
             
-            getAssignmentStatus(assignment) {
-                if (!assignment.expiresAt) return 'active';
-                
-                const expiresAt = new Date(assignment.expiresAt);
-                const now = new Date();
-                
-                if (expiresAt < now) return 'expired';
-                if (this.isExpiringSoon(assignment)) return 'expiring';
-                return 'active';
+           // В классе AssignmentsPage обновите следующие методы:
+
+getAssignmentStatus(assignment) {
+    // Если expiresAt не существует или null, считаем назначение активным
+    if (!assignment.expiresAt) return 'active';
+    
+    const expiresAt = new Date(assignment.expiresAt);
+    const now = new Date();
+    
+    if (expiresAt < now) return 'expired';
+    if (this.isExpiringSoon(assignment)) return 'expiring';
+    return 'active';
+}
+
+isExpiringSoon(assignment) {
+    // Если expiresAt не существует или null, не считаем истекающим
+    if (!assignment.expiresAt) return false;
+    
+    const expiresAt = new Date(assignment.expiresAt);
+    const now = new Date();
+    const daysUntilExpiry = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
+    
+    return daysUntilExpiry <= 7 && daysUntilExpiry > 0;
+}
+
+// В методе handleSubmit уберите expiresAt из данных
+async handleSubmit(e) {
+    e.preventDefault();
+    
+    const id = document.getElementById('assignmentId').value;
+    const userId = document.getElementById('assignUser').value;
+    const directoryId = document.getElementById('assignDirectoryId').value;
+    const permission = document.getElementById('assignPermission').value;
+    const expiresAt = document.getElementById('assignExpiresAt').value;
+    const notes = document.getElementById('assignNotes').value.trim();
+    const includeChildren = document.getElementById('includeChildren')?.checked || false;
+    
+    if (!userId || !directoryId || !permission) {
+        this.showNotification('Заполните обязательные поля', 'error');
+        return;
+    }
+    
+    if (!directoryId) {
+        this.showNotification('Выберите справочник из списка поиска', 'error');
+        return;
+    }
+    
+    try {
+        let response;
+        const data = { 
+            userId: userId,
+            directoryId: directoryId,
+            permission: permission,
+            notes: notes,
+            includeChildren: includeChildren  // Добавляем флаг наследования
+        };
+        
+        // Оставляем expiresAt только если поле заполнено (опционально)
+        if (expiresAt) {
+            data.expiresAt = expiresAt;
+        }
+        
+        if (id) {
+            console.log(`🔄 Обновляем назначение ID: ${id}`);
+            // При обновлении также передаем флаг обновления детей
+            data.updateChildren = includeChildren;
+            response = await AssignmentsAPI.updateAssignment(id, data);
+        } else {
+            console.log(`🔄 Создаем назначение с наследованием: ${includeChildren}`);
+            response = await AssignmentsAPI.createAssignment(data);
+        }
+        
+        if (response.success) {
+            let message = response.message || (id ? 'Назначение обновлено' : 'Назначение создано');
+            
+            // Добавляем информацию о дочерних каталогах
+            if (response.childrenCreated) {
+                message += ` (включая ${response.childrenCreated} дочерних каталогов)`;
+            } else if (response.childrenUpdated) {
+                message += ` (обновлено ${response.childrenUpdated} дочерних назначений)`;
             }
             
-            isExpiringSoon(assignment) {
-                if (!assignment.expiresAt) return false;
-                
-                const expiresAt = new Date(assignment.expiresAt);
-                const now = new Date();
-                const daysUntilExpiry = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
-                
-                return daysUntilExpiry <= 7 && daysUntilExpiry > 0;
+            this.showNotification(message, 'success');
+            
+            this.hideForm();
+            
+            // Перезагружаем данные
+            await this.loadInitialData();
+            
+        } else {
+            this.showNotification(response.message || 'Ошибка сохранения', 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка сохранения назначения:', error);
+        this.showNotification('Ошибка сохранения', 'error');
+    }
+}
+
+// В методе loadAssignmentData уберите обработку expiresAt
+async loadAssignmentData(id) {
+    try {
+        const response = await AssignmentsAPI.getAssignment(id);
+        if (response.success && response.data) {
+            const assignment = response.data;
+            document.getElementById('assignmentId').value = assignment.id;
+            document.getElementById('assignUser').value = assignment.userId;
+            
+            // Находим имя справочника для отображения
+            const directory = this.allDirectories.find(d => d.id == assignment.directoryId);
+            if (directory) {
+                document.getElementById('assignDirectoryInput').value = directory.name;
+                document.getElementById('assignDirectoryId').value = directory.id;
             }
+            
+            document.getElementById('assignPermission').value = assignment.permission;
+            
+            // Убираем установку expiresAt, так как поля нет
+            // document.getElementById('assignExpiresAt').value = '';
+            
+            document.getElementById('assignNotes').value = assignment.notes || '';
+        } else {
+            this.showNotification(response.message || 'Ошибка загрузки данных', 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки данных назначения:', error);
+        this.showNotification('Ошибка загрузки данных', 'error');
+    }
+}
+
+// Также обновите метод resetForm, чтобы не устанавливать дату истечения
+resetForm() {
+    const form = document.getElementById('assignmentForm');
+    if (form) {
+        form.reset();
+        document.getElementById('assignmentId').value = '';
+        document.getElementById('assignDirectoryId').value = '';
+        document.getElementById('assignPermission').value = 'READ';
+        const searchResults = document.getElementById('directory-search-results');
+        if (searchResults) {
+            searchResults.classList.remove('active');
+            searchResults.innerHTML = '';
+        }
+    }
+}
             
             getStatusText(status) {
                 const statuses = {
@@ -1304,14 +1953,16 @@
                 const permissionFilter = document.getElementById('filterPermission').value;
                 
                 this.filteredAssignments = this.assignments.filter(assignment => {
-                    // Поиск по пользователю
+                    // Поиск по пользователю и справочнику
                     const user = this.users.find(u => u.id == assignment.userId);
                     const userName = user ? user.username.toLowerCase() : '';
-                    const userEmail = user ? (user.email || '').toLowerCase() : '';
+                    const directoryName = assignment.directoryName ? assignment.directoryName.toLowerCase() : '';
+                    const directoryPath = assignment.fullDirectoryPath ? assignment.fullDirectoryPath.toLowerCase() : '';
                     
                     const matchesSearch = !searchTerm || 
-                        userName.includes(searchTerm) || 
-                        userEmail.includes(searchTerm);
+                        userName.includes(searchTerm) ||
+                        directoryName.includes(searchTerm) ||
+                        directoryPath.includes(searchTerm);
                     
                     // Фильтр по пользователю
                     const matchesUser = !userFilter || assignment.userId == userFilter;
@@ -1390,109 +2041,95 @@
                 }
             }
             
-            resetForm() {
-                const form = document.getElementById('assignmentForm');
-                if (form) {
-                    form.reset();
-                    document.getElementById('assignmentId').value = '';
-                    document.getElementById('assignPermission').value = 'READ';
-                    
-                    // Устанавливаем дату истечения на месяц вперед
-                    const nextMonth = new Date();
-                    nextMonth.setMonth(nextMonth.getMonth() + 1);
-                    const formattedDate = nextMonth.toISOString().split('T')[0];
-                    document.getElementById('assignExpiresAt').value = formattedDate;
-                }
-            }
-            
-            async loadAssignmentData(id) {
-                try {
-                    const response = await AssignmentsAPI.getAssignment(id);
-                    if (response.success && response.data) {
-                        const assignment = response.data;
-                        document.getElementById('assignmentId').value = assignment.id;
-                        document.getElementById('assignUser').value = assignment.userId;
-                        document.getElementById('assignDirectory').value = assignment.directoryId;
-                        document.getElementById('assignPermission').value = assignment.permission;
-                        
-                        if (assignment.expiresAt) {
-                            const expiresDate = new Date(assignment.expiresAt).toISOString().split('T')[0];
-                            document.getElementById('assignExpiresAt').value = expiresDate;
-                        }
-                        
-                        document.getElementById('assignNotes').value = assignment.notes || '';
-                    } else {
-                        this.showNotification(response.message || 'Ошибка загрузки данных', 'error');
-                    }
-                } catch (error) {
-                    console.error('Ошибка загрузки данных назначения:', error);
-                    this.showNotification('Ошибка загрузки данных', 'error');
-                }
-            }
-            
-            async handleSubmit(e) {
-                e.preventDefault();
-                
-                const id = document.getElementById('assignmentId').value;
-                const userId = document.getElementById('assignUser').value;
-                const directoryId = document.getElementById('assignDirectory').value;
-                const permission = document.getElementById('assignPermission').value;
-                const expiresAt = document.getElementById('assignExpiresAt').value;
-                const notes = document.getElementById('assignNotes').value.trim();
-                
-                if (!userId || !directoryId || !permission) {
-                    this.showNotification('Заполните обязательные поля', 'error');
-                    return;
-                }
-                
-                try {
-                    let response;
-                    const data = { 
-                        userId: userId,
-                        directoryId: directoryId,
-                        permission: permission,
-                        notes: notes
-                    };
-                    
-                    if (expiresAt) {
-                        data.expiresAt = expiresAt;
-                    }
-                    
-                    if (id) {
-                        console.log(`🔄 Обновляем назначение ID: ${id}`);
-                        response = await AssignmentsAPI.updateAssignment(id, data);
-                    } else {
-                        console.log(`🔄 Создаем назначение`);
-                        response = await AssignmentsAPI.createAssignment(data);
-                    }
-                    
-                    if (response.success) {
-                        const message = response.message || (id ? 'Назначение обновлено' : 'Назначение создано');
-                        this.showNotification(message, 'success');
-                        
-                        this.hideForm();
-                        
-                        // Перезагружаем данные
-                        await this.loadInitialData();
-                        
-                    } else {
-                        this.showNotification(response.message || 'Ошибка сохранения', 'error');
-                    }
-                } catch (error) {
-                    console.error('Ошибка сохранения назначения:', error);
-                    this.showNotification('Ошибка сохранения', 'error');
-                }
-            }
             
             editAssignment(id) {
                 this.showForm(id);
             }
             
             confirmDelete(id) {
-                this.currentAssignmentId = id;
-                this.showModal('Вы уверены, что хотите удалить это назначение?');
-            }
-            
+    this.currentAssignmentId = id;
+    
+    // Проверяем, есть ли у этого назначения дочерние назначения
+    const assignment = this.assignments.find(a => a.id == id);
+    const hasChildAssignments = assignment && assignment.childCount > 0;
+    
+    let message = 'Вы уверены, что хотите удалить это назначение?';
+    
+    if (hasChildAssignments) {
+        message += '\n\nУ этого назначения есть дочерние назначения. Удалить их тоже?';
+        
+        // Показываем кастомное модальное окно с выбором
+        this.showDeleteConfirmationWithChildren(message);
+    } else {
+        this.showModal(message);
+    }
+}
+
+showDeleteConfirmationWithChildren(message) {
+    const modal = document.getElementById('confirmModal');
+    const messageElement = document.getElementById('confirmMessage');
+    const confirmBtn = document.getElementById('confirmActionBtn');
+    const cancelBtn = document.getElementById('cancelActionBtn');
+    
+    if (!modal || !messageElement || !confirmBtn || !cancelBtn) return;
+    
+    // Сохраняем оригинальные тексты
+    const originalConfirmText = confirmBtn.textContent;
+    const originalCancelText = cancelBtn.textContent;
+    
+    // Обновляем сообщение
+    messageElement.innerHTML = message.replace(/\n/g, '<br>');
+    
+    // Обновляем кнопки
+    confirmBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Удалить все';
+    cancelBtn.innerHTML = '<i class="fas fa-trash"></i> Только это';
+    
+    // Создаем третью кнопку для отмены
+    const cancelAllBtn = document.createElement('button');
+    cancelAllBtn.className = 'btn-secondary';
+    cancelAllBtn.innerHTML = '<i class="fas fa-times"></i> Отмена';
+    cancelAllBtn.onclick = () => {
+        modal.style.display = 'none';
+        // Восстанавливаем оригинальные кнопки
+        confirmBtn.innerHTML = originalConfirmText;
+        cancelBtn.innerHTML = originalCancelText;
+        cancelAllBtn.remove();
+    };
+    
+    // Добавляем новую кнопку в модальное окно
+    const modalFooter = modal.querySelector('.modal-footer');
+    modalFooter.appendChild(cancelAllBtn);
+    
+    // Обработчики для кнопок
+    const originalConfirmHandler = confirmBtn.onclick;
+    const originalCancelHandler = cancelBtn.onclick;
+    
+    confirmBtn.onclick = async () => {
+        // Удаляем с детьми
+        await AssignmentsAPI.deleteAssignment(this.currentAssignmentId, true);
+        this.hideModal();
+        await this.loadInitialData();
+        this.showNotification('Назначение и все дочерние назначения удалены', 'success');
+        
+        // Восстанавливаем оригинальные обработчики
+        confirmBtn.onclick = originalConfirmHandler;
+        cancelBtn.onclick = originalCancelHandler;
+    };
+    
+    cancelBtn.onclick = async () => {
+        // Удаляем только это назначение
+        await AssignmentsAPI.deleteAssignment(this.currentAssignmentId, false);
+        this.hideModal();
+        await this.loadInitialData();
+        this.showNotification('Назначение удалено', 'success');
+        
+        // Восстанавливаем оригинальные обработчики
+        confirmBtn.onclick = originalConfirmHandler;
+        cancelBtn.onclick = originalCancelHandler;
+    };
+    
+    modal.style.display = 'flex';
+}       
             async deleteAssignment() {
                 if (!this.currentAssignmentId) return;
                 
@@ -1514,20 +2151,20 @@
             async exportAssignments() {
                 try {
                     // Создаем CSV
-                    let csv = 'Пользователь,Справочник,Права,Дата назначения,Истекает,Статус\n';
+                    let csv = 'Пользователь,Справочник,Путь,Права,Дата назначения,Истекает,Статус\n';
                     
                     this.filteredAssignments.forEach(assignment => {
                         const user = this.users.find(u => u.id == assignment.userId);
-                        const directory = this.directories.find(d => d.id == assignment.directoryId);
                         
                         const userName = user ? user.username : 'Неизвестный';
-                        const directoryName = directory ? directory.name : 'Неизвестный справочник';
+                        const directoryName = assignment.directoryName || 'Неизвестный справочник';
+                        const directoryPath = assignment.fullDirectoryPath || directoryName;
                         const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString('ru-RU') : '';
                         const expiresDate = assignment.expiresAt ? new Date(assignment.expiresAt).toLocaleDateString('ru-RU') : '';
                         const status = this.getAssignmentStatus(assignment);
                         const statusText = this.getStatusText(status);
                         
-                        csv += `"${userName}","${directoryName}","${this.getPermissionText(assignment.permission)}","${assignedDate}","${expiresDate}","${statusText}"\n`;
+                        csv += `"${userName}","${directoryName}","${directoryPath}","${this.getPermissionText(assignment.permission)}","${assignedDate}","${expiresDate}","${statusText}"\n`;
                     });
                     
                     // Создаем ссылку для скачивания
