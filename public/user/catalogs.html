@@ -1033,8 +1033,11 @@
                 const data = await response.json();
                 console.log('✅ Получены данные пользователя:', data);
                 
-                if (data.success && data.user) {
-                    updateUserInfo(data.user);
+                if (data.success) {
+                    updateUserInfo({
+                        username: data.username || data.user?.name || data.user?.username,
+                        role: data.role || data.user?.role
+                    });
                     checkPasswordStatus();
                 } else {
                     throw new Error(data.message || 'Ошибка получения данных');
@@ -1054,9 +1057,11 @@
             const userName = document.getElementById('userName');
             const userRole = document.getElementById('userRole');
             
+            const displayName = user.username || user.name;
+
             // Обновляем имя
-            if (userName && user.name) {
-                userName.textContent = user.name;
+            if (userName && displayName) {
+                userName.textContent = displayName;
             }
             
             // Обновляем роль
@@ -1065,8 +1070,8 @@
             }
             
             // Обновляем аватар
-            if (userAvatar && user.name) {
-                userAvatar.textContent = user.name.charAt(0).toUpperCase();
+            if (userAvatar && displayName) {
+                userAvatar.textContent = displayName.charAt(0).toUpperCase();
                 
                 // Добавляем цветной градиент для аватара
                 const colors = [
@@ -1076,7 +1081,7 @@
                     'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
                 ];
                 
-                const charCode = user.name.charCodeAt(0);
+                const charCode = displayName.charCodeAt(0);
                 const colorIndex = charCode % colors.length;
                 userAvatar.style.background = colors[colorIndex];
                 userAvatar.style.color = 'white';
