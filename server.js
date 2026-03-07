@@ -54,12 +54,11 @@ async function checkCatalogAccess(userId, catalogId, requiredPermission = 'READ'
         console.log(`🔍 [checkCatalogAccess] Проверка: user=${userId}, catalog=${catalogId}, required=${requiredPermission}`);
         
         // 1. Сначала проверяем, является ли пользователь администратором
-        const [userRole] = await pool.execute(`
-            SELECT r.name as role 
-            FROM Users u
-            LEFT JOIN Roles r ON u.idRoles = r.idRoles
-            WHERE u.idUsers = ?
-        `, [userId]);
+        // pool.query вместо pool.execute — избегаем проблем с кешем prepared statements
+        const [userRole] = await pool.query(
+            'SELECT r.name AS role FROM Users u LEFT JOIN Roles r ON u.idRoles = r.idRoles WHERE u.idUsers = ?',
+            [userId]
+        );
         
         const isAdmin = userRole.length > 0 && userRole[0].role === 'Администратор';
         console.log(`👤 Пользователь ${userId} - Администратор: ${isAdmin}`);
@@ -117,18 +116,21 @@ async function checkCatalogAccess(userId, catalogId, requiredPermission = 'READ'
         const catalogIds = catalogHierarchy.map(c => c.id);
         console.log(`🔍 Проверяем доступ к каталогам: ${catalogIds.join(', ')}`);
         
-        const [userAssignments] = await pool.execute(`
-            SELECT 
+        // Динамические плейсхолдеры для IN — pool.execute не поддерживает массивы в IN (?)
+        const inPlaceholders = catalogIds.map(() => '?').join(', ');
+        const [userAssignments] = await pool.query(
+            `SELECT 
                 uf.idFolders as catalogId,
                 uf.permission,
                 f.Name as catalogName
             FROM UsersFolders uf
             JOIN Folder f ON uf.idFolders = f.idFolder
             WHERE uf.idUsers = ? 
-            AND uf.idFolders IN (?)
+            AND uf.idFolders IN (${inPlaceholders})
             AND f.status = 'active'
-            ORDER BY uf.idFolders
-        `, [userId, catalogIds]);
+            ORDER BY uf.idFolders`,
+            [userId, ...catalogIds]
+        );
         
         console.log(`📊 Найдено назначений: ${userAssignments.length}`);
         userAssignments.forEach(a => {
@@ -245,12 +247,10 @@ async function getCatalogAccessInfo(userId, catalogId) {
         console.log(`🔍 Полная информация о доступе: user=${userId}, catalog=${catalogId}`);
         
         // 1. Проверяем администратора
-        const [userRole] = await pool.execute(`
-            SELECT r.name as role 
-            FROM Users u
-            LEFT JOIN Roles r ON u.idRoles = r.idRoles
-            WHERE u.idUsers = ?
-        `, [userId]);
+        const [userRole] = await pool.query(
+            'SELECT r.name AS role FROM Users u LEFT JOIN Roles r ON u.idRoles = r.idRoles WHERE u.idUsers = ?',
+            [userId]
+        );
         
         if (userRole.length > 0 && userRole[0].role === 'Администратор') {
             return {
@@ -275,16 +275,21 @@ async function getCatalogAccessInfo(userId, catalogId) {
         
         // 3. Проверяем доступ к каждому каталогу в цепочке
         const catalogIds = catalogChain.map(c => c.id);
+        // catalogIds.reverse() мутировал исходный массив — делаем копию
+        const catalogIdsReversed = [...catalogIds].reverse();
         
-        const [userAccess] = await pool.execute(`
-            SELECT uf.idFolders, uf.permission, f.Name as catalogName
+        const inPlaceholders = catalogIds.map(() => '?').join(', ');
+        const fieldPlaceholders = catalogIdsReversed.map(() => '?').join(', ');
+        const [userAccess] = await pool.query(
+            `SELECT uf.idFolders, uf.permission, f.Name as catalogName
             FROM UsersFolders uf
             JOIN Folder f ON uf.idFolders = f.idFolder
             WHERE uf.idUsers = ? 
-            AND uf.idFolders IN (?)
+            AND uf.idFolders IN (${inPlaceholders})
             AND f.status = 'active'
-            ORDER BY FIELD(uf.idFolders, ?)
-        `, [userId, catalogIds, catalogIds.reverse()]); // Проверяем от родителя к ребенку
+            ORDER BY FIELD(uf.idFolders, ${fieldPlaceholders})`,
+            [userId, ...catalogIds, ...catalogIdsReversed]
+        );
         
         if (userAccess.length === 0) {
             return {
@@ -4838,8 +4843,51 @@ app.post('/api/documents/upload', requireAuth(), FileManager.getUploadMiddleware
             });
         }
         
-        console.log(`🔍 ПРОВЕРКА ДОСТУПА к каталогу ${catalogId}..., return TRUE`);
-
+        // Проверяем доступ к каталогу с подробным логированием
+        console.log(`🔍 ПРОВЕРКА ДОСТУПА к каталогу ${catalogId}...`);
+        const hasAccess = await checkCatalogAccess(userId, catalogId, 'WRITE');
+        
+        if (!hasAccess) {
+            console.log(`❌ ДОСТУП ЗАПРЕЩЕН для пользователя ${userId} к каталогу ${catalogId}`);
+            
+            // Дополнительная диагностика
+            const [catalogInfo] = await pool.execute(`
+                SELECT Name FROM Folder WHERE idFolder = ?
+            `, [catalogId]);
+            
+            const catalogName = catalogInfo.length > 0 ? catalogInfo[0].Name : 'Неизвестный каталог';
+            
+            // Получаем все назначения пользователя для диагностики
+            const [userAssignments] = await pool.execute(`
+                SELECT f.idFolder, f.Name, uf.permission, f.parentId
+                FROM UsersFolders uf
+                JOIN Folder f ON uf.idFolders = f.idFolder
+                WHERE uf.idUsers = ?
+                ORDER BY f.parentId
+            `, [userId]);
+            
+            console.log(`📊 Все назначения пользователя ${userId}:`, userAssignments);
+            
+            if (file && file.path) {
+                await safeUnlink(file.path);
+            }
+            
+            return res.status(403).json({
+                success: false,
+                message: `Недостаточно прав для загрузки документов в каталог "${catalogName}"`,
+                debug: process.env.NODE_ENV === 'development' ? {
+                    userId: userId,
+                    catalogId: catalogId,
+                    catalogName: catalogName,
+                    userAssignments: userAssignments,
+                    requiredPermission: 'WRITE'
+                } : undefined
+            });
+        }
+        
+        console.log(`✅ ДОСТУП РАЗРЕШЕН, продолжаем загрузку...`);
+        
+        // Остальной код загрузки файла остается без изменений...
         const connection = await pool.getConnection();
         
         try {
@@ -5076,6 +5124,17 @@ app.post('/api/documents/:id/versions/upload', requireAuth(), FileManager.getUpl
             }
             
             const folderId = fileInfo[0].idFolders;
+            
+            // Проверяем доступ к каталогу документа
+            const hasAccess = await checkCatalogAccess(userId, folderId, 'WRITE');
+            
+            if (!hasAccess) {
+                await safeUnlink(file.path);
+                return res.status(403).json({
+                    success: false,
+                    message: 'Недостаточно прав для обновления документа'
+                });
+            }
             
             const currentFileName = fileInfo[0].fileName;
             
@@ -6319,6 +6378,15 @@ app.post('/api/user/documents/:id/upload', requireAuth(), FileManager.getUploadM
             }
 
             const folderId = fileInfo[0].idFolders;
+            const hasAccess = await checkCatalogAccess(userId, folderId, 'WRITE');
+
+            if (!hasAccess) {
+                await safeUnlink(file.path);
+                return res.status(403).json({
+                    success: false,
+                    message: 'Недостаточно прав для обновления документа'
+                });
+            }
             const [currentVersion] = await connection.execute(`
                 SELECT MAX(versionNumber) as currentVersion
                 FROM FileVersions
