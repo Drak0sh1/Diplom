@@ -6319,15 +6319,6 @@ app.post('/api/user/documents/:id/upload', requireAuth(), FileManager.getUploadM
             }
 
             const folderId = fileInfo[0].idFolders;
-            const hasAccess = await checkCatalogAccess(userId, folderId, 'WRITE');
-
-            if (!hasAccess) {
-                await safeUnlink(file.path);
-                return res.status(403).json({
-                    success: false,
-                    message: 'Недостаточно прав для обновления документа'
-                });
-            }
             const [currentVersion] = await connection.execute(`
                 SELECT MAX(versionNumber) as currentVersion
                 FROM FileVersions
