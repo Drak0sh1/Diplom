@@ -10,8 +10,7 @@ class FileManager {
         this.uploadPath = path.join(__dirname, 'uploads');
         this.documentsPath = path.join(__dirname, 'documents');
         this.ensureDirectories();
-        
-        // Настройка multer для загрузки файлов
+
         this.storage = multer.diskStorage({
             destination: (req, file, cb) => {
                 const tempPath = path.join(this.uploadPath, 'temp');
