@@ -10,14 +10,15 @@ class FileManager {
         this.uploadPath = path.join(__dirname, 'uploads');
         this.documentsPath = path.join(__dirname, 'documents');
         this.ensureDirectories();
-        
-        // Настройка multer для загрузки файлов
+
         this.storage = multer.diskStorage({
             destination: (req, file, cb) => {
                 const tempPath = path.join(this.uploadPath, 'temp');
                 cb(null, tempPath);
             },
             filename: (req, file, cb) => {
+                // Multer получает имя как latin1, но браузер отправляет UTF-8 байты
+                file.originalname = Buffer.from(file.originalname, 'latin1').toString('utf8');
                 const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
                 cb(null, uniqueName);
             }
@@ -91,7 +92,7 @@ class FileManager {
             
             const filePath = path.join(versionDir, versionFile);
             const stats = await fs.stat(filePath);
-            const buffer = await fs.promises.readFile(file.path);
+            const buffer = await fs.readFile(filePath);
             
             return {
                 buffer: buffer,
@@ -203,7 +204,7 @@ class FileManager {
                 const stats = await fs.stat(filePath);
                 
                 if (now - stats.mtimeMs > oneHour) {
-                    await fs.unlink(file.path).catch(() => {});
+                    await fs.unlink(filePath).catch(() => {});
                 }
             }
         } catch (error) {
