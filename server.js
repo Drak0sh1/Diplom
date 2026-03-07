@@ -5077,17 +5077,6 @@ app.post('/api/documents/:id/versions/upload', requireAuth(), FileManager.getUpl
             
             const folderId = fileInfo[0].idFolders;
             
-            // Проверяем доступ к каталогу документа
-            const hasAccess = await checkCatalogAccess(userId, folderId, 'WRITE');
-            
-            if (!hasAccess) {
-                await safeUnlink(file.path);
-                return res.status(403).json({
-                    success: false,
-                    message: 'Недостаточно прав для обновления документа'
-                });
-            }
-            
             const currentFileName = fileInfo[0].fileName;
             
             // Получаем текущую версию
