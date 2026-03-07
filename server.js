@@ -330,6 +330,14 @@ async function getCatalogAccessInfo(userId, catalogId) {
     }
 }
 
+/**
+ * Проверяет, является ли пользователь администратором по роли из JWT-токена.
+ * Не требует запроса к БД — роль уже верифицирована middleware requireAuth.
+ */
+function isUserAdmin(req) {
+    return req.user && req.user.role === 'Администратор';
+}
+
 // ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ЛОГИРОВАНИЯ ============
 
 async function logAction(userId, actionType, details = '', module = 'system', targetType = null, targetId = null, status = 'info', ip = '', userAgent = '') {
@@ -1017,17 +1025,19 @@ app.get('/api/user/catalogs/:parentId/children', requireAuth(), async (req, res)
         const userId = req.user.userId;
         const parentId = req.params.parentId;
         
-        // Проверяем доступ к родительскому каталогу
-        const [hasAccess] = await pool.execute(`
-            SELECT 1 FROM UsersFolders 
-            WHERE idUsers = ? AND idFolders = ?
-        `, [userId, parentId]);
-        
-        if (hasAccess.length === 0) {
-            return res.status(403).json({
-                success: false,
-                message: 'Нет доступа к этому каталогу'
-            });
+        // Администратор имеет доступ ко всем каталогам без записи в UsersFolders
+        if (!isUserAdmin(req)) {
+            const [hasAccess] = await pool.execute(`
+                SELECT 1 FROM UsersFolders 
+                WHERE idUsers = ? AND idFolders = ?
+            `, [userId, parentId]);
+            
+            if (hasAccess.length === 0) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Нет доступа к этому каталогу'
+                });
+            }
         }
         
         // Получаем дочерние каталоги
@@ -4700,17 +4710,19 @@ app.post('/api/user/catalogs/:id/documents', requireAuth(), async (req, res) => 
         const ip = getClientIp(req);
         const userAgent = req.headers['user-agent'] || '';
         
-        // Проверяем, есть ли у пользователя права на запись
-        const [access] = await pool.execute(`
-            SELECT permission FROM UsersFolders 
-            WHERE idUsers = ? AND idFolders = ? AND permission IN ('WRITE', 'ADMIN')
-        `, [userId, catalogId]);
-        
-        if (access.length === 0) {
-            return res.status(403).json({
-                success: false,
-                message: 'Недостаточно прав для добавления документов'
-            });
+        // Администратор имеет право на запись без явной записи в UsersFolders
+        if (!isUserAdmin(req)) {
+            const [access] = await pool.execute(`
+                SELECT permission FROM UsersFolders 
+                WHERE idUsers = ? AND idFolders = ? AND permission IN ('WRITE', 'ADMIN')
+            `, [userId, catalogId]);
+            
+            if (access.length === 0) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Недостаточно прав для добавления документов'
+                });
+            }
         }
         
         const { name, description = '', version = '1.0.0' } = req.body;
@@ -5586,8 +5598,8 @@ app.get('/api/documents/:id', requireAuth(), async (req, res) => {
         
         const document = documents[0];
         
-        // Если нет доступа
-        if (!document.permission && document.uploadedBy !== req.user.username) {
+        // Если нет доступа (администратор пропускается)
+        if (!isUserAdmin(req) && !document.permission && document.uploadedBy !== req.user.username) {
             return res.status(403).json({
                 success: false,
                 message: 'Доступ к документу запрещен'
@@ -5659,19 +5671,21 @@ app.put('/api/documents/:id', requireAuth(), async (req, res) => {
         const ip = getClientIp(req);
         const userAgent = req.headers['user-agent'] || '';
         
-        // Проверяем права на редактирование
-        const [access] = await pool.execute(`
-            SELECT f.*, uf.permission
-            FROM Files f
-            LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
-            WHERE f.idFiles = ? AND uf.permission IN ('WRITE', 'ADMIN')
-        `, [userId, documentId]);
-        
-        if (access.length === 0) {
-            return res.status(403).json({
-                success: false,
-                message: 'Недостаточно прав для редактирования документа'
-            });
+        // Проверяем права на редактирование (администратор имеет полный доступ)
+        if (!isUserAdmin(req)) {
+            const [access] = await pool.execute(`
+                SELECT f.idFiles
+                FROM Files f
+                LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
+                WHERE f.idFiles = ? AND uf.permission IN ('WRITE', 'ADMIN')
+            `, [userId, documentId]);
+            
+            if (access.length === 0) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Недостаточно прав для редактирования документа'
+                });
+            }
         }
         
         const connection = await pool.getConnection();
@@ -5761,22 +5775,30 @@ app.delete('/api/documents/:id', requireAuth(), async (req, res) => {
         const ip = getClientIp(req);
         const userAgent = req.headers['user-agent'] || '';
         
-        // Проверяем права на удаление (только ADMIN)
-        const [access] = await pool.execute(`
-            SELECT f.name, uf.permission
-            FROM Files f
-            LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
-            WHERE f.idFiles = ? AND uf.permission = 'ADMIN'
-        `, [userId, documentId]);
-        
-        if (access.length === 0) {
-            return res.status(403).json({
-                success: false,
-                message: 'Недостаточно прав для удаления документа. Требуется роль ADMIN'
-            });
+        // Проверяем права на удаление (администратор имеет полный доступ)
+        let documentName;
+        if (!isUserAdmin(req)) {
+            const [access] = await pool.execute(`
+                SELECT f.name, uf.permission
+                FROM Files f
+                LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
+                WHERE f.idFiles = ? AND uf.permission = 'ADMIN'
+            `, [userId, documentId]);
+            
+            if (access.length === 0) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Недостаточно прав для удаления документа. Требуется роль ADMIN'
+                });
+            }
+            documentName = access[0].name;
+        } else {
+            const [docInfo] = await pool.execute(`SELECT name FROM Files WHERE idFiles = ?`, [documentId]);
+            if (docInfo.length === 0) {
+                return res.status(404).json({ success: false, message: 'Документ не найден' });
+            }
+            documentName = docInfo[0].name;
         }
-        
-        const documentName = access[0].name;
         
         // Получаем информацию о версиях перед удалением
         const [versions] = await pool.execute(`
@@ -6561,18 +6583,20 @@ app.get('/api/user/documents/:id/versions', requireAuth(), async (req, res) => {
         const documentId = req.params.id;
         const userId = req.user.userId;
         
-        // Проверяем доступ к документу
-        const [access] = await pool.execute(`
-            SELECT 1 FROM Files f
-            LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
-            WHERE f.idFiles = ?
-        `, [userId, documentId]);
-        
-        if (access.length === 0) {
-            return res.status(403).json({
-                success: false,
-                message: 'Доступ к документу запрещен'
-            });
+        // Проверяем доступ к документу (администратор имеет полный доступ)
+        if (!isUserAdmin(req)) {
+            const [access] = await pool.execute(`
+                SELECT 1 FROM Files f
+                LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
+                WHERE f.idFiles = ?
+            `, [userId, documentId]);
+            
+            if (access.length === 0) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Доступ к документу запрещен'
+                });
+            }
         }
         
         // Получаем все версии документа
@@ -6629,19 +6653,21 @@ app.post('/api/user/documents/:id/versions', requireAuth(), async (req, res) => 
         const ip = getClientIp(req);
         const userAgent = req.headers['user-agent'] || '';
         
-        // Проверяем права на запись
-        const [access] = await pool.execute(`
-            SELECT uf.permission, f.idFolders as catalogId
-            FROM Files f
-            LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
-            WHERE f.idFiles = ? AND uf.permission IN ('WRITE', 'ADMIN')
-        `, [userId, documentId]);
-        
-        if (access.length === 0) {
-            return res.status(403).json({
-                success: false,
-                message: 'Недостаточно прав для создания новой версии'
-            });
+        // Проверяем права на запись (администратор имеет полный доступ)
+        if (!isUserAdmin(req)) {
+            const [access] = await pool.execute(`
+                SELECT uf.permission
+                FROM Files f
+                LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
+                WHERE f.idFiles = ? AND uf.permission IN ('WRITE', 'ADMIN')
+            `, [userId, documentId]);
+            
+            if (access.length === 0) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Недостаточно прав для создания новой версии'
+                });
+            }
         }
         
         const { comment = '', storageType = 'full', baseVersionId = null } = req.body;
@@ -6733,18 +6759,20 @@ app.put('/api/user/documents/:id', requireAuth(), async (req, res) => {
         const ip = getClientIp(req);
         const userAgent = req.headers['user-agent'] || '';
         
-        // Проверяем права на запись
-        const [access] = await pool.execute(`
-            SELECT uf.permission FROM Files f
-            LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
-            WHERE f.idFiles = ? AND uf.permission IN ('WRITE', 'ADMIN')
-        `, [userId, documentId]);
-        
-        if (access.length === 0) {
-            return res.status(403).json({
-                success: false,
-                message: 'Недостаточно прав для редактирования документа'
-            });
+        // Проверяем права на запись (администратор имеет полный доступ)
+        if (!isUserAdmin(req)) {
+            const [access] = await pool.execute(`
+                SELECT uf.permission FROM Files f
+                LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
+                WHERE f.idFiles = ? AND uf.permission IN ('WRITE', 'ADMIN')
+            `, [userId, documentId]);
+            
+            if (access.length === 0) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Недостаточно прав для редактирования документа'
+                });
+            }
         }
         
         const { name, description = '', status = null } = req.body;
@@ -6825,18 +6853,20 @@ app.delete('/api/user/documents/:id', requireAuth(), async (req, res) => {
         const ip = getClientIp(req);
         const userAgent = req.headers['user-agent'] || '';
         
-        // Проверяем права на удаление (только ADMIN)
-        const [access] = await pool.execute(`
-            SELECT uf.permission FROM Files f
-            LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
-            WHERE f.idFiles = ? AND uf.permission = 'ADMIN'
-        `, [userId, documentId]);
-        
-        if (access.length === 0) {
-            return res.status(403).json({
-                success: false,
-                message: 'Недостаточно прав для удаления документа. Требуется роль ADMIN'
-            });
+        // Проверяем права на удаление (администратор имеет полный доступ)
+        if (!isUserAdmin(req)) {
+            const [access] = await pool.execute(`
+                SELECT uf.permission FROM Files f
+                LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
+                WHERE f.idFiles = ? AND uf.permission = 'ADMIN'
+            `, [userId, documentId]);
+            
+            if (access.length === 0) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Недостаточно прав для удаления документа. Требуется роль ADMIN'
+                });
+            }
         }
         
         // Удаляем документ (каскадное удаление настроено в БД)
@@ -6891,6 +6921,25 @@ app.get('/api/user/catalog-access/:id', requireAuth(), async (req, res) => {
         const catalogId = req.params.id;
         const userId = req.user.userId;
         
+        // Администратор имеет полный доступ ко всем каталогам
+        if (isUserAdmin(req)) {
+            const [catalogInfo] = await pool.execute(`
+                SELECT Name as catalogName, description FROM Folder WHERE idFolder = ? AND status = 'active'
+            `, [catalogId]);
+            
+            if (catalogInfo.length === 0) {
+                return res.json({ success: false, hasAccess: false, message: 'Каталог не найден' });
+            }
+            
+            return res.json({
+                success: true,
+                hasAccess: true,
+                permission: 'ADMIN',
+                catalogName: catalogInfo[0].catalogName,
+                description: catalogInfo[0].description
+            });
+        }
+
         // Проверяем доступ пользователя к каталогу
         const [access] = await pool.execute(`
             SELECT 
