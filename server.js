@@ -1025,14 +1025,10 @@ app.get('/api/user/catalogs/:parentId/children', requireAuth(), async (req, res)
         const userId = req.user.userId;
         const parentId = req.params.parentId;
         
-        // Администратор имеет доступ ко всем каталогам без записи в UsersFolders
+        // Проверяем доступ с учётом иерархии (наследование от родительских каталогов)
         if (!isUserAdmin(req)) {
-            const [hasAccess] = await pool.execute(`
-                SELECT 1 FROM UsersFolders 
-                WHERE idUsers = ? AND idFolders = ?
-            `, [userId, parentId]);
-            
-            if (hasAccess.length === 0) {
+            const hasAccess = await checkCatalogAccess(userId, parentId, 'READ');
+            if (!hasAccess) {
                 return res.status(403).json({
                     success: false,
                     message: 'Нет доступа к этому каталогу'
@@ -6105,74 +6101,9 @@ app.get('/api/user/catalog-access-hierarchy/:id', requireAuth(), async (req, res
     try {
         const catalogId = req.params.id;
         const userId = req.user.userId;
-        
-        // 1. Проверяем прямой доступ
-        const [directAccess] = await pool.execute(`
-            SELECT uf.permission
-            FROM UsersFolders uf
-            WHERE uf.idUsers = ? AND uf.idFolders = ?
-        `, [userId, catalogId]);
-        
-        if (directAccess.length > 0) {
-            return res.json({
-                success: true,
-                hasAccess: true,
-                permission: directAccess[0].permission,
-                accessType: 'direct'
-            });
-        }
-        
-        // 2. Проверяем доступ через родителей (наследование)
-        let currentId = catalogId;
-        let hasParentAccess = false;
-        let parentPermission = null;
-        
-        while (currentId) {
-            // Получаем родительский каталог
-            const [parentInfo] = await pool.execute(`
-                SELECT parentId FROM Folder WHERE idFolder = ?
-            `, [currentId]);
-            
-            if (parentInfo.length === 0 || !parentInfo[0].parentId) {
-                break;
-            }
-            
-            const parentId = parentInfo[0].parentId;
-            
-            // Проверяем доступ к родительскому каталогу
-            const [parentAccess] = await pool.execute(`
-                SELECT uf.permission
-                FROM UsersFolders uf
-                WHERE uf.idUsers = ? AND uf.idFolders = ?
-            `, [userId, parentId]);
-            
-            if (parentAccess.length > 0) {
-                hasParentAccess = true;
-                parentPermission = parentAccess[0].permission;
-                break;
-            }
-            
-            currentId = parentId;
-        }
-        
-        if (hasParentAccess) {
-            return res.json({
-                success: true,
-                hasAccess: true,
-                permission: parentPermission,
-                accessType: 'inherited'
-            });
-        }
-        
-        // 3. Проверяем администраторский доступ
-        const [userRole] = await pool.execute(`
-            SELECT r.name as role 
-            FROM Users u
-            LEFT JOIN Roles r ON u.idRoles = r.idRoles
-            WHERE u.idUsers = ?
-        `, [userId]);
-        
-        if (userRole[0]?.role === 'Администратор') {
+
+        // Администратор имеет полный доступ — быстрый ответ без DB-запросов
+        if (isUserAdmin(req)) {
             return res.json({
                 success: true,
                 hasAccess: true,
@@ -6180,15 +6111,26 @@ app.get('/api/user/catalog-access-hierarchy/:id', requireAuth(), async (req, res
                 accessType: 'admin'
             });
         }
-        
-        // 4. Доступ запрещен
+
+        // Для остальных — используем getCatalogAccessInfo с поддержкой наследования
+        const accessInfo = await getCatalogAccessInfo(userId, catalogId);
+
+        if (!accessInfo.hasAccess) {
+            return res.json({
+                success: false,
+                hasAccess: false,
+                message: accessInfo.message || 'Доступ к каталогу запрещен',
+                accessType: 'none'
+            });
+        }
+
         return res.json({
-            success: false,
-            hasAccess: false,
-            message: 'Доступ к каталогу запрещен',
-            accessType: 'none'
+            success: true,
+            hasAccess: true,
+            permission: accessInfo.permission,
+            accessType: accessInfo.accessType
         });
-        
+
     } catch (error) {
         console.error('❌ Ошибка проверки доступа к каталогу:', error);
         res.status(500).json({ 
@@ -6204,80 +6146,15 @@ app.get('/api/user/catalogs/:id/documents-with-inheritance', requireAuth(), asyn
         const catalogId = req.params.id;
         const userId = req.user.userId;
         
-        // 1. Проверяем доступ с учетом иерархии
-        const accessCheck = await new Promise(async (resolve, reject) => {
-            try {
-                // Прямой доступ
-                const [directAccess] = await pool.execute(`
-                    SELECT uf.permission
-                    FROM UsersFolders uf
-                    WHERE uf.idUsers = ? AND uf.idFolders = ?
-                `, [userId, catalogId]);
-                
-                if (directAccess.length > 0) {
-                    return resolve({
-                        hasAccess: true,
-                        permission: directAccess[0].permission,
-                        accessType: 'direct'
-                    });
-                }
-                
-                // Наследование от родителей
-                let currentId = catalogId;
-                while (currentId) {
-                    const [parentInfo] = await pool.execute(`
-                        SELECT parentId FROM Folder WHERE idFolder = ?
-                    `, [currentId]);
-                    
-                    if (parentInfo.length === 0 || !parentInfo[0].parentId) {
-                        break;
-                    }
-                    
-                    const parentId = parentInfo[0].parentId;
-                    const [parentAccess] = await pool.execute(`
-                        SELECT uf.permission
-                        FROM UsersFolders uf
-                        WHERE uf.idUsers = ? AND uf.idFolders = ?
-                    `, [userId, parentId]);
-                    
-                    if (parentAccess.length > 0) {
-                        return resolve({
-                            hasAccess: true,
-                            permission: parentAccess[0].permission,
-                            accessType: 'inherited'
-                        });
-                    }
-                    
-                    currentId = parentId;
-                }
-                
-                // Администратор
-                const [userRole] = await pool.execute(`
-                    SELECT r.name as role 
-                    FROM Users u
-                    LEFT JOIN Roles r ON u.idRoles = r.idRoles
-                    WHERE u.idUsers = ?
-                `, [userId]);
-                
-                if (userRole[0]?.role === 'Администратор') {
-                    return resolve({
-                        hasAccess: true,
-                        permission: 'ADMIN',
-                        accessType: 'admin'
-                    });
-                }
-                
-                resolve({
-                    hasAccess: false,
-                    permission: null,
-                    accessType: 'none'
-                });
-                
-            } catch (error) {
-                reject(error);
-            }
-        });
-        
+        // 1. Проверяем доступ с учётом иерархии и роли
+        // Администратор имеет полный доступ без записей в UsersFolders
+        let accessCheck;
+        if (isUserAdmin(req)) {
+            accessCheck = { hasAccess: true, permission: 'ADMIN', accessType: 'admin' };
+        } else {
+            accessCheck = await getCatalogAccessInfo(userId, catalogId);
+        }
+
         if (!accessCheck.hasAccess) {
             return res.status(403).json({
                 success: false,
@@ -6921,16 +6798,17 @@ app.get('/api/user/catalog-access/:id', requireAuth(), async (req, res) => {
         const catalogId = req.params.id;
         const userId = req.user.userId;
         
+        // Получаем информацию о каталоге для имени/описания
+        const [catalogInfo] = await pool.execute(
+            'SELECT Name as catalogName, description FROM Folder WHERE idFolder = ? AND status = \'active\'',
+            [catalogId]
+        );
+        if (catalogInfo.length === 0) {
+            return res.json({ success: false, hasAccess: false, message: 'Каталог не найден' });
+        }
+
         // Администратор имеет полный доступ ко всем каталогам
         if (isUserAdmin(req)) {
-            const [catalogInfo] = await pool.execute(`
-                SELECT Name as catalogName, description FROM Folder WHERE idFolder = ? AND status = 'active'
-            `, [catalogId]);
-            
-            if (catalogInfo.length === 0) {
-                return res.json({ success: false, hasAccess: false, message: 'Каталог не найден' });
-            }
-            
             return res.json({
                 success: true,
                 hasAccess: true,
@@ -6940,31 +6818,24 @@ app.get('/api/user/catalog-access/:id', requireAuth(), async (req, res) => {
             });
         }
 
-        // Проверяем доступ пользователя к каталогу
-        const [access] = await pool.execute(`
-            SELECT 
-                uf.permission,
-                f.Name as catalogName,
-                f.description
-            FROM UsersFolders uf
-            JOIN Folder f ON uf.idFolders = f.idFolder
-            WHERE uf.idUsers = ? AND uf.idFolders = ? AND f.status = 'active'
-        `, [userId, catalogId]);
-        
-        if (access.length === 0) {
+        // Для остальных пользователей — проверяем с учётом наследования от родителей
+        const accessInfo = await getCatalogAccessInfo(userId, catalogId);
+
+        if (!accessInfo.hasAccess) {
             return res.json({
                 success: false,
                 message: 'Доступ к каталогу запрещен',
                 hasAccess: false
             });
         }
-        
+
         res.json({
             success: true,
             hasAccess: true,
-            permission: access[0].permission,
-            catalogName: access[0].catalogName,
-            description: access[0].description
+            permission: accessInfo.permission,
+            accessType: accessInfo.accessType,
+            catalogName: catalogInfo[0].catalogName,
+            description: catalogInfo[0].description
         });
         
     } catch (error) {
