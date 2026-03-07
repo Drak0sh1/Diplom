@@ -5285,7 +5285,7 @@ app.get('/api/documents/:id/download', requireAuth(), async (req, res) => {
             });
         }
         
-        const document = access[0];
+        const document = docInfo[0];
         
         // Получаем текущую версию
         const [currentVersion] = await pool.execute(`
@@ -5329,9 +5329,10 @@ app.get('/api/documents/:id/download', requireAuth(), async (req, res) => {
         );
         
         // Отправляем файл
+        const encodedName = encodeURIComponent(fileInfo.name).replace(/'/g, '%27');
         res.setHeader('Content-Type', fileInfo.mimeType || 'application/octet-stream');
         res.setHeader('Content-Length', fileInfo.buffer.length);
-        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileInfo.name)}"`);
+        res.setHeader('Content-Disposition', `attachment; filename="document"; filename*=UTF-8''${encodedName}`);
         
         res.send(fileInfo.buffer);
         
@@ -5449,9 +5450,10 @@ app.get('/api/documents/:id/versions/:versionNumber/download', requireAuth(), as
         );
         
         // Отправляем файл
+        const encodedName = encodeURIComponent(fileInfo.name).replace(/'/g, '%27');
         res.setHeader('Content-Type', fileInfo.mimeType || 'application/octet-stream');
         res.setHeader('Content-Length', fileInfo.buffer.length);
-        res.setHeader('Content-Disposition', `attachment; filename="v${versionNumber}_${encodeURIComponent(fileInfo.name)}"`);
+        res.setHeader('Content-Disposition', `attachment; filename="v${versionNumber}_document"; filename*=UTF-8''v${versionNumber}_${encodedName}`);
         
         res.send(fileInfo.buffer);
         
@@ -6334,23 +6336,126 @@ app.get('/api/user/catalogs/:id/documents-with-inheritance', requireAuth(), asyn
     }
 });
 
-// ЗАГРУЗИТЬ ФАЙЛ ДОКУМЕНТА
-app.post('/api/user/documents/:id/upload', requireAuth(), async (req, res) => {
+// ЗАГРУЗИТЬ ФАЙЛ ДОКУМЕНТА (новая версия к существующему документу)
+app.post('/api/user/documents/:id/upload', requireAuth(), FileManager.getUploadMiddleware(), async (req, res) => {
+    let file = null;
     try {
         const documentId = req.params.id;
         const userId = req.user.userId;
-        
-        // Здесь будет обработка multipart/form-data загрузки файла
-        // Пока возвращаем заглушку
-        
-        res.json({
-            success: true,
-            message: 'Файл загружен (заглушка)',
-            fileUrl: `/storage/documents/${documentId}/latest`
-        });
-        
+        file = req.file;
+        const ip = getClientIp(req);
+        const userAgent = req.headers['user-agent'] || '';
+
+        if (!file) {
+            return res.status(400).json({
+                success: false,
+                message: 'Файл не загружен'
+            });
+        }
+
+        const connection = await pool.getConnection();
+
+        try {
+            await connection.beginTransaction();
+
+            const [fileInfo] = await connection.execute(`
+                SELECT f.idFiles, f.idFolders, f.name as fileName
+                FROM Files f
+                WHERE f.idFiles = ?
+            `, [documentId]);
+
+            if (fileInfo.length === 0) {
+                await safeUnlink(file.path);
+                return res.status(404).json({
+                    success: false,
+                    message: 'Документ не найден'
+                });
+            }
+
+            const folderId = fileInfo[0].idFolders;
+            const hasAccess = await checkCatalogAccess(userId, folderId, 'WRITE');
+
+            if (!hasAccess) {
+                await safeUnlink(file.path);
+                return res.status(403).json({
+                    success: false,
+                    message: 'Недостаточно прав для обновления документа'
+                });
+            }
+            const [currentVersion] = await connection.execute(`
+                SELECT MAX(versionNumber) as currentVersion
+                FROM FileVersions
+                WHERE idFiles = ?
+            `, [documentId]);
+
+            const nextVersion = (currentVersion[0].currentVersion || 0) + 1;
+
+            const fileBuffer = await fs.promises.readFile(file.path);
+            const originalName = file.originalname;
+            const fileSize = fileBuffer.length;
+
+            // Сохраняем новую версию на диск
+            const newFileInfo = await FileManager.saveDocumentVersion(
+                documentId,
+                nextVersion,
+                fileBuffer,
+                originalName
+            );
+
+            // Создаём запись о версии
+            const [versionResult] = await connection.execute(`
+                INSERT INTO FileVersions (versionNumber, storageType, storagePath, idFiles, checksum)
+                VALUES (?, 'full', ?, ?, ?)
+            `, [nextVersion, newFileInfo.path, documentId, newFileInfo.checksum]);
+
+            const newVersionId = versionResult.insertId;
+
+            // Обновляем запись документа
+            await connection.execute(`
+                UPDATE Files
+                SET name = ?, fileSize = ?, currentVersionId = ?, updatedAt = CURRENT_TIMESTAMP
+                WHERE idFiles = ?
+            `, [originalName, fileSize, newVersionId, documentId]);
+
+            await safeUnlink(file.path);
+            await connection.commit();
+
+            await logAction(
+                userId,
+                'version_upload',
+                `Пользователь ${req.user.username} загрузил версию v${nextVersion} для документа ID:${documentId}`,
+                'documents',
+                'file_version',
+                documentId,
+                'success',
+                ip,
+                userAgent
+            );
+
+            connection.release();
+
+            res.json({
+                success: true,
+                message: `Версия v${nextVersion} успешно загружена`,
+                data: {
+                    documentId: documentId,
+                    versionId: newVersionId,
+                    versionNumber: nextVersion,
+                    name: originalName,
+                    size: fileSize
+                }
+            });
+
+        } catch (transactionError) {
+            await connection.rollback();
+            connection.release();
+            if (file && file.path) await safeUnlink(file.path);
+            throw transactionError;
+        }
+
     } catch (error) {
         console.error('❌ Ошибка загрузки файла:', error);
+        if (req.file && req.file.path) await safeUnlink(req.file.path);
         res.status(500).json({ 
             success: false, 
             message: 'Ошибка сервера при загрузке файла' 
@@ -6363,59 +6468,79 @@ app.get('/api/user/documents/:id/download', requireAuth(), async (req, res) => {
     try {
         const documentId = req.params.id;
         const userId = req.user.userId;
-        
-        // Проверяем доступ к документу
-        const [access] = await pool.execute(`
-            SELECT uf.permission, f.idFolders as catalogId
+
+        // Проверяем существование документа и доступ
+        const [docRows] = await pool.execute(`
+            SELECT f.idFiles, f.idFolders, f.name
             FROM Files f
-            LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
-            WHERE f.idFiles = ?
-        `, [userId, documentId]);
-        
-        if (access.length === 0) {
-            return res.status(403).json({
-                success: false,
-                message: 'Доступ к документу запрещен'
-            });
-        }
-        
-        // Получаем информацию о файле
-        const [fileInfo] = await pool.execute(`
-            SELECT 
-                f.name,
-                fv.storagePath,
-                fv.versionNumber
-            FROM Files f
-            LEFT JOIN FileVersions fv ON f.currentVersionId = fv.idFileVersions
             WHERE f.idFiles = ?
         `, [documentId]);
-        
-        if (fileInfo.length === 0) {
-            return res.json({
+
+        if (docRows.length === 0) {
+            return res.status(404).json({
                 success: false,
                 message: 'Документ не найден'
             });
         }
-        
-        const fileName = fileInfo[0].name;
-        const filePath = fileInfo[0].storagePath;
-        const version = fileInfo[0].versionNumber;
-        
-        // В реальной системе здесь будет отдача файла
-        // Пока возвращаем информацию о файле
-        
-        res.json({
-            success: true,
-            message: 'Документ доступен для скачивания',
-            document: {
-                id: documentId,
-                name: fileName,
-                version: version,
-                downloadUrl: `/storage/download/${documentId}`, // Заглушка
-                directUrl: filePath
-            }
-        });
-        
+
+        const hasAccess = await checkCatalogAccess(userId, docRows[0].idFolders, 'READ');
+
+        if (!hasAccess) {
+            return res.status(403).json({
+                success: false,
+                message: 'Доступ к документу запрещён'
+            });
+        }
+
+        // Получаем последнюю версию
+        const [versionRows] = await pool.execute(`
+            SELECT fv.versionNumber, fv.storagePath
+            FROM FileVersions fv
+            WHERE fv.idFiles = ? AND fv.versionNumber = (
+                SELECT MAX(versionNumber) FROM FileVersions WHERE idFiles = ?
+            )
+        `, [documentId, documentId]);
+
+        if (versionRows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Файл ещё не загружен'
+            });
+        }
+
+        const version = versionRows[0];
+
+        // Читаем файл с диска через FileManager
+        const fileInfo = await FileManager.getDocumentVersion(documentId, version.versionNumber);
+
+        if (!fileInfo || !fileInfo.buffer) {
+            return res.status(404).json({
+                success: false,
+                message: 'Файл не найден на сервере'
+            });
+        }
+
+        // Логируем скачивание
+        await logAction(
+            userId,
+            'document_download',
+            `Пользователь ${req.user.username} скачал документ "${docRows[0].name}" (v${version.versionNumber})`,
+            'documents',
+            'file',
+            documentId,
+            'success',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+
+        // Отправляем файл с корректной кодировкой имени (RFC 5987)
+        const encodedName = encodeURIComponent(fileInfo.name).replace(/'/g, '%27');
+        res.setHeader('Content-Type', fileInfo.mimeType || 'application/octet-stream');
+        res.setHeader('Content-Length', fileInfo.buffer.length);
+        res.setHeader('Content-Disposition', `attachment; filename="document"; filename*=UTF-8''${encodedName}`);
+
+        res.send(fileInfo.buffer);
+
     } catch (error) {
         console.error('❌ Ошибка скачивания документа:', error);
         res.status(500).json({ 
