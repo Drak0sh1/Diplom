@@ -6,6 +6,7 @@ const path = require('path');
 
 let authConfig;
 let privateKey, publicKey;
+const fallbackJwtSecret = process.env.JWT_FALLBACK_SECRET || 'temporary-secret-for-development';
 
 const loadKey = (filePath) => {
     try {
@@ -220,14 +221,13 @@ function generateAccessToken(payload) {
         // Если RSA не работает, временно используем HS256
         console.log('🔄 Пробую использовать HS256 как временное решение...');
         
-        const JWT_SECRET = 'temporary-secret-for-development-' + Date.now();
         return jwt.sign(
             { 
                 ...payload, 
                 tokenType: 'access',
                 exp: Math.floor(Date.now() / 1000) + (authConfig.access_token_ttl / 1000000000)
             },
-            JWT_SECRET,
+            fallbackJwtSecret,
             { algorithm: 'HS256' }
         );
     }
@@ -251,14 +251,13 @@ function generateRefreshToken(payload) {
     } catch (error) {
         console.error('❌ Ошибка генерации Refresh Token:', error.message);
         // Временное решение с HS256
-        const JWT_SECRET = 'temporary-secret-for-development-' + Date.now();
         return jwt.sign(
             { 
                 ...payload, 
                 tokenType: 'refresh',
                 exp: Math.floor(Date.now() / 1000) + (authConfig.refresh_ttl / 1000000000)
             },
-            JWT_SECRET,
+            fallbackJwtSecret,
             { algorithm: 'HS256' }
         );
     }
@@ -266,14 +265,32 @@ function generateRefreshToken(payload) {
 
 function verifyToken(token) {
     try {
-        if (!publicKey || !publicKey.includes('-----BEGIN RSA PUBLIC KEY-----')) {
-            throw new Error('Неверный формат публичного ключа');
+        if (!token || typeof token !== 'string') {
+            throw new Error('Токен не передан');
         }
-        
-        return jwt.verify(token, publicKey, { 
-            algorithms: ['RS256'],
-            ignoreExpiration: false
-        });
+
+        const decodedToken = jwt.decode(token, { complete: true });
+        const algorithm = decodedToken?.header?.alg;
+
+        if (algorithm === 'RS256') {
+            if (!publicKey || !publicKey.includes('-----BEGIN')) {
+                throw new Error('Неверный формат публичного ключа');
+            }
+
+            return jwt.verify(token, publicKey, {
+                algorithms: ['RS256'],
+                ignoreExpiration: false
+            });
+        }
+
+        if (algorithm === 'HS256') {
+            return jwt.verify(token, fallbackJwtSecret, {
+                algorithms: ['HS256'],
+                ignoreExpiration: false
+            });
+        }
+
+        throw new Error(`Неподдерживаемый алгоритм токена: ${algorithm || 'unknown'}`);
     } catch (error) {
         console.error('❌ Ошибка проверки токена:', error.message);
         return null;
@@ -284,8 +301,11 @@ function verifyToken(token) {
 function requireRefreshToken() {
     return (req, res, next) => {
         try {
-            const token = req.headers['authorization']?.split(' ')[1] || 
-                         req.cookies?.refresh_token;
+            const authHeader = req.headers['authorization'];
+            const bearerToken = authHeader?.startsWith('Bearer ')
+                ? authHeader.slice(7).trim()
+                : null;
+            const token = bearerToken || req.cookies?.refresh_token;
 
             if (!token) {
                 return res.status(401).json({
