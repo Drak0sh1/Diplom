@@ -5,7 +5,6 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const UserPasswordManager = require('./user-password-manager.js');
 const fileManager = require('./file-manager.js');
-const fs = require('fs');
 
 const {
     initTokenConfig,
@@ -36,16 +35,6 @@ let pool;
 
 // ============ ХРАНИЛИЩЕ СЕССИЙ ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ ============
 const sessions = new Map();
-// Вспомогательная функция для безопасного удаления файлов
-async function safeUnlink(filePath) {
-    if (!filePath) return;
-    try {
-        await fs.promises.unlink(filePath);
-    } catch (error) {
-        // Игнорируем ошибки удаления
-        console.log(`ℹ️ Не удалось удалить файл: ${error.message}`);
-    }
-}
 /**
  * Проверяет доступ пользователя к каталогу с учетом наследования от родительских каталогов
  */
@@ -4746,18 +4735,14 @@ app.post('/api/user/catalogs/:id/documents', requireAuth(), async (req, res) => 
             
             const fileId = fileResult.insertId;
             
-            // Создаем первую версию файла (в реальной системе тут будет физический файл)
-            const [versionResult] = await connection.execute(`
-                INSERT INTO FileVersions (versionNumber, storageType, storagePath, idFiles, checksum)
-                VALUES (1, 'full', ?, ?, ?)
-            `, [`/storage/documents/${fileId}/v1`, fileId, 'test_checksum']);
-            
-            const versionId = versionResult.insertId;
+            const versionPayload = fileManager.prepareVersionData(null, name.trim(), null, {
+                fileSize: 0,
+                checksum: 'test_checksum'
+            });
+            const versionId = await insertFileVersion(connection, fileId, 1, 'full', null, versionPayload);
             
             // Обновляем файл с ссылкой на текущую версию
-            await connection.execute(`
-                UPDATE Files SET currentVersionId = ? WHERE idFiles = ?
-            `, [versionId, fileId]);
+            await updateDocumentCurrentVersion(connection, fileId, versionId);
             
             // Завершаем транзакцию
             await connection.commit();
@@ -4812,14 +4797,11 @@ app.post('/api/user/catalogs/:id/documents', requireAuth(), async (req, res) => 
         });
     }
 });
-// Добавить в начало server.js после импортов
-const FileManager = require('./file-manager.js');
-
 // ============ ЭНДПОИНТЫ ДЛЯ ДОКУМЕНТОВ И ВЕРСИЙ ============
 
 // ЗАГРУЗИТЬ НОВЫЙ ДОКУМЕНТ
 // ЗАГРУЗИТЬ НОВЫЙ ДОКУМЕНТ
-app.post('/api/documents/upload', requireAuth(), FileManager.getUploadMiddleware(), async (req, res) => {
+app.post('/api/documents/upload', requireAuth(), fileManager.getUploadMiddleware(), async (req, res) => {
     let file = null;
     
     try {
@@ -4836,7 +4818,6 @@ app.post('/api/documents/upload', requireAuth(), FileManager.getUploadMiddleware
         
         if (!catalogId) {
             console.log('❌ Не указан каталог');
-            if (file && file.path) await safeUnlink(file.path);
             return res.status(400).json({
                 success: false,
                 message: 'Не указан каталог'
@@ -4876,10 +4857,6 @@ app.post('/api/documents/upload', requireAuth(), FileManager.getUploadMiddleware
             
             console.log(`📊 Все назначения пользователя ${userId}:`, userAssignments);
             
-            if (file && file.path) {
-                await safeUnlink(file.path);
-            }
-            
             return res.status(403).json({
                 success: false,
                 message: `Недостаточно прав для загрузки документов в каталог "${catalogName}"`,
@@ -4901,10 +4878,7 @@ app.post('/api/documents/upload', requireAuth(), FileManager.getUploadMiddleware
         try {
             await connection.beginTransaction();
             
-            // Читаем файл в буфер
-            const fileBuffer = await fs.promises.readFile(file.path);
-            const originalName = file.originalname;
-            const fileSize = fileBuffer.length;
+            const { fileBuffer, originalName, mimeType, fileSize } = getUploadedFileInfo(file);
             
             console.log(`💾 Сохранение файла: ${originalName} (${formatFileSize(fileSize)})`);
             
@@ -4917,24 +4891,11 @@ app.post('/api/documents/upload', requireAuth(), FileManager.getUploadMiddleware
             const fileId = fileResult.insertId;
             console.log(`📝 Создана запись файла ID: ${fileId}`);
             
-            // Сохраняем первую версию
-            const fileInfo = await FileManager.saveDocumentVersion(fileId, 1, fileBuffer, originalName);
-            
-            // Создаем запись о версии
-            const [versionResult] = await connection.execute(`
-                INSERT INTO FileVersions (versionNumber, storageType, storagePath, idFiles, checksum)
-                VALUES (1, 'full', ?, ?, ?)
-            `, [fileInfo.path, fileId, fileInfo.checksum]);
-            
-            const versionId = versionResult.insertId;
+            const versionPayload = fileManager.prepareVersionData(fileBuffer, originalName, mimeType);
+            const versionId = await insertFileVersion(connection, fileId, 1, 'full', null, versionPayload);
             
             // Обновляем файл с ссылкой на текущую версию
-            await connection.execute(`
-                UPDATE Files SET currentVersionId = ? WHERE idFiles = ?
-            `, [versionId, fileId]);
-            
-            // Удаляем временный файл
-            await safeUnlink(file.path);
+            await updateDocumentCurrentVersion(connection, fileId, versionId);
             
             await connection.commit();
             
@@ -4970,23 +4931,12 @@ app.post('/api/documents/upload', requireAuth(), FileManager.getUploadMiddleware
         } catch (transactionError) {
             await connection.rollback();
             connection.release();
-            
-            // Удаляем временный файл в случае ошибки
-            if (file && file.path) {
-                await safeUnlink(file.path);
-            }
-            
             throw transactionError;
         }
         
     } catch (error) {
         console.error('❌ ОШИБКА ЗАГРУЗКИ ДОКУМЕНТА:', error);
         console.error('Stack trace:', error.stack);
-        
-        // Удаляем временный файл в случае ошибки
-        if (file && file.path) {
-            await safeUnlink(file.path);
-        }
         
         res.status(500).json({
             success: false,
@@ -5094,7 +5044,7 @@ app.get('/api/debug/access-test/:catalogId', requireAuth(), async (req, res) => 
 });
 
 // ЗАГРУЗИТЬ НОВУЮ ВЕРСИЮ ДОКУМЕНТА
-app.post('/api/documents/:id/versions/upload', requireAuth(), FileManager.getUploadMiddleware(), async (req, res) => {
+app.post('/api/documents/:id/versions/upload', requireAuth(), fileManager.getUploadMiddleware(), async (req, res) => {
     let file = null;
     try {
         const documentId = req.params.id;
@@ -5124,7 +5074,6 @@ app.post('/api/documents/:id/versions/upload', requireAuth(), FileManager.getUpl
             `, [documentId]);
             
             if (fileInfo.length === 0) {
-                await safeUnlink(file.path);
                 return res.status(403).json({
                     success: false,
                     message: 'Документ не найден'
@@ -5137,7 +5086,6 @@ app.post('/api/documents/:id/versions/upload', requireAuth(), FileManager.getUpl
             const hasAccess = await checkCatalogAccess(userId, folderId, 'WRITE');
             
             if (!hasAccess) {
-                await safeUnlink(file.path);
                 return res.status(403).json({
                     success: false,
                     message: 'Недостаточно прав для обновления документа'
@@ -5155,18 +5103,7 @@ app.post('/api/documents/:id/versions/upload', requireAuth(), FileManager.getUpl
             
             const nextVersion = (currentVersion[0].currentVersion || 0) + 1;
             
-            // Читаем файл в буфер
-            const fileBuffer = await fs.promises.readFile(file.path);
-            const originalName = file.originalname;
-            const fileSize = fileBuffer.length;
-            
-            // Сохраняем новую версию
-            const newFileInfo = await FileManager.saveDocumentVersion(
-                documentId, 
-                nextVersion, 
-                fileBuffer, 
-                originalName
-            );
+            const { fileBuffer, originalName, mimeType, fileSize } = getUploadedFileInfo(file);
             
             // Получаем предыдущую версию для delta (если нужно)
             let baseVersionId = null;
@@ -5182,34 +5119,21 @@ app.post('/api/documents/:id/versions/upload', requireAuth(), FileManager.getUpl
                 }
             }
             
-            // Создаем запись о версии
-            const [versionResult] = await connection.execute(`
-                INSERT INTO FileVersions (versionNumber, storageType, storagePath, baseVersionId, idFiles, checksum)
-                VALUES (?, ?, ?, ?, ?, ?)
-            `, [
+            const versionPayload = fileManager.prepareVersionData(fileBuffer, originalName, mimeType);
+            const newVersionId = await insertFileVersion(
+                connection,
+                documentId,
                 nextVersion,
                 storageType,
-                newFileInfo.path,
                 baseVersionId,
-                documentId,
-                newFileInfo.checksum
-            ]);
-            
-            const newVersionId = versionResult.insertId;
+                versionPayload
+            );
             
             // Обновляем информацию о файле
-            await connection.execute(`
-                UPDATE Files 
-                SET 
-                    name = ?,
-                    fileSize = ?,
-                    currentVersionId = ?,
-                    updatedAt = CURRENT_TIMESTAMP
-                WHERE idFiles = ?
-            `, [originalName, fileSize, newVersionId, documentId]);
-            
-            // Удаляем временный файл
-            await safeUnlink(file.path);
+            await updateDocumentCurrentVersion(connection, documentId, newVersionId, {
+                name: originalName,
+                fileSize
+            });
             
             await connection.commit();
             
@@ -5243,22 +5167,11 @@ app.post('/api/documents/:id/versions/upload', requireAuth(), FileManager.getUpl
         } catch (transactionError) {
             await connection.rollback();
             connection.release();
-            
-            // Удаляем временный файл в случае ошибки
-            if (file && file.path) {
-                await safeUnlink(file.path);
-            }
-            
             throw transactionError;
         }
         
     } catch (error) {
         console.error('❌ Ошибка загрузки версии:', error);
-        
-        // Удаляем временный файл в случае ошибки
-        if (req.file && req.file.path) {
-            await safeUnlink(req.file.path);
-        }
         
         res.status(500).json({
             success: false,
@@ -5319,7 +5232,7 @@ app.get('/api/documents/:id/download', requireAuth(), async (req, res) => {
         const version = currentVersion[0];
         
         // Получаем файл с диска
-        const fileInfo = await FileManager.getDocumentVersion(documentId, version.versionNumber);
+        const fileInfo = await fileManager.getDocumentVersion(documentId, version.versionNumber, pool);
         
         if (!fileInfo || !fileInfo.buffer) {
             return res.status(404).json({
@@ -5342,12 +5255,7 @@ app.get('/api/documents/:id/download', requireAuth(), async (req, res) => {
         );
         
         // Отправляем файл
-        const encodedName = encodeURIComponent(fileInfo.name).replace(/'/g, '%27');
-        res.setHeader('Content-Type', fileInfo.mimeType || 'application/octet-stream');
-        res.setHeader('Content-Length', fileInfo.buffer.length);
-        res.setHeader('Content-Disposition', `attachment; filename="document"; filename*=UTF-8''${encodedName}`);
-        
-        res.send(fileInfo.buffer);
+        sendFileResponse(res, fileInfo);
         
     } catch (error) {
         console.error('❌ Ошибка скачивания документа:', error);
@@ -5439,8 +5347,8 @@ app.get('/api/documents/:id/versions/:versionNumber/download', requireAuth(), as
             });
         }
         
-        // Получаем файл с диска
-        const fileInfo = await FileManager.getDocumentVersion(documentId, versionNumber);
+        // Получаем файл из БД с fallback для legacy-записей
+        const fileInfo = await fileManager.getDocumentVersion(documentId, versionNumber, pool);
         
         if (!fileInfo || !fileInfo.buffer) {
             return res.status(404).json({
@@ -5463,12 +5371,9 @@ app.get('/api/documents/:id/versions/:versionNumber/download', requireAuth(), as
         );
         
         // Отправляем файл
-        const encodedName = encodeURIComponent(fileInfo.name).replace(/'/g, '%27');
-        res.setHeader('Content-Type', fileInfo.mimeType || 'application/octet-stream');
-        res.setHeader('Content-Length', fileInfo.buffer.length);
-        res.setHeader('Content-Disposition', `attachment; filename="v${versionNumber}_document"; filename*=UTF-8''v${versionNumber}_${encodedName}`);
-        
-        res.send(fileInfo.buffer);
+        sendFileResponse(res, fileInfo, {
+            downloadName: `v${versionNumber}_${fileInfo.name || 'document'}`
+        });
         
     } catch (error) {
         console.error('❌ Ошибка скачивания версии:', error);
@@ -5512,7 +5417,7 @@ app.get('/api/documents/:id/versions', requireAuth(), async (req, res) => {
                 fv.checksum,
                 u.name as createdBy,
                 f.name as fileName,
-                f.fileSize
+                COALESCE(fv.fileSize, f.fileSize) as fileSize
             FROM FileVersions fv
             JOIN Files f ON fv.idFiles = f.idFiles
             LEFT JOIN Users u ON f.idUsers = u.idUsers
@@ -5815,9 +5720,6 @@ app.delete('/api/documents/:id', requireAuth(), async (req, res) => {
             
             await connection.commit();
             
-            // Удаляем файлы с диска
-            await FileManager.deleteDocumentVersions(documentId);
-            
             // Логируем удаление
             await logAction(
                 userId,
@@ -6096,6 +5998,79 @@ function formatFileSize(bytes) {
     
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
+
+function getUploadedFileInfo(file) {
+    return {
+        fileBuffer: file.buffer,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        fileSize: file.buffer.length
+    };
+}
+
+async function insertFileVersion(connection, documentId, versionNumber, storageType, baseVersionId, payload) {
+    const [versionResult] = await connection.execute(`
+        INSERT INTO FileVersions (
+            versionNumber,
+            storageType,
+            storagePath,
+            baseVersionId,
+            idFiles,
+            checksum,
+            fileContent,
+            originalFileName,
+            mimeType,
+            fileSize
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+        versionNumber,
+        storageType,
+        payload.storagePath || null,
+        baseVersionId,
+        documentId,
+        payload.checksum,
+        payload.fileContent,
+        payload.originalFileName,
+        payload.mimeType,
+        payload.fileSize
+    ]);
+
+    return versionResult.insertId;
+}
+
+async function updateDocumentCurrentVersion(connection, documentId, versionId, options = {}) {
+    const fields = ['currentVersionId = ?', 'updatedAt = CURRENT_TIMESTAMP'];
+    const params = [versionId];
+
+    if (options.name !== undefined) {
+        fields.unshift('name = ?');
+        params.unshift(options.name);
+    }
+
+    if (options.fileSize !== undefined) {
+        const insertIndex = options.name !== undefined ? 1 : 0;
+        fields.splice(insertIndex, 0, 'fileSize = ?');
+        params.splice(insertIndex, 0, options.fileSize);
+    }
+
+    params.push(documentId);
+
+    await connection.execute(
+        `UPDATE Files SET ${fields.join(', ')} WHERE idFiles = ?`,
+        params
+    );
+}
+
+function sendFileResponse(res, fileInfo, options = {}) {
+    const downloadName = options.downloadName || fileInfo.name || 'document';
+    const encodedName = encodeURIComponent(downloadName).replace(/'/g, '%27');
+
+    res.setHeader('Content-Type', fileInfo.mimeType || 'application/octet-stream');
+    res.setHeader('Content-Length', fileInfo.buffer.length);
+    res.setHeader('Content-Disposition', `attachment; filename="document"; filename*=UTF-8''${encodedName}`);
+    res.send(fileInfo.buffer);
+}
 // ПОЛУЧИТЬ ДОСТУП К КАТАЛОГУ С УЧЕТОМ ИЕРАРХИИ
 app.get('/api/user/catalog-access-hierarchy/:id', requireAuth(), async (req, res) => {
     try {
@@ -6241,7 +6216,7 @@ app.get('/api/user/catalogs/:id/documents-with-inheritance', requireAuth(), asyn
 });
 
 // ЗАГРУЗИТЬ ФАЙЛ ДОКУМЕНТА (новая версия к существующему документу)
-app.post('/api/user/documents/:id/upload', requireAuth(), FileManager.getUploadMiddleware(), async (req, res) => {
+app.post('/api/user/documents/:id/upload', requireAuth(), fileManager.getUploadMiddleware(), async (req, res) => {
     let file = null;
     try {
         const documentId = req.params.id;
@@ -6269,7 +6244,6 @@ app.post('/api/user/documents/:id/upload', requireAuth(), FileManager.getUploadM
             `, [documentId]);
 
             if (fileInfo.length === 0) {
-                await safeUnlink(file.path);
                 return res.status(404).json({
                     success: false,
                     message: 'Документ не найден'
@@ -6280,7 +6254,6 @@ app.post('/api/user/documents/:id/upload', requireAuth(), FileManager.getUploadM
             const hasAccess = await checkCatalogAccess(userId, folderId, 'WRITE');
 
             if (!hasAccess) {
-                await safeUnlink(file.path);
                 return res.status(403).json({
                     success: false,
                     message: 'Недостаточно прав для обновления документа'
@@ -6294,34 +6267,23 @@ app.post('/api/user/documents/:id/upload', requireAuth(), FileManager.getUploadM
 
             const nextVersion = (currentVersion[0].currentVersion || 0) + 1;
 
-            const fileBuffer = await fs.promises.readFile(file.path);
-            const originalName = file.originalname;
-            const fileSize = fileBuffer.length;
-
-            // Сохраняем новую версию на диск
-            const newFileInfo = await FileManager.saveDocumentVersion(
+            const { fileBuffer, originalName, mimeType, fileSize } = getUploadedFileInfo(file);
+            const versionPayload = fileManager.prepareVersionData(fileBuffer, originalName, mimeType);
+            const newVersionId = await insertFileVersion(
+                connection,
                 documentId,
                 nextVersion,
-                fileBuffer,
-                originalName
+                'full',
+                null,
+                versionPayload
             );
 
-            // Создаём запись о версии
-            const [versionResult] = await connection.execute(`
-                INSERT INTO FileVersions (versionNumber, storageType, storagePath, idFiles, checksum)
-                VALUES (?, 'full', ?, ?, ?)
-            `, [nextVersion, newFileInfo.path, documentId, newFileInfo.checksum]);
-
-            const newVersionId = versionResult.insertId;
-
             // Обновляем запись документа
-            await connection.execute(`
-                UPDATE Files
-                SET name = ?, fileSize = ?, currentVersionId = ?, updatedAt = CURRENT_TIMESTAMP
-                WHERE idFiles = ?
-            `, [originalName, fileSize, newVersionId, documentId]);
+            await updateDocumentCurrentVersion(connection, documentId, newVersionId, {
+                name: originalName,
+                fileSize
+            });
 
-            await safeUnlink(file.path);
             await connection.commit();
 
             await logAction(
@@ -6353,13 +6315,11 @@ app.post('/api/user/documents/:id/upload', requireAuth(), FileManager.getUploadM
         } catch (transactionError) {
             await connection.rollback();
             connection.release();
-            if (file && file.path) await safeUnlink(file.path);
             throw transactionError;
         }
 
     } catch (error) {
         console.error('❌ Ошибка загрузки файла:', error);
-        if (req.file && req.file.path) await safeUnlink(req.file.path);
         res.status(500).json({ 
             success: false, 
             message: 'Ошибка сервера при загрузке файла' 
@@ -6398,7 +6358,7 @@ app.get('/api/user/documents/:id/download', requireAuth(), async (req, res) => {
 
         // Получаем последнюю версию
         const [versionRows] = await pool.execute(`
-            SELECT fv.versionNumber, fv.storagePath
+            SELECT fv.versionNumber
             FROM FileVersions fv
             WHERE fv.idFiles = ? AND fv.versionNumber = (
                 SELECT MAX(versionNumber) FROM FileVersions WHERE idFiles = ?
@@ -6414,8 +6374,8 @@ app.get('/api/user/documents/:id/download', requireAuth(), async (req, res) => {
 
         const version = versionRows[0];
 
-        // Читаем файл с диска через FileManager
-        const fileInfo = await FileManager.getDocumentVersion(documentId, version.versionNumber);
+        // Получаем файл из БД с fallback для legacy-записей
+        const fileInfo = await fileManager.getDocumentVersion(documentId, version.versionNumber, pool);
 
         if (!fileInfo || !fileInfo.buffer) {
             return res.status(404).json({
@@ -6438,12 +6398,7 @@ app.get('/api/user/documents/:id/download', requireAuth(), async (req, res) => {
         );
 
         // Отправляем файл с корректной кодировкой имени (RFC 5987)
-        const encodedName = encodeURIComponent(fileInfo.name).replace(/'/g, '%27');
-        res.setHeader('Content-Type', fileInfo.mimeType || 'application/octet-stream');
-        res.setHeader('Content-Length', fileInfo.buffer.length);
-        res.setHeader('Content-Disposition', `attachment; filename="document"; filename*=UTF-8''${encodedName}`);
-
-        res.send(fileInfo.buffer);
+        sendFileResponse(res, fileInfo);
 
     } catch (error) {
         console.error('❌ Ошибка скачивания документа:', error);
@@ -6486,6 +6441,7 @@ app.get('/api/user/documents/:id/versions', requireAuth(), async (req, res) => {
                 fv.baseVersionId,
                 fv.createdAt as versionDate,
                 fv.checksum,
+                COALESCE(fv.fileSize, f.fileSize, 0) as fileSize,
                 u.name as createdBy
             FROM FileVersions fv
             LEFT JOIN Files f ON fv.idFiles = f.idFiles
@@ -6500,7 +6456,7 @@ app.get('/api/user/documents/:id/versions', requireAuth(), async (req, res) => {
             versionNumber: version.versionNumber,
             versionName: `v${version.versionNumber}.0.0`,
             storageType: version.storageType,
-            size: '0 MB', // В реальной системе нужно получать размер файла
+            size: formatFileSize(version.fileSize || 0),
             createdAt: version.versionDate,
             createdBy: version.createdBy || 'Неизвестно',
             checksum: version.checksum,
@@ -6559,25 +6515,26 @@ app.post('/api/user/documents/:id/versions', requireAuth(), async (req, res) => 
             
             const nextVersion = (currentVersion[0].currentVersion || 0) + 1;
             
-            // Создаем новую версию
-            const [versionResult] = await connection.execute(`
-                INSERT INTO FileVersions (versionNumber, storageType, storagePath, baseVersionId, idFiles, checksum)
-                VALUES (?, ?, ?, ?, ?, ?)
-            `, [
+            const versionPayload = fileManager.prepareVersionData(
+                null,
+                req.body.name || `document_${documentId}_v${nextVersion}`,
+                null,
+                {
+                    fileSize: 0,
+                    checksum: `checksum_v${nextVersion}`
+                }
+            );
+            const newVersionId = await insertFileVersion(
+                connection,
+                documentId,
                 nextVersion,
                 storageType,
-                `/storage/documents/${documentId}/v${nextVersion}`,
                 baseVersionId,
-                documentId,
-                `checksum_v${nextVersion}`
-            ]);
-            
-            const newVersionId = versionResult.insertId;
+                versionPayload
+            );
             
             // Обновляем текущую версию в файле
-            await connection.execute(`
-                UPDATE Files SET currentVersionId = ?, updatedAt = CURRENT_TIMESTAMP WHERE idFiles = ?
-            `, [newVersionId, documentId]);
+            await updateDocumentCurrentVersion(connection, documentId, newVersionId);
             
             connection.release();
             
