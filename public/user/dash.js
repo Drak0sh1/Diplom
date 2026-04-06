@@ -4,10 +4,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // === API ДЛЯ РАБОТЫ С КАТАЛОГАМИ ===
     const CatalogsAPI = {
-        // Получить назначенные каталоги для текущего пользователя
         async getAssignedCatalogs() {
             try {
-                console.log('📡 Запрашиваем назначенные каталоги...');
+                console.log('📡 Запрашиваем каталоги...');
                 const response = await fetch('/api/user/assigned-catalogs', {
                     method: 'GET',
                     headers: {
@@ -27,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 const data = await response.json();
-                console.log('✅ Получены назначенные каталоги:', data);
+                console.log('✅ Получены каталоги:', data);
                 return data;
                 
             } catch (error) {
@@ -452,7 +451,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         async loadAssignedCatalogs() {
             try {
-                console.log('🔄 Загружаем назначенные каталоги...');
+                console.log('🔄 Загружаем каталоги...');
                 const catalogsContainer = document.getElementById('catalogsContainer');
                 
                 // Показываем загрузку
@@ -488,14 +487,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        getPermissionText(permission) {
-            const permissions = {
-                'READ': 'Чтение',
-                'WRITE': 'Запись',
-                'ADMIN': 'Администрирование'
-            };
-            return permissions[permission] || 'Чтение';
-        }
+    
         
         findCatalogById(id) {
             return this.assignedCatalogs.find(catalog => catalog.id == id);
@@ -566,7 +558,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         async loadAssignedCatalogs() {
             try {
-                console.log('🔄 Загружаем назначенные каталоги...');
+                console.log('🔄 Загружаем назначенны каталоги...');
                 const catalogsContainer = document.getElementById('catalogsContainer');
                 
                 // Показываем загрузку
@@ -1035,13 +1027,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     ${catalog.description ? `<span class="catalog-description">${catalog.description}</span>` : ''}
                     <div class="catalog-meta">
-                        <span class="catalog-permission badge badge-${catalog.permission || 'READ'}">
-                            <i class="fas fa-key"></i> ${this.getPermissionText(catalog.permission)}
-                        </span>
-                        ${isDirectlyAssigned ? 
-                            `<span class="catalog-assigned badge badge-info">
-                                <i class="fas fa-user-check"></i> Назначен
-                            </span>` : ''}
+                        
                         ${catalog.documentCount > 0 ? 
                             `<span class="catalog-docs"><i class="fas fa-file"></i> ${catalog.documentCount} документов</span>` : ''}
                         ${catalog.updatedAt ? 
@@ -1051,11 +1037,8 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             `;
             
-            // Рендерим детей если есть и папка развернута
             if (hasChildren && isExpanded) {
                 html += '<div class="catalog-children">';
-                
-                // Ищем и отображаем непосредственных детей
                 const children = this.findImmediateChildren(catalog.id);
                 if (children.length > 0) {
                     children.forEach(child => {
@@ -1080,21 +1063,17 @@ document.addEventListener('DOMContentLoaded', function() {
             return html;
         }
         
-        // Метод для перехода на страницу каталога
         openCatalogPage(catalogId) {
             const catalog = this.getCatalogById(catalogId);
             if (!catalog) return;
             
             console.log(`📂 Переход к каталогу: ${catalog.name} (ID: ${catalogId})`);
             
-            // Сохраняем информацию о каталоге в sessionStorage для использования на другой странице
             sessionStorage.setItem('currentCatalog', JSON.stringify(catalog));
             
-            // Перенаправляем на страницу каталога
             window.location.href = `/catalog.html?id=${catalogId}`;
         }
         
-        // Проверяем, является ли каталог напрямую назначенным пользователю
         isDirectlyAssigned(catalogId) {
             // В реальном приложении здесь должна быть логика проверки прямого назначения
             // Для демонстрации считаем, что каталог напрямую назначен, если он в исходном списке
@@ -1102,7 +1081,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         setupCatalogEventListeners() {
-            // Обработчики для кнопок развернуть/свернуть
             document.querySelectorAll('.catalog-toggle').forEach(toggle => {
                 toggle.addEventListener('click', async (e) => {
                     e.stopPropagation();
@@ -1396,8 +1374,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (result.success) {
                 showNotification(result.message || 'Пароль успешно изменен', 'success');
                 closePasswordChangeModal();
-                
-                // Обновляем информацию о последней смене пароля
                 checkPasswordExpiration();
             } else {
                 showNotification(result.message || 'Ошибка при смене пароля', 'error');
@@ -1406,7 +1382,6 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Ошибка при смене пароля:', error);
             showNotification('Ошибка при подключении к серверу', 'error');
         } finally {
-            // Восстанавливаем кнопку
             saveBtn.innerHTML = originalText;
             saveBtn.disabled = false;
         }
@@ -1423,7 +1398,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const monthsDiff = (currentDate.getFullYear() - lastChangeDate.getFullYear()) * 12 + 
                                  (currentDate.getMonth() - lastChangeDate.getMonth());
                 
-                // Если пароль не менялся более 3 месяцев - показываем предупреждение
                 if (monthsDiff >= 3) {
                     showPasswordWarningNotification(monthsDiff);
                 }

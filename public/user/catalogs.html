@@ -163,246 +163,51 @@
             color: #5b86e5;
         }
 
-        /* Кнопка для открытия сайдбара на мобильных */
-        .mobile-menu-btn {
-            display: none;
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 6px;
-            cursor: pointer;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            margin-right: 10px;
-        }
-
-        /* Сайдбар */
-        .sidebar {
-            width: 250px;
-            background: white;
-            position: fixed;
-            top: 74px; /* Отступ под хэдер */
-            left: 0;
-            height: calc(100vh - 74px);
-            z-index: 999;
-            transition: transform 0.3s ease;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid #e2e8f0;
-        }
-
-        /* Шапка сайдбара */
-        .sidebar-header {
-            padding: 20px;
-            border-bottom: 1px solid #e2e8f0;
-            background: #f8fafc;
-        }
-
-        .sidebar-brand {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .sidebar-brand h2 {
-            font-size: 16px;
-            font-weight: 600;
-            color: #334155;
+        /* Кнопка "Главная" в хэдере */
+        .header-nav {
             display: flex;
             align-items: center;
-            gap: 10px;
-        }
-
-        .sidebar-brand i {
-            color: #5b86e5;
-        }
-
-        .close-sidebar-btn {
-            display: none;
-            background: #e2e8f0;
-            border: none;
-            color: #64748b;
-            width: 32px;
-            height: 32px;
-            border-radius: 6px;
-            cursor: pointer;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.3s ease;
-        }
-
-        .close-sidebar-btn:hover {
-            background: #cbd5e1;
-        }
-
-        /* Навигация */
-        .sidebar-nav {
-            flex: 1;
-            padding: 15px 0;
-            overflow-y: auto;
-        }
-
-        .sidebar-nav ul {
-            list-style: none;
-        }
-
-        .sidebar-nav li {
-            margin-bottom: 4px;
-        }
-
-        .sidebar-link {
-            display: flex;
-            align-items: center;
-            padding: 14px 20px;
-            color: #475569;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            position: relative;
-            border-left: 3px solid transparent;
-            font-weight: 500;
-        }
-
-        .sidebar-link:hover {
-            background: #f1f5f9;
-            color: #334155;
-            border-left-color: #cbd5e1;
-        }
-
-        .sidebar-link.active {
-            background: #e0f2fe;
-            color: #0369a1;
-            border-left-color: #0ea5e9;
-        }
-
-        .sidebar-link.active .sidebar-icon {
-            color: #0ea5e9;
-        }
-
-        .sidebar-icon {
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 12px;
-            font-size: 16px;
-            color: #64748b;
-        }
-
-        .sidebar-text {
-            flex: 1;
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        .submenu-arrow {
-            font-size: 12px;
-            color: #94a3b8;
-            transition: transform 0.3s ease;
-        }
-
-        /* Подменю */
-        .sidebar-submenu {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-            background: #f8fafc;
-            border-left: 3px solid #e2e8f0;
+            gap: 8px;
             margin-left: 20px;
         }
 
-        .has-submenu.active .sidebar-submenu {
-            max-height: 200px;
-        }
-
-        .has-submenu.active .submenu-arrow {
-            transform: rotate(180deg);
-        }
-
-        .sidebar-submenu-link {
+        .header-nav-link {
             display: flex;
             align-items: center;
-            padding: 12px 20px 12px 56px;
-            color: #64748b;
+            gap: 6px;
+            color: white;
             text-decoration: none;
-            font-size: 13px;
-            font-weight: 400;
-            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 7px 14px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            transition: background 0.2s ease, border-color 0.2s ease;
+            white-space: nowrap;
         }
 
-        .sidebar-submenu-link:hover {
-            background: #f1f5f9;
-            color: #334155;
-        }
-
-        .sidebar-submenu-link i {
-            margin-right: 10px;
-            width: 16px;
-            font-size: 12px;
-            color: #94a3b8;
-        }
-
-        /* Футер сайдбара */
-        .sidebar-footer {
-            padding: 15px 20px;
-            border-top: 1px solid #e2e8f0;
-            background: #f8fafc;
-        }
-
-        .sidebar-version {
-            text-align: center;
-            font-size: 11px;
-            color: #94a3b8;
+        .header-nav-link:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.4);
+            color: white;
+            text-decoration: none;
         }
 
         /* Основной контент */
         .content-area {
             flex: 1;
             padding: 30px;
-            transition: margin-left 0.3s ease;
-            margin-left: 250px; /* Ширина сайдбара */
-            margin-top: 74px; /* Высота хэдера */
+            margin-top: 74px;
             background: #f8fafc;
             min-height: calc(100vh - 74px);
         }
 
         .main-content {
-            margin-left: 250px;
             padding: 30px;
             min-height: calc(100vh - 74px);
             margin-top: 74px;
-            transition: margin-left 0.3s ease;
             background: #f8fafc;
-        }
-
-        @media (max-width: 1024px) {
-            .main-content,
-            .content-area {
-                margin-left: 0;
-                padding: 20px;
-            }
-            
-            .sidebar {
-                transform: translateX(-100%);
-                top: 74px;
-                height: calc(100vh - 74px);
-            }
-            
-            .sidebar.active {
-                transform: translateX(0);
-            }
-            
-            .close-sidebar-btn {
-                display: flex;
-            }
-            
-            .mobile-menu-btn {
-                display: flex;
-            }
         }
 
         @media (max-width: 768px) {
@@ -419,23 +224,18 @@
                 font-size: 13px;
             }
             
-            .sidebar {
-                top: 68px;
-                height: calc(100vh - 68px);
-            }
-            
             .main-content,
             .content-area {
                 margin-top: 68px;
                 padding: 15px;
             }
+
+            .header-nav-link span {
+                display: none;
+            }
         }
 
         @media (max-width: 480px) {
-            .sidebar {
-                width: 100%;
-            }
-            
             .user-details {
                 display: none;
             }
@@ -463,40 +263,6 @@
             margin-bottom: 8px;
         }
         
-        .access-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 12px;
-        }
-        
-        .access-badge.direct {
-            background: #10b98115;
-            color: #10b981;
-            border: 1px solid #10b98130;
-        }
-        
-        .access-badge.inherited {
-            background: #f59e0b15;
-            color: #f59e0b;
-            border: 1px solid #f59e0b30;
-        }
-        
-        .access-badge.admin {
-            background: #3b82f615;
-            color: #3b82f6;
-            border: 1px solid #3b82f630;
-        }
-        
-        .access-badge.none {
-            background: #ef444415;
-            color: #ef4444;
-            border: 1px solid #ef444430;
-        }
         
         .catalog-info-card {
             background: #f8fafc;
@@ -868,13 +634,16 @@
     <!-- Хэдер -->
     <header class="header">
         <div class="header-left">
-            <button class="mobile-menu-btn" id="mobileMenuBtn">
-                <i class="fas fa-bars"></i>
-            </button>
             <div class="header-text">
                 <h1><i class="fas fa-folder-open"></i> Каталог документов</h1>
                 <p class="header-subtitle">Система контроля версий документов</p>
             </div>
+            <nav class="header-nav">
+                <a href="/dashboard" class="header-nav-link">
+                    <i class="fas fa-home"></i>
+                    <span>Главная</span>
+                </a>
+            </nav>
         </div>
         <div class="user-info">
             <div class="user-avatar" id="userAvatar">?</div>
@@ -894,76 +663,6 @@
             </div>
         </div>
     </header>
-
-    <!-- Сайдбар -->
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="sidebar-brand">
-                <h2><i class="fas fa-bars"></i> Меню</h2>
-                <button class="close-sidebar-btn" id="closeSidebarBtn">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        </div>
-        
-        <nav class="sidebar-nav">
-            <ul>
-                <li>
-                    <a href="/dashboard" class="sidebar-link">
-                        <div class="sidebar-icon">
-                            <i class="fas fa-home"></i>
-                        </div>
-                        <span class="sidebar-text">Главная</span>
-                    </a>
-                </li>
-                
-                <li class="has-submenu">
-                    <a href="#" class="sidebar-link" id="nav-journals">
-                        <div class="sidebar-icon">
-                            <i class="fas fa-journal-whills"></i>
-                        </div>
-                        <span class="sidebar-text">Журналы</span>
-                        <i class="fas fa-chevron-down submenu-arrow"></i>
-                    </a>
-                    <ul class="sidebar-submenu">
-                        <li>
-                            <a href="/journals/incoming" class="sidebar-submenu-link">
-                                <i class="fas fa-inbox"></i>
-                                <span>Входящая корреспонденция</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/journals/outgoing" class="sidebar-submenu-link">
-                                <i class="fas fa-paper-plane"></i>
-                                <span>Исходящая корреспонденция</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/journals/internal" class="sidebar-submenu-link">
-                                <i class="fas fa-envelope"></i>
-                                <span>Внутренняя переписка</span>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                
-                <li>
-                    <a href="/documents" class="sidebar-link">
-                        <div class="sidebar-icon">
-                            <i class="fas fa-file-alt"></i>
-                        </div>
-                        <span class="sidebar-text">Документы</span>
-                    </a>
-                </li>
-            </ul>
-        </nav>
-        
-        <div class="sidebar-footer">
-            <div class="sidebar-version">
-                <span>Версия 1.3.0</span>
-            </div>
-        </div>
-    </aside>
 
     <!-- Основной контент -->
     <main class="main-content" id="mainContent">
@@ -1164,32 +863,6 @@
          * Инициализация UI элементов
          */
         function initUI() {
-            // Мобильное меню
-            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-            const sidebar = document.getElementById('sidebar');
-            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
-            
-            if (mobileMenuBtn) {
-                mobileMenuBtn.addEventListener('click', () => {
-                    sidebar.classList.add('active');
-                });
-            }
-            
-            if (closeSidebarBtn) {
-                closeSidebarBtn.addEventListener('click', () => {
-                    sidebar.classList.remove('active');
-                });
-            }
-            
-            // Закрытие сайдбара при клике вне его
-            document.addEventListener('click', (e) => {
-                if (sidebar.classList.contains('active') && 
-                    !sidebar.contains(e.target) && 
-                    e.target !== mobileMenuBtn) {
-                    sidebar.classList.remove('active');
-                }
-            });
-            
             // Инициализация меню пользователя
             const userMenuBtn = document.getElementById('userMenuBtn');
             const userDropdown = document.getElementById('userDropdown');
@@ -1321,10 +994,6 @@
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <div>
                                 <h1 id="catalogTitle" class="catalog-title">${catalog.name || 'Каталог'}</h1>
-                                <div class="access-badge ${accessConfig.badgeClass}">
-                                    <i class="${accessConfig.icon}"></i>
-                                    ${accessConfig.text}
-                                </div>
                                 <p id="catalogDescription" class="text-muted mt-2">
                                     ${catalog.description || 'Без описания'}
                                 </p>

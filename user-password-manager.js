@@ -1,15 +1,10 @@
-// user-password-manager.js
-// Модуль для управления пользователями и сменой пароля с ограничением раз в месяц
-
 const bcrypt = require('bcrypt');
-const { getClientIp } = require('./server.js'); // Предполагаем, что эта функция доступна
+const { getClientIp } = require('./server.js');
 
 class UserPasswordManager {
     constructor(pool) {
         this.pool = pool;
     }
-
-    // === БАЗОВЫЕ МЕТОДЫ ===
 
     async getCurrentUser(userId) {
         try {
@@ -34,14 +29,11 @@ class UserPasswordManager {
         }
     }
 
-    // === МЕТОДЫ ДЛЯ СМЕНЫ ПАРОЛЯ ===
-
     async canChangePassword(userId) {
         try {
             const lastChange = await this.getLastPasswordChange(userId);
             
             if (!lastChange) {
-                // Если пароль никогда не менялся - можно менять
                 return {
                     canChange: true,
                     lastChange: null,
@@ -84,7 +76,6 @@ class UserPasswordManager {
 
     async getLastPasswordChange(userId) {
         try {
-            // Сначала проверяем таблицу PasswordHistory
             const [passwordHistory] = await this.pool.execute(`
                 SELECT changedAt 
                 FROM PasswordHistory 
@@ -97,7 +88,6 @@ class UserPasswordManager {
                 return passwordHistory[0].changedAt;
             }
 
-            // Если в истории нет, ищем в Logs
             const [logs] = await this.pool.execute(`
                 SELECT createdAt 
                 FROM Logs 
@@ -124,7 +114,6 @@ class UserPasswordManager {
         try {
             console.log(`🔐 Начало смены пароля для пользователя ID: ${userId}`);
 
-            // 1. Получаем текущий пароль пользователя
             const [users] = await this.pool.execute(
                 'SELECT password FROM Users WHERE idUsers = ?',
                 [userId]
@@ -136,48 +125,39 @@ class UserPasswordManager {
 
             const currentHashedPassword = users[0].password;
 
-            // 2. Проверяем текущий пароль
             const isCurrentPasswordValid = await bcrypt.compare(currentPassword, currentHashedPassword);
             if (!isCurrentPasswordValid) {
                 throw new Error('Текущий пароль неверен');
             }
 
-            // 3. Проверяем, что новый пароль отличается от старого
             const isSamePassword = await bcrypt.compare(newPassword, currentHashedPassword);
             if (isSamePassword) {
                 throw new Error('Новый пароль должен отличаться от текущего');
             }
 
-            // 4. Проверяем ограничение "раз в месяц"
             const canChangeInfo = await this.canChangePassword(userId);
             if (!canChangeInfo.canChange) {
                 throw new Error(`Пароль можно менять не чаще 1 раза в месяц. Следующая смена возможна через ${canChangeInfo.daysUntilNextChange} дней`);
             }
 
-            // 5. Проверяем требования к паролю
             this.validatePassword(newPassword);
 
-            // 6. Хешируем новый пароль
             const hashedNewPassword = await bcrypt.hash(newPassword, 10);
 
-            // 7. Начинаем транзакцию
             const connection = await this.pool.getConnection();
             await connection.beginTransaction();
 
             try {
-                // Сохраняем старый пароль в историю
                 await connection.execute(
                     'INSERT INTO PasswordHistory (userId, oldPassword, newPassword, ipAddress, userAgent) VALUES (?, ?, ?, ?, ?)',
                     [userId, currentHashedPassword, hashedNewPassword, ip, userAgent]
                 );
 
-                // Обновляем пароль пользователя
                 await connection.execute(
                     'UPDATE Users SET password = ? WHERE idUsers = ?',
                     [hashedNewPassword, userId]
                 );
 
-                // Фиксируем транзакцию
                 await connection.commit();
                 connection.release();
 
@@ -190,7 +170,6 @@ class UserPasswordManager {
                 };
 
             } catch (transactionError) {
-                // Откатываем транзакцию при ошибке
                 await connection.rollback();
                 connection.release();
                 throw transactionError;
@@ -214,7 +193,6 @@ class UserPasswordManager {
             throw new Error('Пароль должен содержать буквы и цифры');
         }
 
-        // Дополнительные проверки можно добавить здесь
         if (password.length > 50) {
             throw new Error('Пароль слишком длинный');
         }
@@ -260,13 +238,10 @@ class UserPasswordManager {
         }
     }
 
-    // === ДОПОЛНИТЕЛЬНЫЕ МЕТОДЫ ===
-
     async forceResetPassword(userId, newPassword, adminId, ip = '', userAgent = '') {
         try {
             console.log(`⚠️ Принудительный сброс пароля для пользователя ID: ${userId} администратором ID: ${adminId}`);
 
-            // Получаем пользователя
             const [users] = await this.pool.execute(
                 'SELECT idUsers, name, password FROM Users WHERE idUsers = ?',
                 [userId]
@@ -279,30 +254,24 @@ class UserPasswordManager {
             const user = users[0];
             const oldPassword = user.password;
 
-            // Проверяем пароль
             this.validatePassword(newPassword);
 
-            // Хешируем новый пароль
             const hashedNewPassword = await bcrypt.hash(newPassword, 10);
 
-            // Начинаем транзакцию
             const connection = await this.pool.getConnection();
             await connection.beginTransaction();
 
             try {
-                // Сохраняем в историю с пометкой о принудительном сбросе
                 await connection.execute(
                     'INSERT INTO PasswordHistory (userId, oldPassword, newPassword, ipAddress, userAgent) VALUES (?, ?, ?, ?, ?)',
                     [userId, oldPassword, hashedNewPassword, ip, userAgent]
                 );
 
-                // Обновляем пароль
                 await connection.execute(
                     'UPDATE Users SET password = ? WHERE idUsers = ?',
                     [hashedNewPassword, userId]
                 );
 
-                // Логируем действие (вставляем напрямую в Logs)
                 await connection.execute(`
                     INSERT INTO Logs (
                         actionType, 
