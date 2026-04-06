@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Журнал входящих документов</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background: #f8fafc; color: #334155; line-height: 1.6;
+        }
+
+        /* ── Хэдер ── */
+        .header {
+            background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+            color: white; padding: 0 30px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 15px rgba(0,0,0,.12);
+            position: fixed; top: 0; width: 100%; height: 68px; z-index: 1000;
+        }
+        .header-left { display: flex; align-items: center; gap: 8px; }
+        .header-text h1 { font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+
+        .header-nav-link {
+            display: flex; align-items: center; gap: 6px;
+            color: white; text-decoration: none; font-size: 13.5px; font-weight: 500;
+            padding: 7px 13px; border-radius: 8px; margin-left: 10px;
+            background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.22);
+            transition: background .2s; white-space: nowrap;
+        }
+        .header-nav-link:hover { background: rgba(255,255,255,.25); color: white; }
+
+        /* ── Профиль пользователя ── */
+        .user-profile {
+            position: relative;
+            display: flex; align-items: center; gap: 10px;
+            padding: 7px 12px 7px 8px; border-radius: 10px;
+            cursor: pointer; user-select: none;
+            background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+            transition: background .2s;
+        }
+        .user-profile:hover { background: rgba(255,255,255,.22); }
+        .user-avatar {
+            width: 34px; height: 34px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 15px;
+            background: rgba(255,255,255,.25); color: white; flex-shrink: 0;
+        }
+        .user-details { display: flex; flex-direction: column; line-height: 1.25; }
+        .user-name { font-weight: 600; font-size: 13.5px; color: white; }
+        .user-role { font-size: 11px; color: rgba(255,255,255,.78); }
+        .user-chevron { font-size: 10px; color: rgba(255,255,255,.75); transition: transform .2s; margin-left: 2px; }
+        .user-profile.open .user-chevron { transform: rotate(180deg); }
+
+        .user-dropdown {
+            display: none; position: absolute; top: calc(100% + 8px); right: 0;
+            background: white; min-width: 215px;
+            border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,.18);
+            z-index: 2000; overflow: hidden; border: 1px solid #f1f5f9;
+        }
+        .user-profile.open .user-dropdown { display: block; }
+        .dd-user-header {
+            padding: 14px 16px 11px; border-bottom: 1px solid #f1f5f9;
+        }
+        .dd-user-header .duh-name { font-weight: 700; font-size: 14px; color: #1f2937; }
+        .dd-user-header .duh-role { font-size: 12px; color: #64748b; margin-top: 2px; }
+        .dd-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 11px 16px; color: #374151; cursor: pointer;
+            font-size: 13.5px; font-weight: 500; transition: background .15s;
+        }
+        .dd-item:hover { background: #f8fafc; }
+        .dd-item i { width: 16px; color: #5b86e5; font-size: 13px; }
+        .dd-item.danger { color: #ef4444; }
+        .dd-item.danger i { color: #ef4444; }
+        .dd-divider { height: 1px; background: #f1f5f9; }
+
+        /* ── Контент ── */
+        .main-content { padding: 30px; margin-top: 68px; min-height: calc(100vh - 68px); background: #f8fafc; }
+
+        /* ── Панель управления ── */
+        .control-panel {
+            background: white; border-radius: 12px; padding: 18px 22px;
+            margin-bottom: 20px; border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 6px rgba(0,0,0,.05);
+            display: flex; gap: 0;
+        }
+        .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+        /* Кастомный select */
+        .cp-select {
+            height: 36px; padding: 0 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+            font-size: 13px; color: #334155; background: #f8fafc; cursor: pointer;
+            outline: none; transition: border-color .2s, box-shadow .2s;
+            appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+        }
+        .cp-select:focus { border-color: #5b86e5; box-shadow: 0 0 0 3px rgba(91,134,229,.15); }
+
+        /* Инпуты поиска */
+        .cp-input-group {
+            display: flex; align-items: center; gap: 0;
+            border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;
+            background: #f8fafc; transition: border-color .2s, box-shadow .2s;
+        }
+        .cp-input-group:focus-within {
+            border-color: #5b86e5; box-shadow: 0 0 0 3px rgba(91,134,229,.15);
+            background: white;
+        }
+        .cp-input-group .cp-icon {
+            padding: 0 10px; color: #94a3b8; font-size: 12px; pointer-events: none;
+        }
+        .cp-input-group input {
+            height: 36px; border: none; background: transparent; outline: none;
+            font-size: 13px; color: #334155; padding: 0 10px 0 0; min-width: 0;
+        }
+        .cp-input-group input::placeholder { color: #94a3b8; }
+
+        /* Кнопки */
+        .cp-btn {
+            height: 36px; padding: 0 16px; border-radius: 8px; border: none;
+            font-size: 13px; font-weight: 500; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 6px;
+            transition: background .2s, transform .1s;
+        }
+        .cp-btn:active { transform: scale(.97); }
+        .cp-btn-primary { background: #5b86e5; color: white; }
+        .cp-btn-primary:hover { background: #4a72d4; }
+        .cp-btn-ghost { background: #f1f5f9; color: #64748b; }
+        .cp-btn-ghost:hover { background: #e2e8f0; color: #334155; }
+        /* Убираем Bootstrap focus-ring */
+        .cp-btn:focus, .cp-select:focus-visible { outline: none; }
+
+        /* ── Таблица ── */
+        .table-section {
+            background: white; border-radius: 10px; padding: 20px;
+            border: 1px solid #e2e8f0; overflow-x: auto;
+        }
+        .table-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
+        }
+        .table-header h4 { font-size: 16px; font-weight: 600; color: #0f172a; }
+
+        .journal-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .journal-table th {
+            background: #f8fafc; color: #64748b; font-weight: 600;
+            padding: 10px 12px; text-align: left; border-bottom: 2px solid #e2e8f0;
+            white-space: nowrap;
+        }
+        .journal-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+        .journal-table tr:hover td { background: #fafbfc; }
+        .truncate { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* ── Чекбокс исполнения ── */
+        .exec-checkbox {
+            width: 20px; height: 20px; cursor: pointer; accent-color: #16a34a;
+        }
+        .exec-label { display: flex; align-items: center; gap: 6px; cursor: pointer; white-space: nowrap; }
+        .exec-label.done  { color: #16a34a; font-weight: 600; }
+        .exec-label.undone{ color: #94a3b8; }
+
+        /* ── Бейджи статусов ── */
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+        }
+        .status-registered { background: #dbeafe; color: #1d4ed8; }
+        .status-executed   { background: #dcfce7; color: #15803d; }
+        .status-archived   { background: #fef3c7; color: #92400e; }
+        .status-draft      { background: #f1f5f9; color: #64748b; }
+
+        /* ── Дедлайн ── */
+        .deadline-overdue { color: #dc2626; font-weight: 600; }
+        .deadline-soon    { color: #d97706; font-weight: 600; }
+        .deadline-ok      { color: #334155; }
+
+        /* ── Пустое / загрузка / ошибка ── */
+        .state-container { text-align: center; padding: 60px 20px; }
+        .state-icon { font-size: 48px; color: #cbd5e1; margin-bottom: 16px; }
+
+        /* ── Пагинация ── */
+        .pagination-wrapper { display: flex; justify-content: center; margin-top: 20px; }
+
+        /* ── Модальное окно ── */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,.5);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10000; animation: fadeIn .25s ease;
+        }
+        .modal-content {
+            background: white; border-radius: 12px;
+            width: 90%; max-width: 540px; max-height: 90vh; overflow-y: auto;
+            animation: slideUp .25s ease;
+        }
+        .modal-header {
+            padding: 18px 22px; border-bottom: 1px solid #e5e7eb;
+            display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; background: white; z-index: 1;
+        }
+        .modal-header h3 { margin: 0; font-size: 17px; color: #1f2937; display: flex; align-items: center; gap: 8px; }
+        .modal-body { padding: 20px 22px; }
+        .modal-footer {
+            padding: 14px 22px; border-top: 1px solid #e5e7eb;
+            display: flex; justify-content: flex-end; gap: 10px;
+            position: sticky; bottom: 0; background: white;
+        }
+        .close-btn {
+            background: none; border: none; font-size: 22px; color: #6b7280;
+            cursor: pointer; width: 30px; height: 30px;
+            display: flex; align-items: center; justify-content: center; border-radius: 6px;
+        }
+        .close-btn:hover { background: #f3f4f6; }
+
+        @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        @media (max-width: 768px) {
+            .header { padding: 0 15px; height: 60px; }
+            .header-text h1 { font-size: 17px; }
+            .main-content { margin-top: 60px; padding: 15px; }
+            .header-nav-link span { display: none; }
+            .control-panel { flex-direction: column; align-items: stretch; }
+        }
+        @media (max-width: 480px) { .user-details { display: none; } }
+    </style>
+</head>
+<body>
+
+<!-- Хэдер -->
+<header class="header">
+    <div class="header-left">
+        <div class="header-text">
+            <h1><i class="fas fa-inbox"></i> Журнал входящих документов</h1>
+        </div>
+        <a href="/dashboard" class="header-nav-link">
+            <i class="fas fa-home"></i><span>Главная</span>
+        </a>
+    </div>
+    <div class="user-profile" id="userProfile">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <div class="user-details">
+            <span class="user-name" id="userName">Загрузка...</span>
+            <span class="user-role" id="userRole">Пользователь</span>
+        </div>
+        <i class="fas fa-chevron-down user-chevron"></i>
+        <div class="user-dropdown" id="userDropdown">
+            <div class="dd-user-header">
+                <div class="duh-name" id="dropdownName">—</div>
+                <div class="duh-role" id="dropdownRole">—</div>
+            </div>
+            <div class="dd-item" id="changePasswordBtn">
+                <i class="fas fa-key"></i> Сменить пароль
+            </div>
+            <div class="dd-divider"></div>
+            <div class="dd-item danger" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i> Выйти
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Контент -->
+<main class="main-content">
+
+    <!-- Панель управления -->
+    <div class="control-panel">
+        <div class="filter-row">
+            <select class="cp-select" id="executionFilter" style="width:175px" onchange="loadDocuments()">
+                <option value="">Все документы</option>
+                <option value="yes">Исполненные</option>
+                <option value="no">Не исполненные</option>
+            </select>
+            <div class="cp-input-group" style="width:200px">
+                <span class="cp-icon"><i class="fas fa-user"></i></span>
+                <input type="text" id="searchSender" placeholder="Имя отправителя">
+            </div>
+            <div class="cp-input-group" style="width:170px">
+                <span class="cp-icon"><i class="fas fa-calendar-alt"></i></span>
+                <input type="date" id="searchDate" style="padding-right:10px">
+            </div>
+            <div class="cp-input-group" style="width:190px">
+                <span class="cp-icon"><i class="fas fa-hashtag"></i></span>
+                <input type="text" id="searchIndex" placeholder="№ документа">
+            </div>
+            <button class="cp-btn cp-btn-primary" onclick="state.page=1; loadDocuments()">
+                <i class="fas fa-search"></i> Найти
+            </button>
+            <button class="cp-btn cp-btn-ghost" onclick="clearFilters()">
+                <i class="fas fa-times"></i> Сбросить
+            </button>
+        </div>
+    </div>
+
+    <!-- Таблица -->
+    <div class="table-section">
+        <div class="table-header">
+            <h4>
+                <i class="fas fa-list me-2"></i>Журнал
+                <span class="badge bg-secondary ms-2" id="totalCount">0</span>
+            </h4>
+        </div>
+        <div id="tableWrapper">
+            <div class="state-container">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-3 text-muted">Загрузка...</p>
+            </div>
+        </div>
+        <div class="pagination-wrapper" id="paginationWrapper"></div>
+    </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ── Состояние ──
+const state = { page: 1, limit: 20, totalPages: 1 };
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadUserInfo();
+    initUI();
+    loadDocuments();
+    ['searchSender', 'searchIndex'].forEach(id => {
+        document.getElementById(id).addEventListener('keydown', e => {
+            if (e.key === 'Enter') loadDocuments();
+        });
+    });
+    document.getElementById('searchDate').addEventListener('change', () => loadDocuments());
+});
+
+// ── Пользователь ──
+async function loadUserInfo() {
+    try {
+        const res  = await fetch('/api/user', { credentials: 'include' });
+        const data = await res.json();
+        if (data.success) {
+            const name = data.username || data.user?.name;
+            const role = data.role    || data.user?.role;
+            document.getElementById('userName').textContent    = name || 'Пользователь';
+            document.getElementById('userRole').textContent    = role || '';
+            document.getElementById('dropdownName').textContent = name || 'Пользователь';
+            document.getElementById('dropdownRole').textContent = role || '';
+            const av = document.getElementById('userAvatar');
+            if (name) {
+                av.textContent = name.charAt(0).toUpperCase();
+                const colors = [
+                    'linear-gradient(135deg,#36d1dc,#5b86e5)',
+                    'linear-gradient(135deg,#10b981,#34d399)',
+                    'linear-gradient(135deg,#8b5cf6,#a78bfa)',
+                    'linear-gradient(135deg,#f59e0b,#fbbf24)'
+                ];
+                av.style.background = colors[name.charCodeAt(0) % colors.length];
+            }
+        }
+    } catch {}
+}
+
+function initUI() {
+    const profile = document.getElementById('userProfile');
+
+    profile.addEventListener('click', e => {
+        e.stopPropagation();
+        profile.classList.toggle('open');
+    });
+    document.addEventListener('click', () => profile.classList.remove('open'));
+
+    document.getElementById('changePasswordBtn').addEventListener('click', e => {
+        e.stopPropagation();
+        profile.classList.remove('open');
+        openPasswordModal();
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', async e => {
+        e.stopPropagation();
+        profile.classList.remove('open');
+        if (confirm('Выйти из системы?')) {
+            await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+            window.location.href = '/';
+        }
+    });
+}
+
+// ── Загрузка данных ──
+async function loadDocuments() {
+    const sender    = document.getElementById('searchSender').value.trim();
+    const date      = document.getElementById('searchDate').value;
+    const index     = document.getElementById('searchIndex').value.trim();
+    const execution = document.getElementById('executionFilter').value;
+    renderLoading();
+
+    try {
+        const params = new URLSearchParams({ page: state.page, limit: state.limit, sender, date, index, execution });
+        const res  = await fetch(`/api/user/journals/incoming?${params}`, { credentials: 'include' });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+
+        state.totalPages = data.pagination.pages || 1;
+        document.getElementById('totalCount').textContent = data.pagination.total;
+
+        data.documents.length === 0 ? renderEmpty() : renderTable(data.documents);
+        renderPagination(data.pagination);
+    } catch (err) {
+        renderError(err.message);
+    }
+}
+
+// ── Рендер таблицы ──
+function renderTable(docs) {
+    document.getElementById('tableWrapper').innerHTML = `
+        <table class="journal-table">
+            <thead>
+                <tr>
+                    <th style="width:40px">№</th>
+                    <th>Индекс</th>
+                    <th>Дата поступления</th>
+                    <th>Название документа</th>
+                    <th>Кто прислал</th>
+                    <th>Кому направлен</th>
+                    <th>Срок исполнения</th>
+                    <th>Исполнено</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${docs.map((d, i) => `
+                    <tr id="row-${d.id}">
+                        <td class="text-muted">${(state.page - 1) * state.limit + i + 1}</td>
+                        <td><code style="font-size:12px">${esc(d.documentIndex)}</code></td>
+                        <td style="white-space:nowrap">${formatDateTime(d.receivedDate)}</td>
+                        <td class="truncate" title="${esc(d.documentName)}">${esc(d.documentName)}</td>
+                        <td class="truncate" title="${esc(d.resolution)}">${esc(d.resolution) || '<span class="text-muted">—</span>'}</td>
+                        <td class="truncate" title="${esc(d.correspondent)}">${esc(d.correspondent) || '<span class="text-muted">—</span>'}</td>
+                        <td style="white-space:nowrap">${deadlineCell(d.dueDate)}</td>
+                        <td>${execCell(d.id, d.executionMark)}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>`;
+}
+
+function execCell(id, mark) {
+    const done = mark === 'yes';
+    return `
+        <label class="exec-label ${done ? 'done' : 'undone'}">
+            <input type="checkbox" class="exec-checkbox"
+                   ${done ? 'checked' : ''}
+                   onchange="toggleExecution(${id}, this.checked)">
+            ${done ? 'Да' : 'Нет'}
+        </label>`;
+}
+
+function deadlineCell(date) {
+    if (!date) return '<span class="text-muted">—</span>';
+    const d     = new Date(date);
+    const now   = new Date();
+    const diff  = Math.ceil((d - now) / 86400000);
+    let cls = 'deadline-ok';
+    if (diff < 0)  cls = 'deadline-overdue';
+    else if (diff <= 3) cls = 'deadline-soon';
+    return `<span class="${cls}">${formatDate(date)}</span>`;
+}
+
+// ── Переключение чекбокса исполнения ──
+async function toggleExecution(id, executed) {
+    try {
+        const res  = await fetch(`/api/user/journals/incoming/${id}/execution`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ executed })
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        // Перерисовываем только ячейку
+        loadDocuments();
+    } catch (err) {
+        alert('Ошибка: ' + err.message);
+        loadDocuments();
+    }
+}
+
+// ── Модальное окно редактирования (resolution + deadline) ──
+function openEditModal(id) {
+    fetch(`/api/user/journals/incoming/${id}`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) { alert(data.message); return; }
+            const d = data.document;
+
+            let modal = document.getElementById('editModal');
+            if (!modal) {
+                document.body.insertAdjacentHTML('beforeend', `
+                    <div class="modal-overlay" id="editModal" style="display:none">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h3><i class="fas fa-edit"></i> Редактировать запись</h3>
+                                <button class="close-btn" onclick="document.getElementById('editModal').style.display='none'">&times;</button>
+                            </div>
+                            <div class="modal-body">
+                                <input type="hidden" id="editId">
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Индекс</label>
+                                    <input type="text" class="form-control" id="editIndex" readonly disabled>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Название документа</label>
+                                    <input type="text" class="form-control" id="editName" readonly disabled>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Кому направлен</label>
+                                    <input type="text" class="form-control" id="editResolution" placeholder="Имя сотрудника или отдела">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">
+                                        <i class="fas fa-calendar-alt me-1"></i>Срок исполнения
+                                    </label>
+                                    <input type="date" class="form-control" id="editDeadline">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn btn-secondary" onclick="document.getElementById('editModal').style.display='none'">Отмена</button>
+                                <button class="btn btn-primary" onclick="saveEdit()">
+                                    <i class="fas fa-save me-1"></i>Сохранить
+                                </button>
+                            </div>
+                        </div>
+                    </div>`);
+                modal = document.getElementById('editModal');
+            }
+
+            document.getElementById('editId').value          = d.id;
+            document.getElementById('editIndex').value       = d.documentIndex || '';
+            document.getElementById('editName').value        = d.documentName  || '';
+            document.getElementById('editResolution').value  = d.correspondent || '';
+            document.getElementById('editDeadline').value    = d.dueDate ? d.dueDate.slice(0, 10) : '';
+
+            modal.style.display = 'flex';
+        });
+}
+
+async function saveEdit() {
+    const id           = document.getElementById('editId').value;
+    const correspondent = document.getElementById('editResolution').value.trim() || null;
+    const dueDate      = document.getElementById('editDeadline').value || null;
+
+    try {
+        const res  = await fetch(`/api/user/journals/incoming/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ correspondent, dueDate })
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+
+        document.getElementById('editModal').style.display = 'none';
+        loadDocuments();
+    } catch (err) {
+        alert('Ошибка сохранения: ' + err.message);
+    }
+}
+
+// ── Сброс фильтров ──
+function clearFilters() {
+    document.getElementById('searchSender').value  = '';
+    document.getElementById('searchDate').value    = '';
+    document.getElementById('searchIndex').value   = '';
+    document.getElementById('executionFilter').value = '';
+    state.page = 1;
+    loadDocuments();
+}
+
+// ── Пагинация ──
+function renderPagination(p) {
+    const w = document.getElementById('paginationWrapper');
+    if (p.pages <= 1) { w.innerHTML = ''; return; }
+    let btns = '';
+    for (let i = 1; i <= p.pages; i++) {
+        btns += `<li class="page-item ${i === p.page ? 'active' : ''}">
+            <button class="page-link" onclick="goPage(${i})">${i}</button></li>`;
+    }
+    w.innerHTML = `<ul class="pagination pagination-sm">${btns}</ul>`;
+}
+function goPage(p) { state.page = p; loadDocuments(); }
+
+// ── Состояния ──
+function renderLoading() {
+    document.getElementById('tableWrapper').innerHTML =
+        `<div class="state-container"><div class="spinner-border text-primary" role="status"></div><p class="mt-3 text-muted">Загрузка...</p></div>`;
+}
+function renderEmpty() {
+    document.getElementById('tableWrapper').innerHTML =
+        `<div class="state-container">
+            <div class="state-icon"><i class="fas fa-inbox"></i></div>
+            <h5>Записей пока нет</h5>
+            <p class="text-muted">Загрузите документ в каталог — он появится здесь автоматически</p>
+            <a href="/dashboard" class="btn btn-primary btn-sm mt-2">
+                <i class="fas fa-arrow-right me-1"></i>Перейти к каталогам
+            </a>
+        </div>`;
+}
+function renderError(msg) {
+    document.getElementById('tableWrapper').innerHTML =
+        `<div class="state-container">
+            <div class="state-icon text-danger"><i class="fas fa-exclamation-triangle"></i></div>
+            <h5>Ошибка загрузки</h5>
+            <p class="text-muted">${esc(msg)}</p>
+            <button class="btn btn-outline-primary btn-sm mt-2" onclick="loadDocuments()">
+                <i class="fas fa-redo me-1"></i>Повторить
+            </button>
+        </div>`;
+}
+
+// ── Смена пароля ──
+function openPasswordModal() {
+    if (document.getElementById('pwModal')) {
+        document.getElementById('pwModal').style.display = 'flex';
+        return;
+    }
+    document.body.insertAdjacentHTML('beforeend', `
+        <div class="modal-overlay" id="pwModal">
+            <div class="modal-content" style="max-width:440px">
+                <div class="modal-header">
+                    <h3><i class="fas fa-key"></i>Смена пароля</h3>
+                    <button class="close-btn" onclick="document.getElementById('pwModal').style.display='none'">&times;</button>
+                </div>
+                <form id="pwForm">
+                    <div class="modal-body">
+                        <div class="mb-3"><label class="form-label">Текущий пароль <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="pwCurrent" required></div>
+                        <div class="mb-3"><label class="form-label">Новый пароль <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="pwNew" required minlength="6"></div>
+                        <div class="mb-3"><label class="form-label">Повторите новый пароль <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="pwConfirm" required></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary"
+                                onclick="document.getElementById('pwModal').style.display='none'">Отмена</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Сменить</button>
+                    </div>
+                </form>
+            </div>
+        </div>`);
+    document.getElementById('pwForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const cur = document.getElementById('pwCurrent').value;
+        const nw  = document.getElementById('pwNew').value;
+        const cf  = document.getElementById('pwConfirm').value;
+        if (nw !== cf) { alert('Пароли не совпадают'); return; }
+        try {
+            const res  = await fetch('/api/user/change-password', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+                body: JSON.stringify({ currentPassword: cur, newPassword: nw })
+            });
+            const data = await res.json();
+            alert(data.message || (data.success ? 'Пароль изменён' : 'Ошибка'));
+            if (data.success) document.getElementById('pwModal').style.display = 'none';
+        } catch { alert('Ошибка соединения'); }
+    });
+}
+
+// ── Вспомогательные ──
+function esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function formatDate(s) {
+    if (!s) return '—';
+    return new Date(s).toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+function formatDateTime(s) {
+    if (!s) return '—';
+    const d = new Date(s);
+    return d.toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric' })
+        + ' ' + d.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+}
+</script>
+</body>
+</html>

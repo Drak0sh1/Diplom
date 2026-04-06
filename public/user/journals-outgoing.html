@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Журнал исходящих документов</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #334155; }
+
+        .header {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            color: white; padding: 15px 30px;
+            display: flex; justify-content: space-between; align-items: center;
+            position: fixed; top: 0; width: 100%; height: 74px; z-index: 1000;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .header-text h1 { font-size: 22px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .header-subtitle { font-size: 13px; opacity: .9; }
+        .header-nav-link {
+            display: flex; align-items: center; gap: 6px;
+            color: white; text-decoration: none; font-size: 14px; font-weight: 500;
+            padding: 7px 14px; border-radius: 6px; margin-left: 20px;
+            background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+            transition: background .2s;
+        }
+        .header-nav-link:hover { background: rgba(255,255,255,.25); color: white; }
+
+        .main-content {
+            margin-top: 74px; padding: 60px 30px;
+            display: flex; align-items: center; justify-content: center;
+            min-height: calc(100vh - 74px);
+        }
+        .placeholder {
+            text-align: center; max-width: 480px;
+        }
+        .placeholder-icon {
+            width: 90px; height: 90px; border-radius: 24px;
+            background: #dcfce7; color: #16a34a;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 40px; margin: 0 auto 28px;
+        }
+        .placeholder h2 { font-size: 26px; font-weight: 700; color: #0f172a; margin-bottom: 12px; }
+        .placeholder p { color: #64748b; font-size: 15px; line-height: 1.7; margin-bottom: 28px; }
+        .badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: #fef3c7; color: #92400e;
+            padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;
+            margin-bottom: 28px;
+        }
+        .btn-back {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: #16a34a; color: white; text-decoration: none;
+            padding: 12px 24px; border-radius: 10px; font-weight: 600; font-size: 14px;
+            transition: background .2s;
+        }
+        .btn-back:hover { background: #15803d; color: white; }
+    </style>
+</head>
+<body>
+<header class="header">
+    <div class="header-left">
+        <div class="header-text">
+            <h1><i class="fas fa-paper-plane"></i> Журнал исходящих документов</h1>
+            <p class="header-subtitle">Регистрация исходящей корреспонденции</p>
+        </div>
+        <a href="/dashboard" class="header-nav-link">
+            <i class="fas fa-home"></i> <span>Главная</span>
+        </a>
+    </div>
+</header>
+
+<main class="main-content">
+    <div class="placeholder">
+        <div class="placeholder-icon"><i class="fas fa-paper-plane"></i></div>
+        <div class="badge"><i class="fas fa-clock"></i> В разработке</div>
+        <h2>Журнал исходящих документов</h2>
+        <p>Раздел регистрации исходящей корреспонденции находится в разработке.<br>
+           Здесь будет журнал учёта документов, отправленных из организации.</p>
+        <a href="/dashboard" class="btn-back">
+            <i class="fas fa-arrow-left"></i> Вернуться на главную
+        </a>
+    </div>
+</main>
+</body>
+</html>

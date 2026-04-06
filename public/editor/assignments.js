@@ -19,7 +19,6 @@ class AssignmentsPage {
             this.loadDirectories()
         ]);
         this.setupEventListeners();
-        this.updateStats();
     }
     
     async loadAssignments() {
@@ -268,25 +267,30 @@ class AssignmentsPage {
     }
     
     showForm(assignmentId = null) {
-        const formCard = document.getElementById('assignmentFormCard');
+        const modal = document.getElementById('assignmentFormModal');
         const formTitle = document.getElementById('formTitle');
+        const titleIcon = document.querySelector('#assignmentFormTitle > i');
+        
+        if (!modal || !formTitle) return;
         
         if (assignmentId) {
             formTitle.textContent = 'Редактировать назначение';
+            if (titleIcon) titleIcon.className = 'fas fa-edit';
             this.currentAssignmentId = assignmentId;
             this.loadAssignmentData(assignmentId);
         } else {
             formTitle.textContent = 'Новое назначение';
+            if (titleIcon) titleIcon.className = 'fas fa-user-plus';
             this.currentAssignmentId = null;
             this.resetForm();
         }
         
-        formCard.style.display = 'block';
-        formCard.scrollIntoView({ behavior: 'smooth' });
+        modal.style.display = 'flex';
     }
     
     hideForm() {
-        document.getElementById('assignmentFormCard').style.display = 'none';
+        const modal = document.getElementById('assignmentFormModal');
+        if (modal) modal.style.display = 'none';
     }
     
     resetForm() {
@@ -352,7 +356,6 @@ class AssignmentsPage {
                 
                 this.hideForm();
                 await this.loadAssignments();
-                this.updateStats();
             } else {
                 this.showNotification(response.message || 'Ошибка сохранения', 'error');
             }
@@ -385,7 +388,6 @@ class AssignmentsPage {
             if (response.success) {
                 this.showNotification('Доступ отозван', 'success');
                 await this.loadAssignments();
-                this.updateStats();
             } else {
                 this.showNotification(response.message || 'Ошибка отзыва доступа', 'error');
             }
@@ -409,7 +411,6 @@ class AssignmentsPage {
             
             this.showNotification(`Отозвано ${expired.length} просроченных доступов`, 'success');
             await this.loadAssignments();
-            this.updateStats();
         } catch (error) {
             console.error('Ошибка отзыва просроченных доступов:', error);
             this.showNotification('Ошибка выполнения операции', 'error');
@@ -510,18 +511,6 @@ class AssignmentsPage {
         }
         
         return assignment.status || 'active';
-    }
-    
-    updateStats() {
-        const total = this.assignments.length;
-        const active = this.assignments.filter(a => this.checkAssignmentStatus(a) === 'active').length;
-        const expiring = this.assignments.filter(a => this.checkAssignmentStatus(a) === 'expiring').length;
-        const admin = this.assignments.filter(a => a.permission === 'ADMIN').length;
-        
-        document.getElementById('totalAssignments').textContent = total;
-        document.getElementById('activeAssignments').textContent = active;
-        document.getElementById('expiringAssignments').textContent = expiring;
-        document.getElementById('adminAssignments').textContent = admin;
     }
     
     getPermissionLabel(permission) {

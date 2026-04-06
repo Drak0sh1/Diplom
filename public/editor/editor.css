@@ -1,13 +1,23 @@
 .search-filters {
     display: flex;
-    gap: 15px;
+    gap: 16px;
     margin-bottom: 20px;
     align-items: center;
     flex-wrap: wrap;
     background: #f8fafc;
-    padding: 15px;
+    padding: 16px;
     border-radius: 10px;
     border: 1px solid #e2e8f0;
+}
+
+/* Одинаковые промежутки между полями фильтров на странице редактора */
+.admin-container .search-filters {
+    gap: 16px;
+    padding: 16px;
+}
+
+.admin-container .search-filters .status-filters {
+    gap: 10px;
 }
 
 .search-box {
@@ -35,7 +45,8 @@
 
 .search-box input:focus {
     outline: none;
-    border-color: #4299e1;
+    border-color: #6d28d9;
+    box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.12);
 }
 
 .filter-group {
@@ -65,20 +76,20 @@
 }
 
 .status-filter-btn:hover {
-    border-color: #4299e1;
+    border-color: #7c3aed;
     transform: translateY(-1px);
 }
 
 .status-filter-btn.active {
-    background: #4299e1;
-    border-color: #4299e1;
+    background: #5b21b6;
+    border-color: #5b21b6;
     color: white;
 }
 
 .status-filter-btn[data-status="all"]:hover,
 .status-filter-btn[data-status="all"].active {
-    background: #4299e1;
-    border-color: #4299e1;
+    background: #5b21b6;
+    border-color: #5b21b6;
 }
 
 .status-filter-btn[data-status="active"]:hover,
@@ -169,7 +180,7 @@
 .loading-state i {
     font-size: 48px;
     margin-bottom: 15px;
-    color: #4299e1;
+    color: #6d28d9;
     animation: spin 1.5s linear infinite;
 }
 
@@ -231,7 +242,7 @@
 
 .tree-icon {
     margin-right: 10px;
-    color: #3b82f6;
+    color: #6d28d9;
     font-size: 16px;
 }
 
@@ -307,7 +318,7 @@
 
 .view-toggle-btn.active {
     background: white;
-    color: #3b82f6;
+    color: #6d28d9;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
@@ -425,7 +436,7 @@
 
 .tree-path-item {
     cursor: pointer;
-    color: #3b82f6;
+    color: #6d28d9;
     transition: color 0.2s;
 }
 
@@ -451,7 +462,7 @@
 }
 
 .tree-back-btn:hover {
-    color: #3b82f6;
+    color: #6d28d9;
 }
 
 .tree-breadcrumb {
@@ -495,3 +506,1280 @@
     border-color: #bee5eb;
 }
 
+/* Интро-блок: те же цвета, что у шапки; скрывается через 5 с после загрузки */
+.admin-container .page-header.editor-intro-banner {
+    animation: editorIntroFadeOut 0.5s ease forwards;
+    animation-delay: 5s;
+    background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 45%, #8b5cf6 100%);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.28);
+}
+
+.admin-container .page-header.editor-intro-banner h1 {
+    color: #3d1d6e;
+}
+
+.admin-container .page-header.editor-intro-banner .page-subtitle {
+    color: #5b2a9e;
+    font-weight: 500;
+}
+
+/* Таблица справочников — уже ширины контента, по центру */
+.admin-container .table-container.table-container--directories {
+    width: 100%;
+    max-width: min(1200px, 100%);
+    margin: 12px auto 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(91, 33, 182, 0.07);
+}
+
+.admin-container .directories-table.directories-table--modern {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+/* Отступ под блок пагинации («Страница … из …») */
+.admin-container .pagination {
+    margin-bottom: 28px;
+}
+
+.admin-container .directories-table--modern thead {
+    background: linear-gradient(135deg, #c4b5fd 0%, #8b5cf6 100%);
+}
+
+.admin-container .directories-table--modern thead th {
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 14px 14px;
+    text-align: left;
+    border: none;
+    line-height: 1.3;
+    vertical-align: middle;
+}
+
+.admin-container .directories-table--modern thead th.col-id {
+    width: 3.25rem;
+    text-align: center;
+}
+
+.admin-container .directories-table--modern thead th.col-date {
+    width: 7.25rem;
+}
+
+.admin-container .directories-table--modern thead th.col-status {
+    width: 6.75rem;
+}
+
+.admin-container .directories-table--modern thead th.col-actions {
+    width: 5.75rem;
+    text-align: right;
+}
+
+.admin-container .directories-table--modern tbody td {
+    padding: 14px 14px;
+    font-size: 13px;
+    line-height: 1.35;
+    color: #334155;
+    border-bottom: 1px solid #ede9fe;
+    vertical-align: middle;
+}
+
+.admin-container .directories-table--modern tbody tr:hover td {
+    background: #f9f7ff;
+}
+
+.admin-container .directories-table--modern .dir-td-num {
+    text-align: center;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: #6d28d9;
+    font-size: 12px;
+}
+
+.admin-container .directories-table--modern .dir-name-line {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+    color: #1e1b2e;
+}
+
+.admin-container .directories-table--modern .dir-name-line i {
+    margin-right: 6px;
+    color: #8b5cf6;
+    font-size: 12px;
+}
+
+.admin-container .directories-table--modern .dir-td-muted {
+    color: #64748b;
+    font-size: 13px;
+}
+
+.admin-container .directories-table--modern .dir-td-clip {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-container .directories-table--modern .dir-td-nowrap {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-container .directories-table--modern .dir-td-actions {
+    text-align: right;
+}
+
+.admin-container .directories-table--modern .dir-actions {
+    display: inline-flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+
+.admin-container .directories-table--modern .dir-actions .btn-action {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    font-size: 11px;
+}
+
+.admin-container .directories-table--modern tbody .status-badge {
+    font-size: 10px;
+    padding: 4px 8px;
+    letter-spacing: 0.03em;
+}
+
+.admin-container .directories-table--modern td.loading-state,
+.admin-container .directories-table--modern td.empty-state {
+    padding: 36px 14px;
+    text-align: center;
+    background: #faf9fc;
+}
+
+.admin-container .directories-table--modern td.loading-state i,
+.admin-container .directories-table--modern td.empty-state i {
+    font-size: 2rem;
+    color: #a78bfa;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.admin-container .directories-table--modern td.empty-state h3 {
+    color: #3d1d6e;
+    font-size: 1.05rem;
+    margin: 0 0 6px;
+    font-weight: 600;
+}
+
+.admin-container .directories-table--modern td.empty-state p {
+    color: #64748b;
+    font-size: 13px;
+    margin: 0;
+}
+
+/* Заголовок карточки: «Список справочников», блок формы — палитра как у шапки */
+.admin-container .card .card-header {
+    background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 45%, #8b5cf6 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.admin-container .card .card-header h2 {
+    color: #3d1d6e;
+}
+
+.admin-container .card .card-header .view-toggle {
+    background: rgba(255, 255, 255, 0.38);
+}
+
+.admin-container .card .card-header .view-toggle-btn {
+    color: #4c2d7a;
+}
+
+.admin-container .card .card-header .view-toggle-btn.active {
+    background: #fff;
+    color: #7c3aed;
+    box-shadow: 0 1px 4px rgba(61, 29, 110, 0.12);
+}
+
+.admin-container .card .card-header .view-toggle-btn:hover:not(.active) {
+    color: #3d1d6e;
+}
+
+.admin-container .card .card-header .btn-sm.btn-secondary {
+    background: rgba(255, 255, 255, 0.45);
+    border-color: rgba(61, 29, 110, 0.3);
+    color: #3d1d6e;
+}
+
+.admin-container .card .card-header .btn-sm.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.7);
+    color: #2d1550;
+}
+
+.admin-container .card .card-header .btn-sm.btn-primary {
+    background: #fff;
+    color: #7c3aed;
+    border: 1px solid rgba(124, 58, 237, 0.35);
+    box-shadow: 0 1px 4px rgba(61, 29, 110, 0.1);
+}
+
+.admin-container .card .card-header .btn-sm.btn-primary:hover {
+    background: #faf5ff;
+    color: #6d28d9;
+    border-color: rgba(109, 40, 217, 0.45);
+    box-shadow: 0 3px 10px rgba(124, 58, 237, 0.2);
+}
+
+.admin-container .card .card-header .btn-sm.btn-primary i {
+    color: #7c3aed;
+}
+
+.admin-container .card .card-header .btn-sm.btn-primary:hover i {
+    color: #6d28d9;
+}
+
+@keyframes editorIntroFadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-24px);
+        visibility: hidden;
+        display: none;
+    }
+}
+
+/* Лавандовый фон страницы (editor.html) */
+body {
+    background: linear-gradient(135deg, #f5f0ff 0%, #ebe3f7 40%, #dfd2f2 100%);
+    background-attachment: fixed;
+}
+
+/* Шапка в стиле личного кабинета, палитра лаванды */
+.admin-container > .header {
+    background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 45%, #8b5cf6 100%);
+    padding: 0 32px;
+    height: 80px;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.12);
+    border-bottom: none;
+    backdrop-filter: none;
+}
+
+.admin-container > .header .header-left {
+    gap: 10px;
+}
+
+.admin-container > .header .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-container > .header .logo-text h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #3d1d6e;
+    letter-spacing: -0.3px;
+    white-space: nowrap;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.admin-container > .header .logo-text h1 > i {
+    font-size: 18px;
+    color: #3d1d6e;
+    opacity: 1;
+}
+
+.admin-container > .header .logo-text p {
+    font-size: 12px;
+    color: #5b2a9e;
+    margin-top: 1px;
+    font-weight: 500;
+}
+
+.admin-container > .header .header-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #3d1d6e;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(61, 29, 110, 0.28);
+    transition: background 0.2s, color 0.2s;
+    white-space: nowrap;
+    margin-left: 8px;
+}
+
+.admin-container > .header .header-nav-link i {
+    color: #3d1d6e;
+}
+
+.admin-container > .header .header-nav-link:hover {
+    background: rgba(255, 255, 255, 0.72);
+    color: #2d1550;
+}
+
+.admin-container > .header .header-nav-link:hover i {
+    color: #2d1550;
+}
+
+.admin-container > .header .user-profile {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 12px 7px 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    user-select: none;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: background 0.2s;
+}
+
+.admin-container > .header .user-profile:hover {
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.admin-container > .header .user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 15px;
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+    flex-shrink: 0;
+    box-shadow: none;
+}
+
+.admin-container > .header .user-details {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+}
+
+.admin-container > .header .user-name {
+    font-weight: 600;
+    font-size: 13.5px;
+    color: white;
+}
+
+.admin-container > .header .user-role {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.78);
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+}
+
+.admin-container > .header .user-chevron {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.75);
+    transition: transform 0.2s;
+    margin-left: 2px;
+}
+
+.admin-container > .header .user-profile.open .user-chevron {
+    transform: rotate(180deg);
+}
+
+.admin-container > .header .user-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: white;
+    min-width: 215px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+    z-index: 2000;
+    overflow: hidden;
+    border: 1px solid #f1f5f9;
+}
+
+.admin-container > .header .user-profile.open .user-dropdown {
+    display: block;
+}
+
+.admin-container > .header .dd-user-header {
+    padding: 14px 16px 11px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.admin-container > .header .dd-user-header .duh-name {
+    font-weight: 700;
+    font-size: 14px;
+    color: #1f2937;
+}
+
+.admin-container > .header .dd-user-header .duh-role {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.admin-container > .header .dd-user-header .duh-meta {
+    margin-top: 6px;
+}
+
+.admin-container > .header .dd-user-header .user-status {
+    font-size: 11px;
+    margin-top: 6px;
+    background: transparent !important;
+    border: none !important;
+    padding: 0;
+    display: block;
+}
+
+.admin-container > .header .dd-user-header .user-status.can-change {
+    color: #16a34a;
+}
+
+.admin-container > .header .dd-user-header .user-status.cannot-change {
+    color: #d97706;
+}
+
+.admin-container > .header .dd-user-header .user-status.never-changed {
+    color: #64748b;
+}
+
+.admin-container > .header .dd-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 16px;
+    color: #374151;
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: background 0.15s;
+}
+
+.admin-container > .header .dd-item:hover {
+    background: #f8fafc;
+}
+
+.admin-container > .header .dd-item i {
+    width: 16px;
+    color: #6d28d9;
+    font-size: 13px;
+}
+
+.admin-container > .header .dd-item.danger {
+    color: #ef4444;
+}
+
+.admin-container > .header .dd-item.danger i {
+    color: #ef4444;
+}
+
+.admin-container > .header .dd-divider {
+    height: 1px;
+    background: #f1f5f9;
+}
+
+.admin-container .main-content {
+    margin-top: 80px;
+    margin-left: 0;
+    width: 100%;
+    max-width: none;
+    padding: 14px 22px;
+    min-height: calc(100vh - 80px);
+}
+
+/* Компактнее верхний блок (плашка с заголовком страницы) */
+.admin-container .main-content > .page-header {
+    margin-bottom: 14px;
+    padding: 14px 18px;
+}
+
+.admin-container .main-content > .page-header h1 {
+    font-size: 22px;
+    margin-bottom: 4px;
+}
+
+.admin-container .main-content > .page-header .page-subtitle {
+    font-size: 13px;
+}
+
+.admin-container .main-content > .card {
+    margin-bottom: 18px;
+}
+
+@media (max-width: 768px) {
+    .admin-container > .header {
+        padding: 0 20px;
+        height: 76px;
+    }
+
+    .admin-container > .header .logo-text p {
+        display: none;
+    }
+
+    .admin-container .main-content {
+        margin-top: 76px;
+        margin-left: 0;
+        min-height: calc(100vh - 76px);
+        padding: 12px 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-container > .header {
+        height: 62px;
+        padding: 0 10px;
+    }
+
+    .admin-container > .header .logo-text h1 {
+        font-size: 17px;
+    }
+
+    .admin-container > .header .user-details {
+        display: none;
+    }
+
+    .admin-container > .header .header-nav-link {
+        font-size: 12px;
+        padding: 6px 10px;
+        margin-left: 4px;
+    }
+
+    .admin-container .main-content {
+        margin-top: 62px;
+        margin-left: 0;
+        min-height: calc(100vh - 62px);
+        padding: 10px 12px;
+    }
+
+    .admin-container .main-content > .page-header {
+        padding: 12px 14px;
+        margin-bottom: 12px;
+    }
+
+    .admin-container .main-content > .page-header h1 {
+        font-size: 18px;
+    }
+}
+
+/* Форма добавления / редактирования справочника и модалка назначений */
+#directoryFormModal .form-row,
+#assignmentFormModal .form-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    margin-bottom: 0;
+    align-items: start;
+}
+
+#directoryFormModal .form-row .form-group,
+#assignmentFormModal .form-row .form-group {
+    margin-bottom: 0;
+}
+
+#directoryFormModal .form-group,
+#assignmentFormModal .form-group {
+    margin-bottom: 0;
+}
+
+#directoryFormModal .form-group.form-group--compact,
+#assignmentFormModal .form-group.form-group--compact {
+    margin-bottom: 0;
+}
+
+#directoryFormModal .form-group label,
+#assignmentFormModal .form-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    line-height: 1.35;
+    color: #4a3d6b;
+}
+
+#directoryFormModal .form-group label i,
+#assignmentFormModal .form-group label i {
+    color: #8b5cf6;
+}
+
+#directoryFormModal.modal-overlay,
+#assignmentFormModal.modal-overlay {
+    z-index: 2100;
+}
+
+#directoryFormModal .modal-content--directory-form,
+#assignmentFormModal .modal-content--directory-form {
+    max-width: min(640px, 94vw);
+    width: 100%;
+    background: linear-gradient(180deg, #faf8ff 0%, #f2ecfb 50%, #ebe3f7 100%);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    box-shadow:
+        0 24px 48px rgba(91, 33, 182, 0.18),
+        0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+}
+
+#directoryFormModal .modal-header,
+#assignmentFormModal .modal-header {
+    background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 45%, #8b5cf6 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+#directoryFormModal .modal-header h3,
+#assignmentFormModal .modal-header h3 {
+    color: #3d1d6e;
+}
+
+#directoryFormModal .modal-header h3 i,
+#assignmentFormModal .modal-header h3 i {
+    color: #5b2a9e;
+}
+
+#directoryFormModal .modal-header .close-btn,
+#assignmentFormModal .modal-header .close-btn {
+    color: #5b2a9e;
+}
+
+#directoryFormModal .modal-header .close-btn:hover,
+#assignmentFormModal .modal-header .close-btn:hover {
+    background: rgba(255, 255, 255, 0.4);
+    color: #3d1d6e;
+}
+
+#directoryFormModal .form-control,
+#assignmentFormModal .form-control {
+    border: 2px solid rgba(167, 139, 250, 0.45);
+    background: rgba(255, 255, 255, 0.97);
+}
+
+#directoryFormModal .form-control:focus,
+#assignmentFormModal .form-control:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.22);
+}
+
+#directoryFormModal .directory-form-footer .btn-primary,
+#assignmentFormModal .directory-form-footer .btn-primary {
+    background: linear-gradient(135deg, #9f7aea, #7c3aed);
+    color: #fff;
+    border: none;
+    box-shadow: 0 2px 10px rgba(124, 58, 237, 0.35);
+}
+
+#directoryFormModal .directory-form-footer .btn-primary:hover,
+#assignmentFormModal .directory-form-footer .btn-primary:hover {
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.45);
+    transform: translateY(-1px);
+}
+
+#directoryFormModal .directory-form-footer .btn-secondary,
+#assignmentFormModal .directory-form-footer .btn-secondary {
+    background: rgba(255, 255, 255, 0.92);
+    color: #6d28d9;
+    border: 2px solid rgba(124, 58, 237, 0.4);
+    box-shadow: none;
+}
+
+#directoryFormModal .directory-form-footer .btn-secondary:hover,
+#assignmentFormModal .directory-form-footer .btn-secondary:hover {
+    background: #fff;
+    color: #5b21b6;
+    border-color: rgba(109, 40, 217, 0.55);
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.15);
+    transform: translateY(-1px);
+}
+
+#directoryFormModal .modal-body.directory-form-body,
+#assignmentFormModal .modal-body.directory-form-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 16px 24px;
+    background: transparent;
+}
+
+#directoryFormModal .modal-body.directory-form-body {
+    max-height: min(65vh, 480px);
+    overflow-y: auto;
+}
+
+#assignmentFormModal .modal-body.directory-form-body {
+    max-height: none;
+    overflow: visible;
+}
+
+#assignmentFormModal .modal-content--directory-form {
+    max-height: min(90vh, 720px);
+    overflow-y: auto;
+    overflow-x: visible;
+}
+
+#directoryFormModal .directory-form-footer,
+#assignmentFormModal .directory-form-footer {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 16px 24px 20px;
+    border-top: 1px solid rgba(139, 92, 246, 0.3);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(237, 231, 254, 0.85) 100%);
+}
+
+#directoryFormModal .directory-form-footer button,
+#assignmentFormModal .directory-form-footer button {
+    flex: 0 1 auto;
+    min-width: 128px;
+    padding: 11px 20px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+#directoryFormModal textarea.form-control,
+#assignmentFormModal textarea.form-control {
+    min-height: 108px;
+}
+
+@media (max-width: 720px) {
+    #directoryFormModal .form-row,
+    #assignmentFormModal .form-row {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    #directoryFormModal .modal-body.directory-form-body,
+    #assignmentFormModal .modal-body.directory-form-body {
+        padding: 14px 18px;
+        gap: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    #directoryFormModal .modal-body.directory-form-body,
+    #assignmentFormModal .modal-body.directory-form-body {
+        padding: 12px 14px;
+        gap: 20px;
+    }
+}
+
+/* Тёмно-фиолетовые акценты вместо синих (style.css + модалки на этой странице) */
+.admin-container .pagination-btn:hover:not(:disabled) {
+    border-color: #6d28d9;
+    color: #6d28d9;
+}
+
+.admin-container .btn-primary,
+.modal-overlay .btn-primary {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+    color: #fff;
+}
+
+.admin-container .btn-primary:hover,
+.modal-overlay .btn-primary:hover {
+    background: linear-gradient(135deg, #6d28d9, #4c1d95);
+    box-shadow: 0 4px 12px rgba(91, 33, 182, 0.35);
+}
+
+.admin-container .form-control:focus,
+.modal-overlay .form-control:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+.admin-container .view-toggle-btn.active {
+    color: #6d28d9;
+    box-shadow: 0 1px 3px rgba(91, 33, 182, 0.12);
+}
+
+.admin-container .btn-action-edit {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+}
+
+.admin-container .btn-action-edit:hover {
+    box-shadow: 0 2px 8px rgba(91, 33, 182, 0.28);
+}
+
+.admin-container .password-requirements {
+    border-left-color: #7c3aed;
+}
+
+.notification.info {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.95), rgba(91, 33, 182, 0.95));
+}
+
+/* Модалка «Подтверждение удаления» — как окно формы справочника */
+#confirmModal .modal-content {
+    background: linear-gradient(180deg, #faf8ff 0%, #f2ecfb 50%, #ebe3f7 100%);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    box-shadow:
+        0 24px 48px rgba(91, 33, 182, 0.18),
+        0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+    max-width: min(420px, 94vw);
+}
+
+#confirmModal .modal-header {
+    background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 45%, #8b5cf6 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+    padding: 18px 20px;
+}
+
+#confirmModal .modal-header h3 {
+    color: #3d1d6e;
+    font-size: 17px;
+}
+
+#confirmModal .modal-header h3 i {
+    color: #c2410c;
+}
+
+#confirmModal .modal-header .close-btn {
+    color: #5b2a9e;
+}
+
+#confirmModal .modal-header .close-btn:hover {
+    background: rgba(255, 255, 255, 0.4);
+    color: #3d1d6e;
+}
+
+#confirmModal .modal-body {
+    padding: 20px 22px;
+    color: #4a3d6b;
+    background: transparent;
+    line-height: 1.55;
+}
+
+#confirmModal .modal-body p {
+    margin: 0;
+    font-size: 14px;
+}
+
+#confirmModal .modal-footer {
+    padding: 16px 20px 20px;
+    gap: 12px;
+    border-top: 1px solid rgba(139, 92, 246, 0.3);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(237, 231, 254, 0.85) 100%);
+}
+
+#confirmModal .modal-footer button {
+    flex: 1;
+    padding: 11px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+#confirmModal .btn-danger {
+    background: linear-gradient(135deg, #e11d48, #be123c);
+    border: none;
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(190, 18, 60, 0.3);
+}
+
+#confirmModal .btn-danger:hover {
+    background: linear-gradient(135deg, #be123c, #9f1239);
+    box-shadow: 0 4px 14px rgba(190, 18, 60, 0.35);
+    transform: translateY(-1px);
+}
+
+#confirmModal .btn-secondary {
+    background: rgba(255, 255, 255, 0.92);
+    color: #6d28d9;
+    border: 2px solid rgba(124, 58, 237, 0.4);
+    box-shadow: none;
+}
+
+#confirmModal .btn-secondary:hover {
+    background: #fff;
+    color: #5b21b6;
+    border-color: rgba(109, 40, 217, 0.55);
+}
+
+/* Модалка «Смена пароля» — как форма справочника */
+#changePasswordModal.modal-overlay {
+    z-index: 2150;
+}
+
+#changePasswordModal .modal-content {
+    max-width: min(480px, 94vw);
+    width: 100%;
+    background: linear-gradient(180deg, #faf8ff 0%, #f2ecfb 50%, #ebe3f7 100%);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    box-shadow:
+        0 24px 48px rgba(91, 33, 182, 0.18),
+        0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+#changePasswordModal .modal-header {
+    background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 45%, #8b5cf6 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+    padding: 18px 20px;
+}
+
+#changePasswordModal .modal-header h3 {
+    color: #3d1d6e;
+    font-size: 17px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#changePasswordModal .modal-header h3 i {
+    color: #5b2a9e;
+}
+
+#changePasswordModal .modal-header .close-btn {
+    color: #5b2a9e;
+}
+
+#changePasswordModal .modal-header .close-btn:hover {
+    background: rgba(255, 255, 255, 0.4);
+    color: #3d1d6e;
+}
+
+#changePasswordModal .modal-body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    color: #4a3d6b;
+    background: transparent;
+}
+
+#changePasswordModal .modal-body .form-group {
+    margin-bottom: 0;
+}
+
+#changePasswordModal .modal-body .form-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #4a3d6b;
+}
+
+#changePasswordModal .modal-body .form-group label i {
+    color: #8b5cf6;
+}
+
+#changePasswordModal .form-control {
+    border: 2px solid rgba(167, 139, 250, 0.45);
+    background: rgba(255, 255, 255, 0.97);
+}
+
+#changePasswordModal .form-control:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.22);
+}
+
+#changePasswordModal .form-text {
+    color: #6b5a8c;
+    font-size: 12px;
+    margin-top: 6px;
+    display: block;
+}
+
+#changePasswordModal .password-requirements {
+    margin: 0;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    border-radius: 10px;
+    border-left: 4px solid #8b5cf6;
+}
+
+#changePasswordModal .password-requirements p {
+    margin: 0 0 10px;
+    color: #3d1d6e;
+    font-size: 13px;
+}
+
+#changePasswordModal .password-requirements ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    color: #4a3d6b;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+#changePasswordModal .password-requirements li {
+    margin-bottom: 4px;
+}
+
+#changePasswordModal .modal-footer {
+    padding: 16px 24px 20px;
+    gap: 12px;
+    border-top: 1px solid rgba(139, 92, 246, 0.3);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(237, 231, 254, 0.85) 100%);
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+#changePasswordModal .modal-footer button {
+    min-width: 140px;
+    padding: 11px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+#changePasswordModal .modal-footer .btn-primary {
+    background: linear-gradient(135deg, #9f7aea, #7c3aed);
+    border: none;
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(124, 58, 237, 0.35);
+}
+
+#changePasswordModal .modal-footer .btn-primary:hover {
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.45);
+    transform: translateY(-1px);
+}
+
+#changePasswordModal .modal-footer .btn-secondary {
+    background: rgba(255, 255, 255, 0.92);
+    color: #6d28d9;
+    border: 2px solid rgba(124, 58, 237, 0.4);
+    box-shadow: none;
+}
+
+#changePasswordModal .modal-footer .btn-secondary:hover {
+    background: #fff;
+    color: #5b21b6;
+    border-color: rgba(109, 40, 217, 0.55);
+}
+
+/* ——— Страница назначений (assignments.html) ——— */
+.admin-container .user-info-small {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-container .user-avatar-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #c4b5fd, #8b5cf6);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.admin-container .user-name-small {
+    font-weight: 600;
+    color: #1e1b2e;
+    font-size: 13px;
+}
+
+.admin-container .directory-info-small {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-container .directory-info-small i {
+    color: #7c3aed;
+}
+
+.admin-container .status-badge.status-expired {
+    background: #fed7d7;
+    color: #742a2a;
+}
+
+.admin-container .status-badge.status-expiring {
+    background: #feebc8;
+    color: #744210;
+}
+
+.admin-container .status-badge.status-revoked {
+    background: #e2e8f0;
+    color: #4a5568;
+}
+
+.admin-container .expiring-soon {
+    color: #d97706;
+    font-weight: 600;
+}
+
+.admin-container .expiring-soon i {
+    color: #d97706;
+    margin-left: 5px;
+    cursor: help;
+}
+
+.admin-container .directory-input-wrapper {
+    position: relative;
+}
+
+.admin-container .directory-input-wrapper input {
+    width: 100%;
+}
+
+.admin-container .search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 2px solid #e9d5ff;
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 8px 24px rgba(91, 33, 182, 0.12);
+}
+
+.admin-container .search-results.active {
+    display: block;
+}
+
+.admin-container .search-result-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.admin-container .search-result-item:hover {
+    background: #faf8ff;
+}
+
+.admin-container .search-result-item:last-child {
+    border-bottom: none;
+}
+
+.admin-container .search-result-item .directory-path {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.admin-container .table-container.table-container--assignments {
+    width: 100%;
+    max-width: min(1200px, 100%);
+    margin: 12px auto 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(109, 40, 217, 0.28);
+    background: #e4daf0;
+    box-shadow: 0 1px 6px rgba(91, 33, 182, 0.1);
+}
+
+.admin-container .assignments-table.assignments-table--modern {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.admin-container .assignments-table--modern thead {
+    background: linear-gradient(135deg, #c4b5fd 0%, #8b5cf6 100%);
+}
+
+.admin-container .assignments-table--modern thead th {
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 14px 12px;
+    text-align: left;
+    border: none;
+    line-height: 1.3;
+    vertical-align: middle;
+}
+
+.admin-container .assignments-table--modern thead th.col-actions-header {
+    text-align: center;
+}
+
+.admin-container .assignments-table--modern tbody td {
+    padding: 12px 12px;
+    font-size: 13px;
+    line-height: 1.35;
+    color: #334155;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.18);
+    vertical-align: middle;
+    background: rgba(255, 255, 255, 0.65);
+}
+
+.admin-container .assignments-table--modern tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.admin-container .assignments-actions-cell {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.admin-container .assignments-actions-cell .action-buttons {
+    justify-content: center;
+}
+
+.admin-container .assignments-table--modern .status-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.admin-container .assignments-table--modern .status-indicator.active {
+    background: #48bb78;
+}
+
+.admin-container .assignments-table--modern .status-indicator.expired {
+    background: #f56565;
+}
+
+.admin-container .assignments-table--modern .status-indicator.expiring {
+    background: #ed8936;
+}
+
+.admin-container .assignments-table--modern .status-indicator.revoked {
+    background: #a0aec0;
+}
+
+@media (max-width: 768px) {
+    .admin-container .assignments-table--modern thead th,
+    .admin-container .assignments-table--modern tbody td {
+        padding: 10px 8px;
+        font-size: 12px;
+    }
+}

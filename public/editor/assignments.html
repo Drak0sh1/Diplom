@@ -7,299 +7,52 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        /* Новые стили для страницы назначений */
-
-        /* Информация о пользователе в таблице */
-        .user-info-small {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .user-avatar-small {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 14px;
-            flex-shrink: 0;
-        }
-        
-        .user-name-small {
-            font-weight: 600;
-            color: #2d3748;
-            font-size: 13px;
-        }
-        
-        /* Информация о справочнике в таблице */
-        .directory-info-small {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .directory-info-small i {
-            color: #4299e1;
-        }
-        
-        /* Статусы для назначений */
-        .status-expired { background: #fed7d7; color: #742a2a; }
-        .status-expiring { background: #feebc8; color: #744210; }
-        .status-revoked { background: #e2e8f0; color: #4a5568; }
-        
-        /* Цвета для срока истечения */
-        .expiring-soon {
-            color: #dd6b20;
-            font-weight: 600;
-        }
-        
-        .expiring-soon i {
-            color: #dd6b20;
-            margin-left: 5px;
-            cursor: help;
-        }
-        
-        /* Бейдж для количества */
-        .count-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            background: #edf2f7;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            color: #4a5568;
-            min-width: 32px;
-            text-align: center;
-        }
-        
-        /* Индикатор статуса в бейдже */
-        .status-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 6px;
-        }
-        
-        .status-indicator.active { background: #48bb78; }
-        .status-indicator.expired { background: #f56565; }
-        .status-indicator.expiring { background: #ed8936; }
-        .status-indicator.revoked { background: #a0aec0; }
-        .status-indicator.inactive { background: #f56565; }
-        .status-indicator.archived { background: #a0aec0; }
-
-        /* Статистика вверху страницы */
-        .top-stats-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .top-stat-card {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            padding: 25px;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
-        }
-
-        .top-stat-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .top-stat-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
-            flex-shrink: 0;
-        }
-
-        .top-stat-content {
-            flex: 1;
-        }
-
-        .top-stat-value {
-            font-size: 32px;
-            font-weight: 700;
-            color: #2d3748;
-            line-height: 1;
-            margin-bottom: 5px;
-        }
-
-        .top-stat-label {
-            font-size: 14px;
-            color: #718096;
-            font-weight: 500;
-        }
-
-        /* Стили для поиска справочников */
-        .search-results {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-top: none;
-            border-radius: 0 0 8px 8px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 1000;
-            display: none;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .search-results.active {
-            display: block;
-        }
-
-        .search-result-item {
-            padding: 10px 15px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            border-bottom: 1px solid #f7fafc;
-        }
-
-        .search-result-item:hover {
-            background-color: #f7fafc;
-        }
-
-        .search-result-item:last-child {
-            border-bottom: none;
-        }
-
-        .search-result-item .directory-path {
-            font-size: 12px;
-            color: #718096;
-            margin-top: 2px;
-        }
-
-        .directory-input-wrapper {
-            position: relative;
-        }
-
-        .directory-input-wrapper input {
-            width: 100%;
-        }
-
-        /* Стили для отображения иерархии в таблице */
-        .directory-path-cell {
-            max-width: 300px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .directory-path-cell:hover {
-            overflow: visible;
-            white-space: normal;
-            position: relative;
-            z-index: 10;
-            background: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            padding: 5px;
-            border-radius: 4px;
-        }
-    </style>
+    <link rel="stylesheet" href="editor.css">
 </head>
 <body>
     <div class="admin-container">
         <!-- Шапка -->
         <header class="header">
             <div class="header-left">
-                <button class="mobile-menu-btn" id="mobileMenuBtn">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <div class="header-text">
-                    <h1><i class="fas fa-user-check"></i> Панель редактора</h1>
-                    <p class="header-subtitle">Система контроля версий документов</p>
+                <div class="logo">
+                    <div class="logo-text">
+                        <h1><i class="fas fa-book"></i> Панель редактора</h1>
+                        <p>Система контроля версий документов</p>
+                    </div>
                 </div>
+                <a href="editor.html" class="header-nav-link">
+                    <i class="fas fa-book"></i> <span>Справочники</span>
+                </a>
             </div>
-            <div class="user-info">
+            <div class="user-profile" id="userProfile">
                 <div class="user-avatar" id="userAvatar">Р</div>
                 <div class="user-details">
                     <span class="user-name" id="userName">Загрузка...</span>
                     <span class="user-role" id="userRole">Редактор</span>
-                    <span class="user-status" id="lastPasswordChange"></span>
                 </div>
-                <div class="user-menu-dropdown">
-                    <button class="user-menu-btn" id="userMenuBtn">
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                    <div class="dropdown-content" id="userDropdown">
-                        <a href="#" id="changePasswordBtn"><i class="fas fa-key"></i> Сменить пароль</a>
-                        <a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Выход</a>
+                <i class="fas fa-chevron-down user-chevron"></i>
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="dd-user-header">
+                        <div class="duh-name" id="dropdownName">—</div>
+                        <div class="duh-role" id="dropdownRole">—</div>
+                        <div class="duh-meta" id="lastPasswordChange"></div>
+                    </div>
+                    <div class="dd-item" id="changePasswordBtn" role="button" tabindex="0">
+                        <i class="fas fa-key"></i> Сменить пароль
+                    </div>
+                    <div class="dd-divider"></div>
+                    <div class="dd-item danger" id="logoutBtn" role="button" tabindex="0">
+                        <i class="fas fa-sign-out-alt"></i> Выйти
                     </div>
                 </div>
             </div>
         </header>
 
-        <!-- Сайдбар -->
-        <div id="sidebar-container"></div>
-
         <!-- Основной контент -->
         <main class="main-content">
-            <div class="page-header">
+            <div class="page-header editor-intro-banner">
                 <h1><i class="fas fa-user-check"></i> Назначения прав доступа</h1>
                 <p class="page-subtitle">Распределение прав пользователей к справочникам</p>
-            </div>
-
-            <!-- Статистика сверху -->
-            <div class="top-stats-row">
-                <div class="top-stat-card">
-                    <div class="top-stat-icon" style="background: linear-gradient(135deg, #4299e1, #3182ce);">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div class="top-stat-content">
-                        <div class="top-stat-value" id="totalAssignments">0</div>
-                        <div class="top-stat-label">Всего назначений</div>
-                    </div>
-                </div>
-                <div class="top-stat-card">
-                    <div class="top-stat-icon" style="background: linear-gradient(135deg, #48bb78, #38a169);">
-                        <i class="fas fa-user-check"></i>
-                    </div>
-                    <div class="top-stat-content">
-                        <div class="top-stat-value" id="activeAssignments">0</div>
-                        <div class="top-stat-label">Активных назначений</div>
-                    </div>
-                </div>
-                <div class="top-stat-card">
-                    <div class="top-stat-icon" style="background: linear-gradient(135deg, #ed8936, #dd6b20);">
-                        <i class="fas fa-user-clock"></i>
-                    </div>
-                    <div class="top-stat-content">
-                        <div class="top-stat-value" id="expiringAssignments">0</div>
-                        <div class="top-stat-label">Истекают скоро</div>
-                    </div>
-                </div>
-                <div class="top-stat-card">
-                    <div class="top-stat-icon" style="background: linear-gradient(135deg, #9f7aea, #805ad5);">
-                        <i class="fas fa-user-shield"></i>
-                    </div>
-                    <div class="top-stat-content">
-                        <div class="top-stat-value" id="adminAssignments">0</div>
-                        <div class="top-stat-label">Админ. доступов</div>
-                    </div>
-                </div>
             </div>
 
             <!-- Основная карточка -->
@@ -343,18 +96,15 @@
                 </div>
 
                 <!-- Таблица назначений -->
-                <div class="table-container">
-                    <table class="assignments-table">
+                <div class="table-container table-container--assignments">
+                    <table class="assignments-table assignments-table--modern">
                         <thead>
                             <tr>
                                 <th>Пользователь</th>
                                 <th>Справочник</th>
-                                <th>Путь</th>
-                                <th>Права доступа</th>
                                 <th>Дата назначения</th>
-                                <th>Истекает</th>
                                 <th>Статус</th>
-                                <th>Действия</th>
+                                <th class="col-actions-header" scope="col">Действия</th>
                             </tr>
                         </thead>
                         <tbody id="assignmentsTable">
@@ -374,116 +124,114 @@
                     </button>
                 </div>
             </div>
-
-            <!-- Форма добавления/редактирования -->
-            <div class="card" id="assignmentFormCard" style="display: none;">
-                <div class="card-header">
-                    <h2><i class="fas fa-edit"></i> <span id="formTitle">Новое назначение</span></h2>
-                    <button class="btn-sm btn-secondary" id="closeFormBtn">
-                        <i class="fas fa-times"></i> Закрыть
-                    </button>
-                </div>
-                
-                <!-- В форме добавления/редактирования назначений добавьте чекбокс -->
-<form id="assignmentForm">
-    <input type="hidden" id="assignmentId" value="">
-    <input type="hidden" id="assignDirectoryId" value="">
-    
-    <div class="form-row">
-        <div class="form-group">
-            <label for="assignUser">
-                <i class="fas fa-user"></i> Пользователь *
-            </label>
-            <select id="assignUser" class="form-control" required>
-                <option value="">Выберите пользователя</option>
-            </select>
-        </div>
-        <div class="form-group directory-input-wrapper">
-            <label for="assignDirectoryInput">
-                <i class="fas fa-folder"></i> Справочник *
-            </label>
-            <input type="text" id="assignDirectoryInput" class="form-control" 
-                   placeholder="Начните вводить название справочника..." 
-                   autocomplete="off" required>
-            <div id="directory-search-results" class="search-results"></div>
-        </div>
-    </div>
-
-    <div class="form-row">
-        <div class="form-group">
-            <label for="assignPermission">
-                <i class="fas fa-key"></i> Права доступа *
-            </label>
-            <select id="assignPermission" class="form-control" required>
-                <option value="READ">Только чтение</option>
-                <option value="WRITE">Чтение и запись</option>
-                <option value="ADMIN">Полный доступ</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="assignExpiresAt">
-                <i class="fas fa-calendar-times"></i> Действует до
-            </label>
-            <input type="date" id="assignExpiresAt" class="form-control">
-        </div>
-    </div>
-
-    <!-- Добавьте этот блок после полей с правами и датой -->
-    <div class="form-group" id="childrenOptions" style="display: none;">
-        <div class="checkbox-group">
-            <label>
-                <input type="checkbox" id="includeChildren" checked>
-                <i class="fas fa-folder-tree"></i>
-                <span><strong>Назначить права на все дочерние каталоги</strong></span>
-                <small style="display: block; color: #718096; margin-top: 5px;">
-                    При включении этой опции пользователь получит те же права на все подкаталоги и документы внутри выбранного каталога
-                </small>
-            </label>
-        </div>
-    </div>
-
-    <div class="form-group">
-        <label for="assignNotes">
-            <i class="fas fa-sticky-note"></i> Примечания
-        </label>
-        <textarea id="assignNotes" class="form-control" rows="3"></textarea>
-    </div>
-
-    <div class="form-actions">
-        <button type="submit" class="btn-primary">
-            <i class="fas fa-save"></i> Сохранить
-        </button>
-        <button type="reset" class="btn-secondary" id="resetFormBtn">
-            <i class="fas fa-undo"></i> Сбросить
-        </button>
-    </div>
-</form>
-            </div>
         </main>
 
+        <!-- Диалог: новое / редактирование назначения -->
+        <div class="modal-overlay" id="assignmentFormModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="assignmentFormTitle">
+            <div class="modal-content modal-content--directory-form">
+                <div class="modal-header">
+                    <h3 id="assignmentFormTitle"><i class="fas fa-user-plus"></i> <span id="formTitle">Новое назначение</span></h3>
+                    <button type="button" class="close-btn" id="closeFormBtn" aria-label="Закрыть">&times;</button>
+                </div>
+                <form id="assignmentForm">
+                    <div class="modal-body directory-form-body">
+                        <input type="hidden" id="assignmentId" value="">
+                        <input type="hidden" id="assignDirectoryId" value="">
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="assignUser">
+                                    <i class="fas fa-user"></i> Пользователь *
+                                </label>
+                                <select id="assignUser" class="form-control" required>
+                                    <option value="">Выберите пользователя</option>
+                                </select>
+                            </div>
+                            <div class="form-group directory-input-wrapper">
+                                <label for="assignDirectoryInput">
+                                    <i class="fas fa-folder"></i> Справочник *
+                                </label>
+                                <input type="text" id="assignDirectoryInput" class="form-control"
+                                       placeholder="Начните вводить название справочника..."
+                                       autocomplete="off" required>
+                                <div id="directory-search-results" class="search-results"></div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="assignPermission">
+                                    <i class="fas fa-key"></i> Права доступа *
+                                </label>
+                                <select id="assignPermission" class="form-control" required>
+                                    <option value="READ">Только чтение</option>
+                                    <option value="WRITE">Чтение и запись</option>
+                                    <option value="ADMIN">Полный доступ</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="assignExpiresAt">
+                                    <i class="fas fa-calendar-times"></i> Действует до
+                                </label>
+                                <input type="date" id="assignExpiresAt" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="childrenOptions" style="display: none;">
+                            <div class="checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="includeChildren" checked>
+                                    <i class="fas fa-folder-tree"></i>
+                                    <span><strong>Назначить права на все дочерние каталоги</strong></span>
+                                    <small style="display: block; color: #718096; margin-top: 5px;">
+                                        При включении этой опции пользователь получит те же права на все подкаталоги и документы внутри выбранного каталога
+                                    </small>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="assignNotes">
+                                <i class="fas fa-sticky-note"></i> Примечания
+                            </label>
+                            <textarea id="assignNotes" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer directory-form-footer">
+                        <button type="button" class="btn-secondary" id="resetFormBtn">
+                            <i class="fas fa-undo"></i> Сбросить
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Сохранить
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Модальное окно подтверждения -->
-        <div class="modal-overlay" id="confirmModal">
+        <div class="modal-overlay" id="confirmModal" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
                     <h3><i class="fas fa-exclamation-triangle"></i> Подтверждение действия</h3>
-                    <button class="close-btn">&times;</button>
+                    <button type="button" class="close-btn" id="closeConfirmModal" aria-label="Закрыть">&times;</button>
                 </div>
                 <div class="modal-body">
                     <p id="confirmMessage">Вы уверены, что хотите выполнить это действие?</p>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn-danger" id="confirmActionBtn">Подтвердить</button>
-                    <button class="btn-secondary" id="cancelActionBtn">Отмена</button>
+                    <button type="button" class="btn-danger" id="confirmDeleteBtn">Подтвердить</button>
+                    <button type="button" class="btn-secondary" id="cancelDeleteBtn">Отмена</button>
                 </div>
             </div>
         </div>
 
         <!-- Модальное окно смены пароля -->
-        <div class="modal-overlay" id="changePasswordModal" style="display: none;">
+        <div class="modal-overlay" id="changePasswordModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="changePasswordTitle">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3><i class="fas fa-key"></i> Смена пароля</h3>
-                    <button class="close-btn" id="closePasswordModal">&times;</button>
+                    <h3 id="changePasswordTitle"><i class="fas fa-key"></i> Смена пароля</h3>
+                    <button type="button" class="close-btn" id="closePasswordModal" aria-label="Закрыть">&times;</button>
                 </div>
                 <form id="changePasswordForm">
                     <div class="modal-body">
@@ -828,6 +576,8 @@
                 const userName = document.getElementById('userName');
                 const userRole = document.getElementById('userRole');
                 const userAvatar = document.getElementById('userAvatar');
+                const dropdownName = document.getElementById('dropdownName');
+                const dropdownRole = document.getElementById('dropdownRole');
                 
                 if (userName && userData.username) {
                     userName.textContent = userData.username;
@@ -840,6 +590,13 @@
                 if (userAvatar && userData.username) {
                     userAvatar.textContent = userData.username.charAt(0).toUpperCase();
                 }
+
+                if (dropdownName && userData.username) {
+                    dropdownName.textContent = userData.username;
+                }
+                if (dropdownRole && userData.role) {
+                    dropdownRole.textContent = userData.role;
+                }
             }
             
             updatePasswordInfo(lastChange) {
@@ -847,39 +604,37 @@
                 if (!lastPasswordChange) return;
                 
                 if (lastChange) {
+                    lastPasswordChange.style.display = '';
                     const changeDate = new Date(lastChange);
                     const now = new Date();
                     const daysSinceChange = Math.floor((now - changeDate) / (1000 * 60 * 60 * 24));
                     
                     if (daysSinceChange >= 30) {
                         lastPasswordChange.textContent = 'Можно менять пароль';
-                        lastPasswordChange.className = 'user-status can-change';
+                        lastPasswordChange.className = 'duh-meta user-status can-change';
                     } else {
                         const daysLeft = 30 - daysSinceChange;
                         lastPasswordChange.textContent = `Смена пароля через ${daysLeft} дней`;
-                        lastPasswordChange.className = 'user-status cannot-change';
+                        lastPasswordChange.className = 'duh-meta user-status cannot-change';
                     }
                 } else {
-                    lastPasswordChange.textContent = 'Пароль не менялся';
-                    lastPasswordChange.className = 'user-status never-changed';
+                    lastPasswordChange.textContent = '';
+                    lastPasswordChange.className = 'duh-meta';
+                    lastPasswordChange.style.display = 'none';
                 }
             }
             
             setupEventListeners() {
-                // Кнопка меню пользователя
-                const userMenuBtn = document.getElementById('userMenuBtn');
+                const userProfile = document.getElementById('userProfile');
                 const userDropdown = document.getElementById('userDropdown');
-                
-                if (userMenuBtn && userDropdown) {
-                    userMenuBtn.addEventListener('click', (e) => {
+
+                if (userProfile && userDropdown) {
+                    userProfile.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        userDropdown.classList.toggle('show');
+                        userProfile.classList.toggle('open');
                     });
-                    
-                    // Закрытие меню при клике вне его
-                    document.addEventListener('click', () => {
-                        userDropdown.classList.remove('show');
-                    });
+                    userDropdown.addEventListener('click', (e) => e.stopPropagation());
+                    document.addEventListener('click', () => userProfile.classList.remove('open'));
                 }
                 
                 // Кнопка смены пароля
@@ -887,6 +642,8 @@
                 if (changePasswordBtn) {
                     changePasswordBtn.addEventListener('click', (e) => {
                         e.preventDefault();
+                        e.stopPropagation();
+                        if (userProfile) userProfile.classList.remove('open');
                         this.showChangePasswordModal();
                     });
                 }
@@ -896,6 +653,8 @@
                 if (logoutBtn) {
                     logoutBtn.addEventListener('click', async (e) => {
                         e.preventDefault();
+                        e.stopPropagation();
+                        if (userProfile) userProfile.classList.remove('open');
                         if (confirm('Вы уверены, что хотите выйти?')) {
                             await UserAPI.logout();
                             window.location.href = '../index.html';
@@ -1032,6 +791,7 @@
                 this.assignments = [];
                 this.filteredAssignments = [];
                 this.currentAssignmentId = null;
+                this.confirmDeleteMode = 'simple';
                 this.users = [];
                 this.directoriesHierarchy = [];
                 this.allDirectories = [];
@@ -1069,8 +829,7 @@
             }
             async checkDirectoryHasChildren(directoryId) {
         try {
-            // Сначала получаем все дочерние каталоги
-            const response = await this.getAllChildDirectories(directoryId);
+            const response = await AssignmentsAPI.getAllChildDirectories(directoryId);
             
             if (response.success && response.data && response.data.length > 0) {
                 // Показываем блок с опциями
@@ -1105,7 +864,6 @@
                         this.assignments = response.data || [];
                         this.filteredAssignments = [...this.assignments];
                         this.renderTable();
-                        this.updateStats();
                         
                         // Показываем уведомление если назначений нет
                         if (this.assignments.length === 0) {
@@ -1332,7 +1090,7 @@ initDirectorySearch() {
                 
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="8" class="empty-state">
+                        <td colspan="5" class="empty-state">
                             <i class="fas fa-exclamation-triangle" style="color: #f56565;"></i>
                             <h3>Ошибка загрузки назначений</h3>
                             <p>${errorMessage}</p>
@@ -1364,7 +1122,7 @@ initDirectorySearch() {
     if (pageData.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" class="empty-state">
+                <td colspan="5" class="empty-state">
                     <i class="fas fa-user-check"></i>
                     <h3>Назначения не найдены</h3>
                     <p>Создайте первое назначение или измените критерии поиска</p>
@@ -1393,17 +1151,12 @@ initDirectorySearch() {
         const displayUserName = assignment.userName || userNameFromList || 'Неизвестный';
         
         const directoryName = assignment.directoryName || 'Неизвестный справочник';
-        const directoryPath = assignment.fullDirectoryPath || directoryName;
         const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString('ru-RU') : '—';
-        const expiresDate = assignment.expiresAt ? new Date(assignment.expiresAt).toLocaleDateString('ru-RU') : '—';
         
         // Определяем статус
         const status = this.getAssignmentStatus(assignment);
         const statusClass = `status-${status}`;
         const statusText = this.getStatusText(status);
-        
-        // Определяем цвет прав доступа
-        const permissionClass = `permission-${assignment.permission}`;
         
         html += `
             <tr>
@@ -1419,26 +1172,14 @@ initDirectorySearch() {
                         <span>${directoryName}</span>
                     </div>
                 </td>
-                <td>
-                    ${directoryPath}
-                </td>
-                <td>
-                    <span class="permission-badge ${permissionClass}">
-                        ${this.getPermissionText(assignment.permission)}
-                    </span>
-                </td>
                 <td>${assignedDate}</td>
-                <td class="${this.isExpiringSoon(assignment) ? 'expiring-soon' : ''}">
-                    ${expiresDate}
-                    ${this.isExpiringSoon(assignment) ? '<i class="fas fa-exclamation-circle" title="Скоро истекает"></i>' : ''}
-                </td>
                 <td>
                     <span class="status-badge ${statusClass}">
                         <span class="status-indicator ${status}"></span>
                         ${statusText}
                     </span>
                 </td>
-                <td>
+                <td class="assignments-actions-cell">
                     <div class="action-buttons">
                         <button class="btn-action btn-action-edit" onclick="assignmentsPage.editAssignment(${assignment.id})" 
                                 title="Редактировать">
@@ -1522,18 +1263,6 @@ populateUserSelects() {
                     option.textContent = dir.name || `Каталог ${dir.id}`;
                     filterSelect.appendChild(option);
                 });
-            }
-            
-            updateStats() {
-                const total = this.assignments.length;
-                const active = this.assignments.filter(a => this.getAssignmentStatus(a) === 'active').length;
-                const expiring = this.assignments.filter(a => this.isExpiringSoon(a)).length;
-                const admin = this.assignments.filter(a => a.permission === 'ADMIN').length;
-                
-                document.getElementById('totalAssignments').textContent = total;
-                document.getElementById('activeAssignments').textContent = active;
-                document.getElementById('expiringAssignments').textContent = expiring;
-                document.getElementById('adminAssignments').textContent = admin;
             }
             
            // В классе AssignmentsPage обновите следующие методы:
@@ -1667,15 +1396,6 @@ resetForm() {
                 return statuses[status] || 'Активно';
             }
             
-            getPermissionText(permission) {
-                const permissions = {
-                    'READ': 'Чтение',
-                    'WRITE': 'Запись',
-                    'ADMIN': 'Админ'
-                };
-                return permissions[permission] || permission;
-            }
-            
             setupEventListeners() {
                 console.log('🔧 Настраиваем обработчики событий...');
                 
@@ -1689,6 +1409,13 @@ resetForm() {
                 const closeBtn = document.getElementById('closeFormBtn');
                 if (closeBtn) {
                     closeBtn.addEventListener('click', () => this.hideForm());
+                }
+                
+                const assignmentFormModal = document.getElementById('assignmentFormModal');
+                if (assignmentFormModal) {
+                    assignmentFormModal.addEventListener('click', (e) => {
+                        if (e.target === assignmentFormModal) this.hideForm();
+                    });
                 }
                 
                 // Сброс формы
@@ -1745,20 +1472,20 @@ resetForm() {
                 }
                 
                 // Модальное окно удаления
-                const confirmDeleteBtn = document.getElementById('confirmActionBtn');
-                const cancelDeleteBtn = document.getElementById('cancelActionBtn');
-                const closeModalBtn = document.querySelector('.close-btn');
+                const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+                const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+                const closeConfirmModal = document.getElementById('closeConfirmModal');
                 
                 if (confirmDeleteBtn) {
-                    confirmDeleteBtn.addEventListener('click', () => this.deleteAssignment());
+                    confirmDeleteBtn.addEventListener('click', () => this.onConfirmPrimaryClick());
                 }
                 
                 if (cancelDeleteBtn) {
-                    cancelDeleteBtn.addEventListener('click', () => this.hideModal());
+                    cancelDeleteBtn.addEventListener('click', () => this.onConfirmSecondaryClick());
                 }
                 
-                if (closeModalBtn) {
-                    closeModalBtn.addEventListener('click', () => this.hideModal());
+                if (closeConfirmModal) {
+                    closeConfirmModal.addEventListener('click', () => this.hideModal());
                 }
                 
                 console.log('✅ Все обработчики событий настроены');
@@ -1833,29 +1560,31 @@ resetForm() {
             }
             
             showForm(assignmentId = null) {
-                const formCard = document.getElementById('assignmentFormCard');
+                const modal = document.getElementById('assignmentFormModal');
                 const formTitle = document.getElementById('formTitle');
+                const titleIcon = document.querySelector('#assignmentFormTitle > i');
                 
-                if (!formCard || !formTitle) return;
+                if (!modal || !formTitle) return;
                 
                 if (assignmentId) {
                     formTitle.textContent = 'Редактировать назначение';
+                    if (titleIcon) titleIcon.className = 'fas fa-edit';
                     this.currentAssignmentId = assignmentId;
                     this.loadAssignmentData(assignmentId);
                 } else {
                     formTitle.textContent = 'Новое назначение';
+                    if (titleIcon) titleIcon.className = 'fas fa-user-plus';
                     this.currentAssignmentId = null;
                     this.resetForm();
                 }
                 
-                formCard.style.display = 'block';
-                formCard.scrollIntoView({ behavior: 'smooth' });
+                modal.style.display = 'flex';
             }
             
             hideForm() {
-                const formCard = document.getElementById('assignmentFormCard');
-                if (formCard) {
-                    formCard.style.display = 'none';
+                const modal = document.getElementById('assignmentFormModal');
+                if (modal) {
+                    modal.style.display = 'none';
                 }
             }
             
@@ -1865,89 +1594,98 @@ resetForm() {
             }
             
             confirmDelete(id) {
-    this.currentAssignmentId = id;
-    
-    // Проверяем, есть ли у этого назначения дочерние назначения
-    const assignment = this.assignments.find(a => a.id == id);
-    const hasChildAssignments = assignment && assignment.childCount > 0;
-    
-    let message = 'Вы уверены, что хотите удалить это назначение?';
-    
-    if (hasChildAssignments) {
-        message += '\n\nУ этого назначения есть дочерние назначения. Удалить их тоже?';
-        
-        // Показываем кастомное модальное окно с выбором
-        this.showDeleteConfirmationWithChildren(message);
-    } else {
-        this.showModal(message);
-    }
-}
+                this.currentAssignmentId = id;
+                
+                const assignment = this.assignments.find(a => a.id == id);
+                const hasChildAssignments = assignment && assignment.childCount > 0;
+                
+                let message = 'Вы уверены, что хотите удалить это назначение?';
+                
+                if (hasChildAssignments) {
+                    message += '\n\nУ этого назначения есть дочерние назначения. Удалить их тоже?';
+                    this.showDeleteConfirmationWithChildren(message);
+                } else {
+                    this.showModal(message);
+                }
+            }
 
-showDeleteConfirmationWithChildren(message) {
-    const modal = document.getElementById('confirmModal');
-    const messageElement = document.getElementById('confirmMessage');
-    const confirmBtn = document.getElementById('confirmActionBtn');
-    const cancelBtn = document.getElementById('cancelActionBtn');
-    
-    if (!modal || !messageElement || !confirmBtn || !cancelBtn) return;
-    
-    // Сохраняем оригинальные тексты
-    const originalConfirmText = confirmBtn.textContent;
-    const originalCancelText = cancelBtn.textContent;
-    
-    // Обновляем сообщение
-    messageElement.innerHTML = message.replace(/\n/g, '<br>');
-    
-    // Обновляем кнопки
-    confirmBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Удалить все';
-    cancelBtn.innerHTML = '<i class="fas fa-trash"></i> Только это';
-    
-    // Создаем третью кнопку для отмены
-    const cancelAllBtn = document.createElement('button');
-    cancelAllBtn.className = 'btn-secondary';
-    cancelAllBtn.innerHTML = '<i class="fas fa-times"></i> Отмена';
-    cancelAllBtn.onclick = () => {
-        modal.style.display = 'none';
-        // Восстанавливаем оригинальные кнопки
-        confirmBtn.innerHTML = originalConfirmText;
-        cancelBtn.innerHTML = originalCancelText;
-        cancelAllBtn.remove();
-    };
-    
-    // Добавляем новую кнопку в модальное окно
-    const modalFooter = modal.querySelector('.modal-footer');
-    modalFooter.appendChild(cancelAllBtn);
-    
-    // Обработчики для кнопок
-    const originalConfirmHandler = confirmBtn.onclick;
-    const originalCancelHandler = cancelBtn.onclick;
-    
-    confirmBtn.onclick = async () => {
-        // Удаляем с детьми
-        await AssignmentsAPI.deleteAssignment(this.currentAssignmentId, true);
-        this.hideModal();
-        await this.loadInitialData();
-        this.showNotification('Назначение и все дочерние назначения удалены', 'success');
-        
-        // Восстанавливаем оригинальные обработчики
-        confirmBtn.onclick = originalConfirmHandler;
-        cancelBtn.onclick = originalCancelHandler;
-    };
-    
-    cancelBtn.onclick = async () => {
-        // Удаляем только это назначение
-        await AssignmentsAPI.deleteAssignment(this.currentAssignmentId, false);
-        this.hideModal();
-        await this.loadInitialData();
-        this.showNotification('Назначение удалено', 'success');
-        
-        // Восстанавливаем оригинальные обработчики
-        confirmBtn.onclick = originalConfirmHandler;
-        cancelBtn.onclick = originalCancelHandler;
-    };
-    
-    modal.style.display = 'flex';
-}       
+            showDeleteConfirmationWithChildren(message) {
+                this.confirmDeleteMode = 'children';
+                this.resetConfirmModalUI();
+                
+                const modal = document.getElementById('confirmModal');
+                const messageElement = document.getElementById('confirmMessage');
+                const confirmBtn = document.getElementById('confirmDeleteBtn');
+                const cancelBtn = document.getElementById('cancelDeleteBtn');
+                const footer = modal?.querySelector('.modal-footer');
+                
+                if (!modal || !messageElement || !confirmBtn || !cancelBtn || !footer) return;
+                
+                messageElement.innerHTML = message.replace(/\n/g, '<br>');
+                confirmBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Удалить все';
+                cancelBtn.innerHTML = '<i class="fas fa-trash"></i> Только это';
+                
+                const extra = document.createElement('button');
+                extra.type = 'button';
+                extra.className = 'btn-secondary';
+                extra.dataset.extraCancel = '1';
+                extra.innerHTML = '<i class="fas fa-times"></i> Отмена';
+                extra.addEventListener('click', () => this.hideModal());
+                footer.appendChild(extra);
+                
+                modal.style.display = 'flex';
+            }
+
+            resetConfirmModalUI() {
+                const modal = document.getElementById('confirmModal');
+                const footer = modal?.querySelector('.modal-footer');
+                footer?.querySelector('[data-extra-cancel]')?.remove();
+                const confirmBtn = document.getElementById('confirmDeleteBtn');
+                const cancelBtn = document.getElementById('cancelDeleteBtn');
+                if (confirmBtn) confirmBtn.textContent = 'Подтвердить';
+                if (cancelBtn) cancelBtn.textContent = 'Отмена';
+            }
+
+            async onConfirmPrimaryClick() {
+                if (this.confirmDeleteMode === 'children') {
+                    try {
+                        const response = await AssignmentsAPI.deleteAssignment(this.currentAssignmentId, true);
+                        if (response.success) {
+                            this.showNotification('Назначение и все дочерние назначения удалены', 'success');
+                        } else {
+                            this.showNotification(response.message || 'Ошибка удаления', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Ошибка удаления назначения:', error);
+                        this.showNotification('Ошибка удаления', 'error');
+                    }
+                    this.hideModal();
+                    await this.loadInitialData();
+                    return;
+                }
+                await this.deleteAssignment();
+            }
+
+            async onConfirmSecondaryClick() {
+                if (this.confirmDeleteMode === 'children') {
+                    try {
+                        const response = await AssignmentsAPI.deleteAssignment(this.currentAssignmentId, false);
+                        if (response.success) {
+                            this.showNotification(response.message || 'Назначение удалено', 'success');
+                        } else {
+                            this.showNotification(response.message || 'Ошибка удаления', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Ошибка удаления назначения:', error);
+                        this.showNotification('Ошибка удаления', 'error');
+                    }
+                    this.hideModal();
+                    await this.loadInitialData();
+                    return;
+                }
+                this.hideModal();
+            }
+
             async deleteAssignment() {
                 if (!this.currentAssignmentId) return;
                 
@@ -1969,20 +1707,18 @@ showDeleteConfirmationWithChildren(message) {
             async exportAssignments() {
                 try {
                     // Создаем CSV
-                    let csv = 'Пользователь,Справочник,Путь,Права,Дата назначения,Истекает,Статус\n';
+                    let csv = 'Пользователь,Справочник,Дата назначения,Статус\n';
                     
                     this.filteredAssignments.forEach(assignment => {
                         const user = this.users.find(u => u.id == assignment.userId);
                         
                         const userName = user ? user.username : 'Неизвестный';
                         const directoryName = assignment.directoryName || 'Неизвестный справочник';
-                        const directoryPath = assignment.fullDirectoryPath || directoryName;
                         const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString('ru-RU') : '';
-                        const expiresDate = assignment.expiresAt ? new Date(assignment.expiresAt).toLocaleDateString('ru-RU') : '';
                         const status = this.getAssignmentStatus(assignment);
                         const statusText = this.getStatusText(status);
                         
-                        csv += `"${userName}","${directoryName}","${directoryPath}","${this.getPermissionText(assignment.permission)}","${assignedDate}","${expiresDate}","${statusText}"\n`;
+                        csv += `"${userName}","${directoryName}","${assignedDate}","${statusText}"\n`;
                     });
                     
                     // Создаем ссылку для скачивания
@@ -2004,6 +1740,8 @@ showDeleteConfirmationWithChildren(message) {
             }
             
             showModal(message) {
+                this.confirmDeleteMode = 'simple';
+                this.resetConfirmModalUI();
                 const modal = document.getElementById('confirmModal');
                 const messageElement = document.getElementById('confirmMessage');
                 
@@ -2018,6 +1756,8 @@ showDeleteConfirmationWithChildren(message) {
                 if (modal) {
                     modal.style.display = 'none';
                 }
+                this.confirmDeleteMode = 'simple';
+                this.resetConfirmModalUI();
             }
             
             showNotification(message, type = 'info') {
@@ -2051,100 +1791,15 @@ showDeleteConfirmationWithChildren(message) {
             console.log('📄 DOM загружен, начинаем инициализацию...');
             
             try {
-                // Инициализируем менеджер пользователя
                 console.log('👤 Инициализируем менеджер пользователя...');
                 window.userManager = new UserManager();
                 
-                // Инициализируем страницу назначений
                 console.log('🚀 Запускаем AssignmentsPage...');
                 window.assignmentsPage = new AssignmentsPage();
-                
-                // Загружаем сайдбар
-                const sidebarResponse = await fetch('components/sidebar.html');
-                if (sidebarResponse.ok) {
-                    const sidebarData = await sidebarResponse.text();
-                    const sidebarContainer = document.getElementById('sidebar-container');
-                    if (sidebarContainer) {
-                        sidebarContainer.innerHTML = sidebarData;
-                        console.log('✅ Сайдбар загружен');
-                    }
-                } else {
-                    console.warn('⚠️ Не удалось загрузить сайдбар, создаем базовый');
-                    createBasicSidebar();
-                }
-                
-                // Инициализируем мобильное меню
-                initMobileMenu();
-                console.log('✅ Мобильное меню инициализировано');
-                
             } catch (error) {
-                console.error('❌ Ошибка загрузки компонентов:', error);
-                createBasicSidebar();
+                console.error('❌ Ошибка инициализации:', error);
             }
         });
-
-        function createBasicSidebar() {
-            console.log('🛠️ Создаем базовый сайдбар...');
-            
-            const sidebarContainer = document.getElementById('sidebar-container');
-            if (sidebarContainer) {
-                sidebarContainer.innerHTML = `
-                    <aside class="sidebar" id="sidebar">
-                        <div class="sidebar-brand">
-                            <h2><i class="fas fa-cogs"></i> Меню редактора</h2>
-                            <button class="close-sidebar-btn" id="closeSidebarBtn" style="display: none;">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <nav>
-                            <ul class="sidebar-nav">
-                                <li><a href="editor.html"><i class="fas fa-home"></i><span>Главная</span></a></li>
-                                <li><a href="directories.html"><i class="fas fa-book"></i><span>Справочники</span></a></li>
-                                <li><a href="assignments.html" class="active"><i class="fas fa-user-check"></i><span>Назначения</span></a></li>
-                                <li><a href="counterparties.html"><i class="fas fa-building"></i><span>Контрагенты</span></a></li>
-                                <li><a href="status-logs.html"><i class="fas fa-tasks"></i><span>Статусы</span></a></li>
-                            </ul>
-                        </nav>
-                        <div class="sidebar-footer">
-                            <p>© 2024 Система документооборота</p>
-                            <p>Версия 1.0.0</p>
-                        </div>
-                    </aside>
-                `;
-                initMobileMenu();
-            }
-        }
-
-        function initMobileMenu() {
-            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-            const sidebar = document.getElementById('sidebar');
-            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
-            
-            if (mobileMenuBtn && sidebar) {
-                mobileMenuBtn.addEventListener('click', () => {
-                    sidebar.classList.add('active');
-                    if (closeSidebarBtn) closeSidebarBtn.style.display = 'block';
-                });
-            }
-            
-            if (closeSidebarBtn && sidebar) {
-                closeSidebarBtn.addEventListener('click', () => {
-                    sidebar.classList.remove('active');
-                    closeSidebarBtn.style.display = 'none';
-                });
-            }
-            
-            // Закрытие меню при клике на ссылку
-            const sidebarLinks = document.querySelectorAll('.sidebar-nav a');
-            sidebarLinks.forEach(link => {
-                link.addEventListener('click', () => {
-                    if (window.innerWidth <= 768 && sidebar) {
-                        sidebar.classList.remove('active');
-                        if (closeSidebarBtn) closeSidebarBtn.style.display = 'none';
-                    }
-                });
-            });
-        }
     </script>
 </body>
 </html>

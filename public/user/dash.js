@@ -394,10 +394,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (userName && this.currentUser.username) {
                         userName.textContent = this.currentUser.username;
                     }
-                    
                     if (userRole && this.currentUser.role) {
                         userRole.textContent = this.currentUser.role;
                     }
+                    const dropdownName = document.getElementById('dropdownName');
+                    const dropdownRole = document.getElementById('dropdownRole');
+                    if (dropdownName) dropdownName.textContent = this.currentUser.username || '—';
+                    if (dropdownRole) dropdownRole.textContent = this.currentUser.role || '—';
                     
                     if (userAvatar && this.currentUser.username) {
                         userAvatar.textContent = this.currentUser.username.charAt(0).toUpperCase();
@@ -1184,29 +1187,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // === ЛОГИКА ХЭДЕРА ===
-    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userProfile  = document.getElementById('userProfile');
     const userDropdown = document.getElementById('userDropdown');
-    
-    // Обработка клика по кнопке меню пользователя
-    if (userMenuBtn && userDropdown) {
-        userMenuBtn.addEventListener('click', (e) => {
+
+    if (userProfile) {
+        userProfile.addEventListener('click', (e) => {
             e.stopPropagation();
-            userDropdown.classList.toggle('show');
+            userProfile.classList.toggle('open');
         });
-        
-        // Закрытие меню при клике вне его
-        document.addEventListener('click', (e) => {
-            if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
-                userDropdown.classList.remove('show');
-            }
+        document.addEventListener('click', () => {
+            userProfile.classList.remove('open');
         });
     }
-    
+
     // Кнопка выхода
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
+            e.stopPropagation();
+            if (userProfile) userProfile.classList.remove('open');
             if (confirm('Вы уверены, что хотите выйти?')) {
                 try {
                     const success = await UserAPI.logout();
@@ -1220,12 +1219,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Кнопка смены пароля
     const changePasswordBtn = document.getElementById('changePasswordBtn');
     if (changePasswordBtn) {
         changePasswordBtn.addEventListener('click', (e) => {
-            e.preventDefault();
+            e.stopPropagation();
+            if (userProfile) userProfile.classList.remove('open');
             openPasswordChangeModal();
         });
     }

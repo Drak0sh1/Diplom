@@ -104,64 +104,59 @@
             width: fit-content;
         }
 
-        .user-menu-dropdown {
+        .user-profile {
             position: relative;
-        }
-
-        .user-menu-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            width: 36px;
-            height: 36px;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.3s ease;
-        }
-
-        .user-menu-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            right: 0;
-            top: 100%;
-            background: white;
-            min-width: 200px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
-            border-radius: 8px;
-            overflow: hidden;
-            z-index: 1001;
-            margin-top: 10px;
-        }
-
-        .dropdown-content.show {
-            display: block;
-        }
-
-        .dropdown-content a {
-            color: #334155;
-            padding: 12px 16px;
-            text-decoration: none;
             display: flex;
             align-items: center;
             gap: 10px;
-            transition: background 0.2s ease;
+            padding: 7px 12px 7px 8px;
+            border-radius: 10px;
+            cursor: pointer;
+            user-select: none;
+            background: rgba(255,255,255,.12);
+            border: 1px solid rgba(255,255,255,.2);
+            transition: background .2s;
         }
+        .user-profile:hover { background: rgba(255,255,255,.22); }
+        .user-chevron { font-size: 10px; color: rgba(255,255,255,.75); transition: transform .2s; margin-left: 2px; }
+        .user-profile.open .user-chevron { transform: rotate(180deg); }
 
-        .dropdown-content a:hover {
-            background: #f1f5f9;
+        .user-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: white;
+            min-width: 215px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,.18);
+            z-index: 2000;
+            overflow: hidden;
+            border: 1px solid #f1f5f9;
         }
-
-        .dropdown-content a i {
-            width: 20px;
-            color: #5b86e5;
+        .user-profile.open .user-dropdown { display: block; }
+        .dd-user-header {
+            padding: 14px 16px 11px;
+            border-bottom: 1px solid #f1f5f9;
         }
+        .dd-user-header .duh-name { font-weight: 700; font-size: 14px; color: #1f2937; }
+        .dd-user-header .duh-role { font-size: 12px; color: #64748b; margin-top: 2px; }
+        .dd-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 16px;
+            color: #374151;
+            cursor: pointer;
+            font-size: 13.5px;
+            font-weight: 500;
+            transition: background .15s;
+        }
+        .dd-item:hover { background: #f8fafc; }
+        .dd-item i { width: 16px; color: #5b86e5; font-size: 13px; }
+        .dd-item.danger { color: #ef4444; }
+        .dd-item.danger i { color: #ef4444; }
+        .dd-divider { height: 1px; background: #f1f5f9; }
 
         /* Кнопка "Главная" в хэдере */
         .header-nav {
@@ -643,22 +638,30 @@
                     <i class="fas fa-home"></i>
                     <span>Главная</span>
                 </a>
+                <a href="/journals/incoming" class="header-nav-link">
+                    <i class="fas fa-inbox"></i>
+                    <span>Входящие</span>
+                </a>
             </nav>
         </div>
-        <div class="user-info">
+        <div class="user-profile" id="userProfile">
             <div class="user-avatar" id="userAvatar">?</div>
             <div class="user-details">
                 <span class="user-name" id="userName">Загрузка...</span>
                 <span class="user-role" id="userRole">Пользователь</span>
-                <span class="user-status" id="userStatus" style="display: none;"></span>
             </div>
-            <div class="user-menu-dropdown">
-                <button class="user-menu-btn" id="userMenuBtn">
-                    <i class="fas fa-chevron-down"></i>
-                </button>
-                <div class="dropdown-content" id="userDropdown">
-                    <a href="#" id="changePasswordBtn"><i class="fas fa-key"></i> Сменить пароль</a>
-                    <a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Выход</a>
+            <i class="fas fa-chevron-down user-chevron"></i>
+            <div class="user-dropdown" id="userDropdown">
+                <div class="dd-user-header">
+                    <div class="duh-name" id="dropdownName">—</div>
+                    <div class="duh-role" id="dropdownRole">—</div>
+                </div>
+                <div class="dd-item" id="changePasswordBtn">
+                    <i class="fas fa-key"></i> Сменить пароль
+                </div>
+                <div class="dd-divider"></div>
+                <div class="dd-item danger" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i> Выйти
                 </div>
             </div>
         </div>
@@ -758,15 +761,12 @@
             
             const displayName = user.username || user.name;
 
-            // Обновляем имя
-            if (userName && displayName) {
-                userName.textContent = displayName;
-            }
-            
-            // Обновляем роль
-            if (userRole && user.role) {
-                userRole.textContent = user.role;
-            }
+            if (userName && displayName) userName.textContent = displayName;
+            if (userRole && user.role)   userRole.textContent = user.role;
+            const dn = document.getElementById('dropdownName');
+            const dr = document.getElementById('dropdownRole');
+            if (dn) dn.textContent = displayName || '—';
+            if (dr) dr.textContent = user.role    || '—';
             
             // Обновляем аватар
             if (userAvatar && displayName) {
@@ -863,29 +863,24 @@
          * Инициализация UI элементов
          */
         function initUI() {
-            // Инициализация меню пользователя
-            const userMenuBtn = document.getElementById('userMenuBtn');
-            const userDropdown = document.getElementById('userDropdown');
-            
-            if (userMenuBtn && userDropdown) {
-                userMenuBtn.addEventListener('click', (e) => {
+            const userProfile = document.getElementById('userProfile');
+
+            if (userProfile) {
+                userProfile.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    userDropdown.classList.toggle('show');
+                    userProfile.classList.toggle('open');
                 });
-                
-                // Закрытие меню при клике вне его
-                document.addEventListener('click', (e) => {
-                    if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
-                        userDropdown.classList.remove('show');
-                    }
+                document.addEventListener('click', () => {
+                    userProfile.classList.remove('open');
                 });
             }
-            
+
             // Кнопка выхода
             const logoutBtn = document.getElementById('logoutBtn');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', async (e) => {
-                    e.preventDefault();
+                    e.stopPropagation();
+                    if (userProfile) userProfile.classList.remove('open');
                     if (confirm('Вы уверены, что хотите выйти?')) {
                         try {
                             const success = await logout();
@@ -899,12 +894,13 @@
                     }
                 });
             }
-            
+
             // Кнопка смены пароля
             const changePasswordBtn = document.getElementById('changePasswordBtn');
             if (changePasswordBtn) {
                 changePasswordBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
+                    e.stopPropagation();
+                    if (userProfile) userProfile.classList.remove('open');
                     openPasswordChangeModal();
                 });
             }
@@ -1589,28 +1585,31 @@
                                 
                                 <div class="mb-3">
                                     <label for="fileDescription" class="form-label">
-                                        <i class="fas fa-align-left"></i> Описание (необязательно)
+                                        <i class="fas fa-align-left"></i> Краткое содержание (необязательно)
                                     </label>
                                     <textarea class="form-control" id="fileDescription" name="description" 
-                                              rows="3" placeholder="Опишите содержание документа..."></textarea>
+                                              rows="2" placeholder="Кратко опишите содержание документа..."></textarea>
                                 </div>
-                                
+
                                 <div class="mb-3">
-                                    <label for="filePriority" class="form-label">
-                                        <i class="fas fa-flag"></i> Приоритет
+                                    <label for="fileResolution" class="form-label">
+                                        <i class="fas fa-user-tag"></i> Кому направлен
                                     </label>
-                                    <select class="form-select" id="filePriority" name="priority">
-                                        <option value="medium">Средний</option>
-                                        <option value="low">Низкий</option>
-                                        <option value="high">Высокий</option>
-                                        <option value="critical">Критический</option>
-                                    </select>
+                                    <input type="text" class="form-control" id="fileResolution" name="resolution"
+                                           placeholder="Имя сотрудника или отдела">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="fileDeadline" class="form-label">
+                                        <i class="fas fa-calendar-alt"></i> Срок исполнения
+                                    </label>
+                                    <input type="date" class="form-control" id="fileDeadline" name="deadline">
                                 </div>
                                 
                                 <div class="alert alert-info">
                                     <i class="fas fa-info-circle"></i>
                                     <small>
-                                        Документ будет загружен как первая версия. В дальнейшем можно будет добавлять новые версии этого документа.
+                                        Документ будет автоматически зарегистрирован в журнале входящих с присвоением индекса.
                                     </small>
                                 </div>
                             </div>

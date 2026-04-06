@@ -15,39 +15,43 @@
         <!-- Шапка -->
         <header class="header">
             <div class="header-left">
-                <button class="mobile-menu-btn" id="mobileMenuBtn">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <div class="header-text">
-                    <h1><i class="fas fa-book"></i> Панель редактора</h1>
-                    <p class="header-subtitle">Система контроля версий документов</p>
+                <div class="logo">
+                    <div class="logo-text">
+                        <h1><i class="fas fa-book"></i> Панель редактора</h1>
+                        <p>Система контроля версий документов</p>
+                    </div>
                 </div>
+                <a href="assignments.html" class="header-nav-link">
+                    <i class="fas fa-user-shield"></i> <span>Права доступа</span>
+                </a>
             </div>
-            <div class="user-info">
+            <div class="user-profile" id="userProfile">
                 <div class="user-avatar" id="userAvatar">Р</div>
                 <div class="user-details">
                     <span class="user-name" id="userName">Загрузка...</span>
                     <span class="user-role" id="userRole">Редактор</span>
-                    <span class="user-status" id="lastPasswordChange"></span>
                 </div>
-                <div class="user-menu-dropdown">
-                    <button class="user-menu-btn" id="userMenuBtn">
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                    <div class="dropdown-content" id="userDropdown">
-                        <a href="#" id="changePasswordBtn"><i class="fas fa-key"></i> Сменить пароль</a>
-                        <a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Выход</a>
+                <i class="fas fa-chevron-down user-chevron"></i>
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="dd-user-header">
+                        <div class="duh-name" id="dropdownName">—</div>
+                        <div class="duh-role" id="dropdownRole">—</div>
+                        <div class="duh-meta" id="lastPasswordChange"></div>
+                    </div>
+                    <div class="dd-item" id="changePasswordBtn" role="button" tabindex="0">
+                        <i class="fas fa-key"></i> Сменить пароль
+                    </div>
+                    <div class="dd-divider"></div>
+                    <div class="dd-item danger" id="logoutBtn" role="button" tabindex="0">
+                        <i class="fas fa-sign-out-alt"></i> Выйти
                     </div>
                 </div>
             </div>
         </header>
 
-        <!-- Сайдбар -->
-        <div id="sidebar-container"></div>
-
         <!-- Основной контент -->
         <main class="main-content">
-            <div class="page-header">
+            <div class="page-header editor-intro-banner">
                 <h1><i class="fas fa-book"></i> Справочники каталогов документов</h1>
                 <p class="page-subtitle">Управление иерархией каталогов и справочников</p>
             </div>
@@ -93,9 +97,6 @@
                             <button class="status-filter-btn" data-status="active">
                                 <i class="fas fa-check-circle"></i> Активные
                             </button>
-                            <button class="status-filter-btn" data-status="inactive">
-                                <i class="fas fa-pause-circle"></i> Неактивные
-                            </button>
                             <button class="status-filter-btn" data-status="archived">
                                 <i class="fas fa-archive"></i> Архив
                             </button>
@@ -103,23 +104,21 @@
                     </div>
 
                     <!-- Таблица справочников -->
-                    <div class="table-container">
-                        <table class="directories-table">
+                    <div class="table-container table-container--directories">
+                        <table class="directories-table directories-table--modern">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Название</th>
-                                    <th>Родительский каталог</th>
-                                    <th>Дата создания</th>
-                                    <th>Пользователей</th>
-                                    <th>Файлов</th>
-                                    <th>Статус</th>
-                                    <th>Действия</th>
+                                    <th class="col-id">ID</th>
+                                    <th class="col-name">Название</th>
+                                    <th class="col-parent">Родительский каталог</th>
+                                    <th class="col-date">Дата создания</th>
+                                    <th class="col-status">Статус</th>
+                                    <th class="col-actions">Действия</th>
                                 </tr>
                             </thead>
                             <tbody id="directoriesTable">
                                 <tr>
-                                    <td colspan="8" class="loading-state" id="loadingState">
+                                    <td colspan="6" class="loading-state" id="loadingState">
                                         <i class="fas fa-spinner"></i>
                                         <h3>Загрузка каталогов...</h3>
                                         <p>Пожалуйста, подождите</p>
@@ -176,72 +175,71 @@
                     </div>
                 </div>
             </div>
+        </main>
 
-            <!-- Форма добавления/редактирования -->
-            <div class="card" id="directoryFormCard" style="display: none;">
-                <div class="card-header">
-                    <h2><i class="fas fa-edit"></i> <span id="formTitle">Добавить справочник</span></h2>
-                    <button class="btn-sm btn-secondary" id="closeFormBtn">
-                        <i class="fas fa-times"></i> Закрыть
-                    </button>
+        <!-- Диалог: добавление / редактирование справочника -->
+        <div class="modal-overlay" id="directoryFormModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="directoryFormTitle">
+            <div class="modal-content modal-content--directory-form">
+                <div class="modal-header">
+                    <h3 id="directoryFormTitle"><i class="fas fa-edit"></i> <span id="formTitle">Добавить справочник</span></h3>
+                    <button type="button" class="close-btn" id="closeFormBtn" aria-label="Закрыть">&times;</button>
                 </div>
-                
                 <form id="directoryForm">
-                    <input type="hidden" id="directoryId" value="">
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="directoryName">
-                                <i class="fas fa-heading"></i> Название справочника *
-                            </label>
-                            <input type="text" id="directoryName" class="form-control" required>
+                    <div class="modal-body directory-form-body">
+                        <input type="hidden" id="directoryId" value="">
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="directoryName">
+                                    <i class="fas fa-heading"></i> Название справочника *
+                                </label>
+                                <input type="text" id="directoryName" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="parentDirectory">
+                                    <i class="fas fa-folder"></i> Родительский каталог
+                                </label>
+                                <select id="parentDirectory" class="form-control">
+                                    <option value="">Корневой уровень</option>
+                                </select>
+                            </div>
                         </div>
+
                         <div class="form-group">
-                            <label for="parentDirectory">
-                                <i class="fas fa-folder"></i> Родительский каталог
+                            <label for="directoryDescription">
+                                <i class="fas fa-align-left"></i> Описание
                             </label>
-                            <select id="parentDirectory" class="form-control">
-                                <option value="">Корневой уровень</option>
+                            <textarea id="directoryDescription" class="form-control" rows="4"></textarea>
+                        </div>
+
+                        <div class="form-group form-group--compact">
+                            <label for="directoryStatus">
+                                <i class="fas fa-toggle-on"></i> Статус
+                            </label>
+                            <select id="directoryStatus" class="form-control">
+                                <option value="active">Активный</option>
+                                <option value="archived">В архиве</option>
                             </select>
                         </div>
                     </div>
-
-                    <div class="form-group">
-                        <label for="directoryDescription">
-                            <i class="fas fa-align-left"></i> Описание
-                        </label>
-                        <textarea id="directoryDescription" class="form-control" rows="4"></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="directoryStatus">
-                            <i class="fas fa-toggle-on"></i> Статус
-                        </label>
-                        <select id="directoryStatus" class="form-control">
-                            <option value="active">Активный</option>
-                            <option value="inactive">Неактивный</option>
-                            <option value="archived">В архиве</option>
-                        </select>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="btn-primary">
-                            <i class="fas fa-save"></i> Сохранить
-                        </button>
+                    <div class="modal-footer directory-form-footer">
                         <button type="reset" class="btn-secondary" id="resetFormBtn">
                             <i class="fas fa-undo"></i> Сбросить
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Сохранить
                         </button>
                     </div>
                 </form>
             </div>
-        </main>
+        </div>
 
         <!-- Модальное окно подтверждения удаления -->
         <div class="modal-overlay" id="confirmModal">
             <div class="modal-content">
                 <div class="modal-header">
                     <h3><i class="fas fa-exclamation-triangle"></i> Подтверждение удаления</h3>
-                    <button class="close-btn">&times;</button>
+                    <button type="button" class="close-btn" id="closeConfirmModal" aria-label="Закрыть">&times;</button>
                 </div>
                 <div class="modal-body">
                     <p>Вы уверены, что хотите удалить этот справочник? Все вложенные справочники и записи также будут удалены.</p>
@@ -254,11 +252,11 @@
         </div>
 
         <!-- Модальное окно смены пароля -->
-        <div class="modal-overlay" id="changePasswordModal" style="display: none;">
+        <div class="modal-overlay" id="changePasswordModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="changePasswordTitle">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3><i class="fas fa-key"></i> Смена пароля</h3>
-                    <button class="close-btn" id="closePasswordModal">&times;</button>
+                    <h3 id="changePasswordTitle"><i class="fas fa-key"></i> Смена пароля</h3>
+                    <button type="button" class="close-btn" id="closePasswordModal" aria-label="Закрыть">&times;</button>
                 </div>
                 <form id="changePasswordForm">
                     <div class="modal-body">
@@ -540,6 +538,8 @@
                 const userName = document.getElementById('userName');
                 const userRole = document.getElementById('userRole');
                 const userAvatar = document.getElementById('userAvatar');
+                const dropdownName = document.getElementById('dropdownName');
+                const dropdownRole = document.getElementById('dropdownRole');
                 
                 if (userName && userData.username) {
                     userName.textContent = userData.username;
@@ -552,6 +552,13 @@
                 if (userAvatar && userData.username) {
                     userAvatar.textContent = userData.username.charAt(0).toUpperCase();
                 }
+
+                if (dropdownName && userData.username) {
+                    dropdownName.textContent = userData.username;
+                }
+                if (dropdownRole && userData.role) {
+                    dropdownRole.textContent = userData.role;
+                }
             }
             
             updatePasswordInfo(lastChange) {
@@ -559,55 +566,55 @@
                 if (!lastPasswordChange) return;
                 
                 if (lastChange) {
+                    lastPasswordChange.style.display = '';
                     const changeDate = new Date(lastChange);
                     const now = new Date();
                     const daysSinceChange = Math.floor((now - changeDate) / (1000 * 60 * 60 * 24));
                     
                     if (daysSinceChange >= 30) {
                         lastPasswordChange.textContent = 'Можно менять пароль';
-                        lastPasswordChange.className = 'user-status can-change';
+                        lastPasswordChange.className = 'duh-meta user-status can-change';
                     } else {
                         const daysLeft = 30 - daysSinceChange;
                         lastPasswordChange.textContent = `Смена пароля через ${daysLeft} дней`;
-                        lastPasswordChange.className = 'user-status cannot-change';
+                        lastPasswordChange.className = 'duh-meta user-status cannot-change';
                     }
                 } else {
-                    lastPasswordChange.textContent = 'Пароль не менялся';
-                    lastPasswordChange.className = 'user-status never-changed';
+                    lastPasswordChange.textContent = '';
+                    lastPasswordChange.className = 'duh-meta';
+                    lastPasswordChange.style.display = 'none';
                 }
             }
             
             setupEventListeners() {
-                // Кнопка меню пользователя
-                const userMenuBtn = document.getElementById('userMenuBtn');
+                const userProfile = document.getElementById('userProfile');
                 const userDropdown = document.getElementById('userDropdown');
-                
-                if (userMenuBtn && userDropdown) {
-                    userMenuBtn.addEventListener('click', (e) => {
+
+                if (userProfile && userDropdown) {
+                    userProfile.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        userDropdown.classList.toggle('show');
+                        userProfile.classList.toggle('open');
                     });
-                    
-                    // Закрытие меню при клике вне его
-                    document.addEventListener('click', () => {
-                        userDropdown.classList.remove('show');
-                    });
+                    userDropdown.addEventListener('click', (e) => e.stopPropagation());
+                    document.addEventListener('click', () => userProfile.classList.remove('open'));
                 }
-                
-                // Кнопка смены пароля
+
                 const changePasswordBtn = document.getElementById('changePasswordBtn');
                 if (changePasswordBtn) {
                     changePasswordBtn.addEventListener('click', (e) => {
                         e.preventDefault();
+                        e.stopPropagation();
+                        if (userProfile) userProfile.classList.remove('open');
                         this.showChangePasswordModal();
                     });
                 }
-                
-                // Кнопка выхода
+
                 const logoutBtn = document.getElementById('logoutBtn');
                 if (logoutBtn) {
                     logoutBtn.addEventListener('click', async (e) => {
                         e.preventDefault();
+                        e.stopPropagation();
+                        if (userProfile) userProfile.classList.remove('open');
                         if (confirm('Вы уверены, что хотите выйти?')) {
                             await UserAPI.logout();
                             window.location.href = '../index.html';
@@ -736,10 +743,13 @@
             }
         }
 
+        /** Максимум строк таблицы на одной странице (пагинация) */
+        const DIRECTORIES_PAGE_SIZE = 10;
+
         class DirectoriesPage {
             constructor() {
                 this.currentPage = 1;
-                this.pageSize = 10;
+                this.pageSize = DIRECTORIES_PAGE_SIZE;
                 this.totalPages = 1;
                 this.directories = [];
                 this.filteredDirectories = [];
@@ -822,7 +832,7 @@
                 
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="8" class="empty-state">
+                        <td colspan="6" class="empty-state">
                             <i class="fas fa-exclamation-triangle" style="color: #f56565;"></i>
                             <h3>Ошибка загрузки каталогов</h3>
                             <p>${errorMessage}</p>
@@ -848,7 +858,7 @@
                 if (pageData.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="8" class="empty-state">
+                            <td colspan="6" class="empty-state">
                                 <i class="fas fa-folder-open"></i>
                                 <h3>Каталоги не найдены</h3>
                                 <p>Создайте первый каталог или измените критерии поиска</p>
@@ -869,35 +879,25 @@
                     const statusClass = `status-${status}`;
                     const statusText = this.getStatusText(status);
                     
+                    const safeName = (dir.name || 'Без названия').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    const safeParent = String(parentName).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    const titleName = (dir.name || 'Без названия').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+                    const titleParent = String(parentName).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
                     html += `
                         <tr>
-                            <td>${dir.id}</td>
-                            <td>
-                                <div class="directory-name">
-                                    <i class="fas fa-folder"></i>
-                                    <span>${dir.name || 'Без названия'}</span>
-                                </div>
+                            <td class="dir-td-num">${dir.id}</td>
+                            <td class="dir-td-clip" title="${titleName}">
+                                <span class="dir-name-line"><i class="fas fa-folder" aria-hidden="true"></i> ${safeName}</span>
                             </td>
-                            <td>${parentName}</td>
-                            <td>${createdAt}</td>
-                            <td><span class="count-badge">${dir.userCount || 0}</span></td>
-                            <td><span class="count-badge">${dir.recordCount || 0}</span></td>
+                            <td class="dir-td-muted dir-td-clip" title="${titleParent}">${safeParent}</td>
+                            <td class="dir-td-muted dir-td-nowrap">${createdAt}</td>
                             <td>
-                                <span class="status-badge ${statusClass}">
-                                    <span class="status-indicator ${status}"></span>
-                                    ${statusText}
-                                </span>
+                                <span class="status-badge ${statusClass}">${statusText}</span>
                             </td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="btn-action btn-action-edit" onclick="directoriesPage.editDirectory(${dir.id})" 
-                                            title="Редактировать">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn-action btn-action-delete" onclick="directoriesPage.confirmDelete(${dir.id})" 
-                                            title="Удалить">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                            <td class="dir-td-actions">
+                                <div class="action-buttons dir-actions">
+                                    <button type="button" class="btn-action btn-action-edit" onclick="directoriesPage.editDirectory(${dir.id})" title="Редактировать"><i class="fas fa-edit"></i></button>
+                                    <button type="button" class="btn-action btn-action-delete" onclick="directoriesPage.confirmDelete(${dir.id})" title="Удалить"><i class="fas fa-trash"></i></button>
                                 </div>
                             </td>
                         </tr>
@@ -1439,7 +1439,15 @@
                     showAllBtn.addEventListener('click', () => this.showAllTree());
                 }
                 
-                // Кнопка закрытия формы
+                const directoryFormModal = document.getElementById('directoryFormModal');
+                if (directoryFormModal) {
+                    directoryFormModal.addEventListener('click', (e) => {
+                        if (e.target === directoryFormModal) {
+                            this.hideForm();
+                        }
+                    });
+                }
+
                 const closeBtn = document.getElementById('closeFormBtn');
                 if (closeBtn) {
                     closeBtn.addEventListener('click', () => this.hideForm());
@@ -1484,7 +1492,7 @@
                 // Модальное окно удаления
                 const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
                 const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
-                const closeModalBtn = document.querySelector('.close-btn');
+                const closeConfirmModal = document.getElementById('closeConfirmModal');
                 
                 if (confirmDeleteBtn) {
                     confirmDeleteBtn.addEventListener('click', () => this.deleteDirectory());
@@ -1494,8 +1502,8 @@
                     cancelDeleteBtn.addEventListener('click', () => this.hideModal());
                 }
                 
-                if (closeModalBtn) {
-                    closeModalBtn.addEventListener('click', () => this.hideModal());
+                if (closeConfirmModal) {
+                    closeConfirmModal.addEventListener('click', () => this.hideModal());
                 }
                 
                 console.log('✅ Все обработчики событий настроены');
@@ -1561,10 +1569,10 @@
             }
             
             showForm(directoryId = null) {
-                const formCard = document.getElementById('directoryFormCard');
+                const formModal = document.getElementById('directoryFormModal');
                 const formTitle = document.getElementById('formTitle');
                 
-                if (!formCard || !formTitle) return;
+                if (!formModal || !formTitle) return;
                 
                 if (directoryId) {
                     formTitle.textContent = 'Редактировать каталог';
@@ -1576,14 +1584,14 @@
                     this.resetForm();
                 }
                 
-                formCard.style.display = 'block';
-                formCard.scrollIntoView({ behavior: 'smooth' });
+                formModal.style.display = 'flex';
+                document.getElementById('directoryName')?.focus();
             }
             
             hideForm() {
-                const formCard = document.getElementById('directoryFormCard');
-                if (formCard) {
-                    formCard.style.display = 'none';
+                const formModal = document.getElementById('directoryFormModal');
+                if (formModal) {
+                    formModal.style.display = 'none';
                 }
             }
             
@@ -1605,7 +1613,14 @@
                         document.getElementById('directoryName').value = dir.name || '';
                         document.getElementById('parentDirectory').value = dir.parentId || '';
                         document.getElementById('directoryDescription').value = dir.description || '';
-                        document.getElementById('directoryStatus').value = dir.status || 'active';
+                        let st = dir.status || 'active';
+                        if (st === 'inactive') {
+                            st = 'archived';
+                        }
+                        if (st !== 'active' && st !== 'archived') {
+                            st = 'active';
+                        }
+                        document.getElementById('directoryStatus').value = st;
                     } else {
                         this.showNotification(response.message || 'Ошибка загрузки данных', 'error');
                     }
@@ -1786,93 +1801,10 @@
                 // Инициализируем страницу каталогов
                 console.log('🚀 Запускаем DirectoriesPage...');
                 window.directoriesPage = new DirectoriesPage();
-                
-                // Загружаем сайдбар
-                const sidebarResponse = await fetch('components/sidebar.html');
-                if (sidebarResponse.ok) {
-                    const sidebarData = await sidebarResponse.text();
-                    const sidebarContainer = document.getElementById('sidebar-container');
-                    if (sidebarContainer) {
-                        sidebarContainer.innerHTML = sidebarData;
-                        console.log('✅ Сайдбар загружен');
-                    }
-                } else {
-                    console.warn('⚠️ Не удалось загрузить сайдбар, создаем базовый');
-                    createBasicSidebar();
-                }
-                
-                // Инициализируем мобильное меню
-                initMobileMenu();
-                console.log('✅ Мобильное меню инициализировано');
-                
             } catch (error) {
-                console.error('❌ Ошибка загрузки компонентов:', error);
-                createBasicSidebar();
+                console.error('❌ Ошибка инициализации:', error);
             }
         });
-
-        function createBasicSidebar() {
-            console.log('🛠️ Создаем базовый сайдбар...');
-            
-            const sidebarContainer = document.getElementById('sidebar-container');
-            if (sidebarContainer) {
-                sidebarContainer.innerHTML = `
-                    <aside class="sidebar" id="sidebar">
-                        <div class="sidebar-brand">
-                            <h2><i class="fas fa-cogs"></i> Меню редактора</h2>
-                            <button class="close-sidebar-btn" id="closeSidebarBtn" style="display: none;">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <nav>
-                            <ul class="sidebar-nav">
-                                <li><a href="editor.html"><i class="fas fa-home"></i><span>Главная</span></a></li>
-                                <li><a href="directories.html" class="active"><i class="fas fa-book"></i><span>Справочники</span></a></li>
-                                <li><a href="assignments.html"><i class="fas fa-user-check"></i><span>Назначения</span></a></li>
-                                <li><a href="counterparties.html"><i class="fas fa-building"></i><span>Контрагенты</span></a></li>
-                                <li><a href="status-logs.html"><i class="fas fa-tasks"></i><span>Статусы</span></a></li>
-                            </ul>
-                        </nav>
-                        <div class="sidebar-footer">
-                            <p>© 2024 Система документооборота</p>
-                            <p>Версия 1.0.0</p>
-                        </div>
-                    </aside>
-                `;
-                initMobileMenu();
-            }
-        }
-
-        function initMobileMenu() {
-            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-            const sidebar = document.getElementById('sidebar');
-            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
-            
-            if (mobileMenuBtn && sidebar) {
-                mobileMenuBtn.addEventListener('click', () => {
-                    sidebar.classList.add('active');
-                    if (closeSidebarBtn) closeSidebarBtn.style.display = 'block';
-                });
-            }
-            
-            if (closeSidebarBtn && sidebar) {
-                closeSidebarBtn.addEventListener('click', () => {
-                    sidebar.classList.remove('active');
-                    closeSidebarBtn.style.display = 'none';
-                });
-            }
-            
-            // Закрытие меню при клике на ссылку
-            const sidebarLinks = document.querySelectorAll('.sidebar-nav a');
-            sidebarLinks.forEach(link => {
-                link.addEventListener('click', () => {
-                    if (window.innerWidth <= 768 && sidebar) {
-                        sidebar.classList.remove('active');
-                        if (closeSidebarBtn) closeSidebarBtn.style.display = 'none';
-                    }
-                });
-            });
-        }
     </script>
 </body>
 </html>

@@ -22,143 +22,135 @@
         /* Header */
         .header {
             background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
-            padding: 0 32px;
-            height: 80px;
+            padding: 0 30px;
+            height: 68px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             position: sticky;
             top: 0;
-            z-index: 100;
-            box-shadow: 0 4px 20px rgba(54, 209, 220, 0.2);
+            z-index: 1000;
+            box-shadow: 0 2px 15px rgba(0,0,0,.12);
         }
 
         .header-left {
             display: flex;
             align-items: center;
-            gap: 32px;
+            gap: 10px;
         }
 
         .logo {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .logo-icon {
-            width: 44px;
-            height: 44px;
+            width: 38px;
+            height: 38px;
             background: rgba(255, 255, 255, 0.2);
-            border-radius: 14px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            font-size: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            flex-shrink: 0;
         }
 
-        .logo-icon i {
-            color: white;
-        }
+        .logo-icon i { color: white; }
 
         .logo-text h1 {
-            font-size: 22px;
+            font-size: 19px;
             font-weight: 700;
             color: white;
-            letter-spacing: -0.5px;
+            letter-spacing: -0.3px;
+            white-space: nowrap;
         }
 
         .logo-text p {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.8);
-            margin-top: 2px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.75);
+            margin-top: 1px;
         }
 
-        /* User Info */
-        .user-info {
+        /* ── Профиль пользователя ── */
+        .user-profile {
+            position: relative;
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 10px;
+            padding: 7px 12px 7px 8px;
+            border-radius: 10px;
+            cursor: pointer;
+            user-select: none;
+            background: rgba(255,255,255,.12);
+            border: 1px solid rgba(255,255,255,.2);
+            transition: background .2s;
         }
+        .user-profile:hover { background: rgba(255,255,255,.22); }
 
         .user-avatar {
-            width: 48px;
-            height: 48px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 14px;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
             font-weight: 700;
-            font-size: 18px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .user-details {
-            text-align: right;
-        }
-
-        .user-name {
-            font-weight: 700;
-            color: white;
             font-size: 15px;
-            letter-spacing: -0.3px;
-        }
-
-        .user-role {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.8);
-            margin-top: 2px;
-        }
-
-        .user-menu-dropdown {
-            position: relative;
-        }
-
-        .user-menu-btn {
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            cursor: pointer;
+            background: rgba(255,255,255,.25);
             color: white;
+            flex-shrink: 0;
         }
 
-        .dropdown-content {
+        .user-details { display: flex; flex-direction: column; line-height: 1.25; }
+
+        .user-name { font-weight: 600; font-size: 13.5px; color: white; }
+
+        .user-role { font-size: 11px; color: rgba(255,255,255,.78); }
+
+        .user-chevron { font-size: 10px; color: rgba(255,255,255,.75); transition: transform .2s; margin-left: 2px; }
+        .user-profile.open .user-chevron { transform: rotate(180deg); }
+
+        .user-dropdown {
+            display: none;
             position: absolute;
-            top: 100%;
+            top: calc(100% + 8px);
             right: 0;
             background: white;
-            min-width: 220px;
-            border-radius: 16px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-            display: none;
-            z-index: 1000;
-            margin-top: 12px;
+            min-width: 215px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,.18);
+            z-index: 2000;
             overflow: hidden;
+            border: 1px solid #f1f5f9;
         }
+        .user-profile.open .user-dropdown { display: block; }
 
-        .dropdown-content.show {
-            display: block;
+        .dd-user-header {
+            padding: 14px 16px 11px;
+            border-bottom: 1px solid #f1f5f9;
         }
+        .dd-user-header .duh-name { font-weight: 700; font-size: 14px; color: #1f2937; }
+        .dd-user-header .duh-role { font-size: 12px; color: #64748b; margin-top: 2px; }
 
-        .dropdown-content a {
-            color: #334155;
-            padding: 14px 20px;
-            text-decoration: none;
+        .dd-item {
             display: flex;
             align-items: center;
-            gap: 12px;
-            font-size: 14px;
+            gap: 10px;
+            padding: 11px 16px;
+            color: #374151;
+            cursor: pointer;
+            font-size: 13.5px;
             font-weight: 500;
+            transition: background .15s;
         }
-
-        .dropdown-content i {
-            width: 20px;
-            color: #5b86e5;
-            font-size: 16px;
+        .dd-item:hover { background: #f8fafc; }
+        .dd-item i { width: 16px; color: #5b86e5; font-size: 13px; }
+        .dd-item.danger { color: #ef4444; }
+        .dd-item.danger i { color: #ef4444; }
+        .dd-divider { height: 1px; background: #f1f5f9;
         }
 
         /* Content Area */
@@ -223,6 +215,15 @@
             }
         }
 
+        .header-nav-link {
+            display: flex; align-items: center; gap: 6px;
+            color: white; text-decoration: none; font-size: 14px; font-weight: 500;
+            padding: 7px 14px; border-radius: 6px;
+            background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+            transition: background .2s; white-space: nowrap;
+        }
+        .header-nav-link:hover { background: rgba(255,255,255,.25); color: white; }
+
         /* Mobile */
         .mobile-menu-btn {
             display: none;
@@ -234,6 +235,80 @@
             color: white;
             font-size: 20px;
             cursor: pointer;
+        }
+
+        /* Раздел журналов */
+        .journals-section {
+            margin-bottom: 28px;
+        }
+
+        .journals-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .journals-section h3 i {
+            color: #5b86e5;
+        }
+
+        .journals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 14px;
+        }
+
+        .journal-card {
+            background: white;
+            border-radius: 14px;
+            padding: 20px;
+            text-decoration: none;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+
+        .journal-card:hover {
+            border-color: #5b86e5;
+            box-shadow: 0 4px 12px rgba(91,134,229,0.15);
+            transform: translateY(-2px);
+            color: #334155;
+            text-decoration: none;
+        }
+
+        .journal-card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .journal-card-icon.incoming  { background: #dbeafe; color: #2563eb; }
+        .journal-card-icon.outgoing  { background: #dcfce7; color: #16a34a; }
+        .journal-card-icon.internal  { background: #fef3c7; color: #d97706; }
+
+        .journal-card-text strong {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .journal-card-text span {
+            font-size: 12px;
+            color: #64748b;
         }
 
         @media (max-width: 768px) {
@@ -281,32 +356,37 @@
 <body>
     <header class="header">
         <div class="header-left">
-            <button class="mobile-menu-btn" id="mobileMenuBtn">
-                <i class="fas fa-bars"></i>
-            </button>
             <div class="logo">
                 <div class="logo-icon">
                     <i class="fas fa-file-alt"></i>
                 </div>
                 <div class="logo-text">
                     <h1>Документооборот</h1>
-                    <p>Система контроля версий</p>
+                    <p>Система управления</p>
                 </div>
             </div>
+            <a href="/journals/incoming" class="header-nav-link">
+                <i class="fas fa-inbox"></i> <span>Входящие</span>
+            </a>
         </div>
-        <div class="user-info">
+        <div class="user-profile" id="userProfile">
             <div class="user-avatar" id="userAvatar">П</div>
             <div class="user-details">
                 <span class="user-name" id="userName">Пользователь</span>
                 <span class="user-role" id="userRole">Пользователь</span>
             </div>
-            <div class="user-menu-dropdown">
-                <button class="user-menu-btn" id="userMenuBtn">
-                    <i class="fas fa-chevron-down"></i>
-                </button>
-                <div class="dropdown-content" id="userDropdown">
-                    <a href="#" id="changePasswordBtn"><i class="fas fa-key"></i> Сменить пароль</a>
-                    <a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Выход</a>
+            <i class="fas fa-chevron-down user-chevron"></i>
+            <div class="user-dropdown" id="userDropdown">
+                <div class="dd-user-header">
+                    <div class="duh-name" id="dropdownName">—</div>
+                    <div class="duh-role" id="dropdownRole">—</div>
+                </div>
+                <div class="dd-item" id="changePasswordBtn">
+                    <i class="fas fa-key"></i> Сменить пароль
+                </div>
+                <div class="dd-divider"></div>
+                <div class="dd-item danger" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i> Выйти
                 </div>
             </div>
         </div>
@@ -318,6 +398,7 @@
             <p>Управляйте документами, отслеживайте версии и работайте с корреспонденцией</p>
         </div>
         
+
         <div class="catalogs-container" id="catalogsContainer">
             <div class="loading-state">
                 <i class="fas fa-spinner fa-spin"></i>
@@ -330,10 +411,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             const path = window.location.pathname;
             let activePage = 'dashboard';
-            
             if (path.includes('documents')) activePage = 'documents';
             if (path.includes('catalogs')) activePage = 'catalogs';
-            
             const navLinks = document.querySelectorAll('.header-nav-link');
             navLinks.forEach(link => {
                 link.classList.remove('active');
@@ -341,22 +420,6 @@
                     link.classList.add('active');
                 }
             });
-            
-            const userMenuBtn = document.getElementById('userMenuBtn');
-            const userDropdown = document.getElementById('userDropdown');
-            
-            if (userMenuBtn && userDropdown) {
-                userMenuBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    userDropdown.classList.toggle('show');
-                });
-                
-                document.addEventListener('click', (e) => {
-                    if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
-                        userDropdown.classList.remove('show');
-                    }
-                });
-            }
         });
     </script>
     
