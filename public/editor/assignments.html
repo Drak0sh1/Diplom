@@ -23,6 +23,9 @@
                 <a href="editor.html" class="header-nav-link">
                     <i class="fas fa-book"></i> <span>Справочники</span>
                 </a>
+                <a href="incoming-journal.html" class="header-nav-link">
+                    <i class="fas fa-inbox"></i> <span>Входящая документация</span>
+                </a>
             </div>
             <div class="user-profile" id="userProfile">
                 <div class="user-avatar" id="userAvatar">Р</div>
@@ -222,6 +225,26 @@
                 <div class="modal-footer">
                     <button type="button" class="btn-danger" id="confirmDeleteBtn">Подтвердить</button>
                     <button type="button" class="btn-secondary" id="cancelDeleteBtn">Отмена</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="reportExportModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="reportExportTitle">
+            <div class="modal-content modal-content--directory-form report-export-modal">
+                <div class="modal-header">
+                    <h3 id="reportExportTitle"><i class="fas fa-file-word"></i> Экспорт отчетов</h3>
+                    <button type="button" class="close-btn" id="closeReportExportModal" aria-label="Закрыть">&times;</button>
+                </div>
+                <div class="modal-body directory-form-body">
+                    <p class="report-export-text">Выберите отчет, который нужно сформировать в формате Word.</p>
+                    <div class="report-export-actions">
+                        <button type="button" class="btn-primary" id="exportAssignmentsReportBtn">
+                            <i class="fas fa-folder-tree"></i> Закрепленность каталогов
+                        </button>
+                        <button type="button" class="btn-primary" id="exportIncomingJournalBtn">
+                            <i class="fas fa-inbox"></i> Журнал входящей документации
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1468,7 +1491,29 @@ resetForm() {
                 // Экспорт
                 const exportBtn = document.getElementById('exportAssignments');
                 if (exportBtn) {
-                    exportBtn.addEventListener('click', () => this.exportAssignments());
+                    exportBtn.addEventListener('click', () => this.showReportExportModal());
+                }
+
+                const closeReportExportModal = document.getElementById('closeReportExportModal');
+                if (closeReportExportModal) {
+                    closeReportExportModal.addEventListener('click', () => this.hideReportExportModal());
+                }
+
+                const reportExportModal = document.getElementById('reportExportModal');
+                if (reportExportModal) {
+                    reportExportModal.addEventListener('click', (e) => {
+                        if (e.target === reportExportModal) this.hideReportExportModal();
+                    });
+                }
+
+                const exportAssignmentsReportBtn = document.getElementById('exportAssignmentsReportBtn');
+                if (exportAssignmentsReportBtn) {
+                    exportAssignmentsReportBtn.addEventListener('click', () => this.downloadWordReport('/api/editor/reports/assignments-word', 'Отчет по закрепленности каталогов сформирован'));
+                }
+
+                const exportIncomingJournalBtn = document.getElementById('exportIncomingJournalBtn');
+                if (exportIncomingJournalBtn) {
+                    exportIncomingJournalBtn.addEventListener('click', () => this.downloadWordReport('/api/editor/reports/incoming-journal-word', 'Отчет по входящей документации сформирован'));
                 }
                 
                 // Модальное окно удаления
@@ -1704,38 +1749,45 @@ resetForm() {
                 }
             }
             
-            async exportAssignments() {
+            showReportExportModal() {
+                const modal = document.getElementById('reportExportModal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                }
+            }
+
+            hideReportExportModal() {
+                const modal = document.getElementById('reportExportModal');
+                if (modal) {
+                    modal.style.display = 'none';
+                }
+            }
+
+            async downloadWordReport(url, successMessage) {
                 try {
-                    // Создаем CSV
-                    let csv = 'Пользователь,Справочник,Дата назначения,Статус\n';
-                    
-                    this.filteredAssignments.forEach(assignment => {
-                        const user = this.users.find(u => u.id == assignment.userId);
-                        
-                        const userName = user ? user.username : 'Неизвестный';
-                        const directoryName = assignment.directoryName || 'Неизвестный справочник';
-                        const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString('ru-RU') : '';
-                        const status = this.getAssignmentStatus(assignment);
-                        const statusText = this.getStatusText(status);
-                        
-                        csv += `"${userName}","${directoryName}","${assignedDate}","${statusText}"\n`;
-                    });
-                    
-                    // Создаем ссылку для скачивания
-                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                    const url = URL.createObjectURL(blob);
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error('Не удалось сформировать отчет');
+                    }
+
+                    const blob = await response.blob();
+                    const objectUrl = URL.createObjectURL(blob);
                     const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `назначения_${new Date().toISOString().split('T')[0]}.csv`;
+                    const disposition = response.headers.get('content-disposition') || '';
+                    const match = disposition.match(/filename="?([^"]+)"?/i);
+
+                    link.href = objectUrl;
+                    link.download = match?.[1] || `report_${new Date().toISOString().split('T')[0]}.docx`;
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                    
-                    this.showNotification('Экспорт выполнен успешно', 'success');
+                    URL.revokeObjectURL(objectUrl);
+
+                    this.hideReportExportModal();
+                    this.showNotification(successMessage, 'success');
                 } catch (error) {
                     console.error('Ошибка экспорта:', error);
-                    this.showNotification('Ошибка экспорта', 'error');
+                    this.showNotification('Ошибка экспорта Word-отчета', 'error');
                 }
             }
             

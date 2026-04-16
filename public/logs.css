@@ -695,6 +695,26 @@ body {
     padding: 20px;
 }
 
+.export-modal-content {
+    max-width: 520px;
+}
+
+.export-modal-text {
+    margin: 0 0 18px;
+    color: #475569;
+    line-height: 1.55;
+}
+
+.export-format-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.export-format-btn {
+    width: 100%;
+}
+
 .log-details-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -1317,6 +1337,10 @@ body {
 
 .filter-group .form-control {
     padding-right: 40px;
+}
+
+.filter-group select.form-control {
+    padding-right: 16px;
 }
 
 .filter-group .clear-field {

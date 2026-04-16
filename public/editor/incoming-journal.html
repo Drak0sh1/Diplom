@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Журнал входящей документации - Панель редактора</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="editor.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="header">
+            <div class="header-left">
+                <div class="logo">
+                    <div class="logo-text">
+                        <h1><i class="fas fa-book"></i> Панель редактора</h1>
+                        <p>Система контроля версий документов</p>
+                    </div>
+                </div>
+                <a href="editor.html" class="header-nav-link">
+                    <i class="fas fa-book"></i> <span>Справочники</span>
+                </a>
+                <a href="assignments.html" class="header-nav-link">
+                    <i class="fas fa-user-shield"></i> <span>Права доступа</span>
+                </a>
+            </div>
+            <div class="user-profile" id="userProfile">
+                <div class="user-avatar" id="userAvatar">Р</div>
+                <div class="user-details">
+                    <span class="user-name" id="userName">Загрузка...</span>
+                    <span class="user-role" id="userRole">Редактор</span>
+                </div>
+                <i class="fas fa-chevron-down user-chevron"></i>
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="dd-user-header">
+                        <div class="duh-name" id="dropdownName">—</div>
+                        <div class="duh-role" id="dropdownRole">—</div>
+                        <div class="duh-meta" id="lastPasswordChange"></div>
+                    </div>
+                    <div class="dd-item" id="changePasswordBtn" role="button" tabindex="0">
+                        <i class="fas fa-key"></i> Сменить пароль
+                    </div>
+                    <div class="dd-divider"></div>
+                    <div class="dd-item danger" id="logoutBtn" role="button" tabindex="0">
+                        <i class="fas fa-sign-out-alt"></i> Выйти
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="page-header editor-intro-banner">
+                <h1><i class="fas fa-inbox"></i> Журнал входящей документации</h1>
+                <p class="page-subtitle">Входящие документы всех пользователей в единой таблице</p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-table"></i> Журнал регистрации входящих документов</h2>
+                    <div class="header-actions">
+                        <button class="btn-sm btn-primary" id="exportIncomingJournalBtn">
+                            <i class="fas fa-file-word"></i> Экспорт в Word
+                        </button>
+                    </div>
+                </div>
+
+                <div class="search-filters">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchIncomingDocs" placeholder="Поиск по корреспонденту, индексу или содержанию...">
+                    </div>
+                    <div class="filter-group">
+                        <input type="date" id="filterIncomingDateFrom" class="form-control">
+                    </div>
+                    <div class="filter-group">
+                        <input type="date" id="filterIncomingDateTo" class="form-control">
+                    </div>
+                    <div class="filter-group">
+                        <select id="filterIncomingStatus" class="form-control">
+                            <option value="">Все статусы</option>
+                            <option value="draft">Черновик</option>
+                            <option value="registered">Зарегистрирован</option>
+                            <option value="executed">Исполнен</option>
+                            <option value="archived">Архив</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-container table-container--incoming-journal">
+                    <table class="incoming-journal-table">
+                        <thead>
+                            <tr>
+                                <th>Дата поступления и индекс документа</th>
+                                <th>Корреспондент, дата и индекс поступившего документа</th>
+                                <th>Краткое содержание</th>
+                                <th>Резолюция или кому направлен документ</th>
+                                <th>Срок исполнения</th>
+                                <th>Отметка об исполнении документа</th>
+                            </tr>
+                        </thead>
+                        <tbody id="incomingJournalTable">
+                            <tr>
+                                <td colspan="6" class="table-placeholder">
+                                    <i class="fas fa-spinner fa-spin"></i> Загрузка документов...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <div class="modal-overlay" id="changePasswordModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="changePasswordTitle">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="changePasswordTitle"><i class="fas fa-key"></i> Смена пароля</h3>
+                    <button type="button" class="close-btn" id="closePasswordModal" aria-label="Закрыть">&times;</button>
+                </div>
+                <form id="changePasswordForm">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="currentPassword">
+                                <i class="fas fa-lock"></i> Текущий пароль *
+                            </label>
+                            <input type="password" id="currentPassword" class="form-control" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="newPassword">
+                                <i class="fas fa-lock"></i> Новый пароль *
+                            </label>
+                            <input type="password" id="newPassword" class="form-control" required>
+                            <small class="form-text">
+                                Минимум 6 символов, должен содержать буквы и цифры
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirmPassword">
+                                <i class="fas fa-lock"></i> Подтвердите новый пароль *
+                            </label>
+                            <input type="password" id="confirmPassword" class="form-control" required>
+                        </div>
+
+                        <div class="password-requirements">
+                            <p><strong>Требования к паролю:</strong></p>
+                            <ul>
+                                <li>Минимум 6 символов</li>
+                                <li>Содержит буквы и цифры</li>
+                                <li>Не должен совпадать с текущим паролем</li>
+                                <li>Пароль можно менять не чаще 1 раза в месяц</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="cancelPasswordChange">Отмена</button>
+                        <button type="submit" class="btn-primary" id="savePasswordBtn">
+                            <i class="fas fa-save"></i> Сохранить
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="messages"></div>
+
+    <script>
+        const UserAPI = {
+            async getCurrentUser() {
+                const response = await fetch('/api/editor/current-user');
+                return response.json();
+            },
+
+            async getPasswordLastChange() {
+                const response = await fetch('/api/user/password-last-change');
+                return response.json();
+            },
+
+            async changePassword(currentPassword, newPassword) {
+                const response = await fetch('/api/user/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+                return response.json();
+            }
+        };
+
+        class IncomingJournalPage {
+            constructor() {
+                this.documents = [];
+                this.filteredDocuments = [];
+                this.init();
+            }
+
+            async init() {
+                await this.loadUser();
+                await this.loadIncomingDocuments();
+                this.setupUserMenu();
+                this.setupPasswordModal();
+                this.setupFilters();
+                this.setupExport();
+            }
+
+            async loadUser() {
+                try {
+                    const response = await UserAPI.getCurrentUser();
+                    if (!response.success || !response.data) return;
+
+                    const user = response.data;
+                    document.getElementById('userAvatar').textContent = (user.name || 'Р').charAt(0).toUpperCase();
+                    document.getElementById('userName').textContent = user.name || 'Редактор';
+                    document.getElementById('userRole').textContent = user.role || 'Редактор';
+                    document.getElementById('dropdownName').textContent = user.name || 'Редактор';
+                    document.getElementById('dropdownRole').textContent = user.role || 'Редактор';
+
+                    const passwordData = await UserAPI.getPasswordLastChange();
+                    if (passwordData.success) {
+                        this.updatePasswordInfo(passwordData.lastChange);
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки пользователя:', error);
+                }
+            }
+
+            async loadIncomingDocuments() {
+                try {
+                    const response = await fetch('/api/user/journals/incoming?limit=1000');
+                    const result = await response.json();
+
+                    if (!result.success) {
+                        throw new Error(result.message || 'Не удалось загрузить входящие документы');
+                    }
+
+                    this.documents = result.documents || [];
+                    this.filteredDocuments = [...this.documents];
+                    this.renderTable();
+                } catch (error) {
+                    console.error('Ошибка загрузки входящей документации:', error);
+                    this.showNotification('Ошибка загрузки входящей документации', 'error');
+                    document.getElementById('incomingJournalTable').innerHTML = `
+                        <tr>
+                            <td colspan="6" class="table-placeholder">Не удалось загрузить документы</td>
+                        </tr>
+                    `;
+                }
+            }
+
+            setupFilters() {
+                document.getElementById('searchIncomingDocs')?.addEventListener('input', () => this.applyFilters());
+                document.getElementById('filterIncomingDateFrom')?.addEventListener('change', () => this.applyFilters());
+                document.getElementById('filterIncomingDateTo')?.addEventListener('change', () => this.applyFilters());
+                document.getElementById('filterIncomingStatus')?.addEventListener('change', () => this.applyFilters());
+            }
+
+            applyFilters() {
+                const search = document.getElementById('searchIncomingDocs').value.trim().toLowerCase();
+                const dateFrom = document.getElementById('filterIncomingDateFrom').value;
+                const dateTo = document.getElementById('filterIncomingDateTo').value;
+                const status = document.getElementById('filterIncomingStatus').value;
+
+                this.filteredDocuments = this.documents.filter((doc) => {
+                    const docText = [
+                        doc.documentIndex,
+                        doc.correspondent,
+                        doc.summary,
+                        doc.resolution,
+                        this.getStatusText(doc.status)
+                    ].join(' ').toLowerCase();
+
+                    const matchesSearch = !search || docText.includes(search);
+                    const matchesStatus = !status || doc.status === status;
+                    const receivedDate = doc.receivedDate ? String(doc.receivedDate).slice(0, 10) : '';
+                    const matchesDateFrom = !dateFrom || (receivedDate && receivedDate >= dateFrom);
+                    const matchesDateTo = !dateTo || (receivedDate && receivedDate <= dateTo);
+
+                    return matchesSearch && matchesStatus && matchesDateFrom && matchesDateTo;
+                });
+
+                this.renderTable();
+            }
+
+            renderTable() {
+                const tbody = document.getElementById('incomingJournalTable');
+                if (!this.filteredDocuments.length) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="table-placeholder">Документы не найдены</td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                tbody.innerHTML = this.filteredDocuments.map((doc) => `
+                    <tr>
+                        <td>
+                            <div class="journal-cell-block">
+                                <div>${this.formatDate(doc.receivedDate)}</div>
+                                <div class="journal-secondary-text">${doc.documentIndex || '—'}</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="journal-cell-block">
+                                <div>${doc.correspondent || '—'}</div>
+                                <div class="journal-secondary-text">${doc.senderDate ? `Дата: ${this.formatDate(doc.senderDate)}` : ''}</div>
+                                <div class="journal-secondary-text">${doc.senderDocumentIndex ? `Индекс: ${doc.senderDocumentIndex}` : ''}</div>
+                            </div>
+                        </td>
+                        <td>${doc.summary || '—'}</td>
+                        <td><div class="journal-resolution-text">${this.formatMultilineText(doc.resolution) || '—'}</div></td>
+                        <td>${this.formatDate(doc.dueDate) || '—'}</td>
+                        <td>${this.getStatusText(doc.status)}</td>
+                    </tr>
+                `).join('');
+            }
+
+            setupExport() {
+                document.getElementById('exportIncomingJournalBtn')?.addEventListener('click', async () => {
+                    try {
+                        const response = await fetch('/api/editor/reports/incoming-journal-word');
+                        if (!response.ok) {
+                            throw new Error('Не удалось сформировать отчет');
+                        }
+
+                        const blob = await response.blob();
+                        const objectUrl = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        const disposition = response.headers.get('content-disposition') || '';
+                        const match = disposition.match(/filename="?([^"]+)"?/i);
+
+                        link.href = objectUrl;
+                        link.download = match?.[1] || `incoming_journal_report_${new Date().toISOString().split('T')[0]}.docx`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(objectUrl);
+
+                        this.showNotification('Word-отчет по входящей документации сформирован', 'success');
+                    } catch (error) {
+                        console.error('Ошибка экспорта Word-отчета:', error);
+                        this.showNotification('Ошибка экспорта Word-отчета', 'error');
+                    }
+                });
+            }
+
+            setupUserMenu() {
+                const userProfile = document.getElementById('userProfile');
+                const userDropdown = document.getElementById('userDropdown');
+
+                if (userProfile && userDropdown) {
+                    userProfile.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        userProfile.classList.toggle('open');
+                    });
+                    userDropdown.addEventListener('click', (e) => e.stopPropagation());
+                    document.addEventListener('click', () => userProfile.classList.remove('open'));
+                }
+
+                const changePasswordBtn = document.getElementById('changePasswordBtn');
+                if (changePasswordBtn) {
+                    changePasswordBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        if (userProfile) userProfile.classList.remove('open');
+                        this.showChangePasswordModal();
+                    });
+                }
+
+                const logoutBtn = document.getElementById('logoutBtn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        if (userProfile) userProfile.classList.remove('open');
+                        await fetch('/api/logout', { method: 'POST' });
+                        window.location.href = '/';
+                    });
+                }
+            }
+
+            setupPasswordModal() {
+                document.getElementById('closePasswordModal')?.addEventListener('click', () => this.hideChangePasswordModal());
+                document.getElementById('cancelPasswordChange')?.addEventListener('click', () => this.hideChangePasswordModal());
+                document.getElementById('changePasswordForm')?.addEventListener('submit', (e) => this.handlePasswordChange(e));
+            }
+
+            showChangePasswordModal() {
+                const modal = document.getElementById('changePasswordModal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    document.getElementById('changePasswordForm').reset();
+                }
+            }
+
+            hideChangePasswordModal() {
+                const modal = document.getElementById('changePasswordModal');
+                if (modal) {
+                    modal.style.display = 'none';
+                }
+            }
+
+            async handlePasswordChange(e) {
+                e.preventDefault();
+
+                const currentPassword = document.getElementById('currentPassword').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                    this.showNotification('Заполните все поля', 'error');
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    this.showNotification('Пароли не совпадают', 'error');
+                    return;
+                }
+
+                if (newPassword.length < 6) {
+                    this.showNotification('Пароль должен содержать минимум 6 символов', 'error');
+                    return;
+                }
+
+                const hasLetter = /[a-zA-Z]/.test(newPassword);
+                const hasNumber = /[0-9]/.test(newPassword);
+                if (!hasLetter || !hasNumber) {
+                    this.showNotification('Пароль должен содержать буквы и цифры', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await UserAPI.changePassword(currentPassword, newPassword);
+                    if (response.success) {
+                        this.hideChangePasswordModal();
+                        this.showNotification(response.message || 'Пароль успешно изменен', 'success');
+                        const passwordData = await UserAPI.getPasswordLastChange();
+                        if (passwordData.success) {
+                            this.updatePasswordInfo(passwordData.lastChange);
+                        }
+                    } else {
+                        this.showNotification(response.message || 'Ошибка смены пароля', 'error');
+                    }
+                } catch (error) {
+                    console.error('Ошибка смены пароля:', error);
+                    this.showNotification('Ошибка смены пароля', 'error');
+                }
+            }
+
+            updatePasswordInfo(lastChange) {
+                const lastPasswordChange = document.getElementById('lastPasswordChange');
+                if (!lastPasswordChange) return;
+
+                if (lastChange) {
+                    const lastChangeDate = new Date(lastChange);
+                    const nextChangeDate = new Date(lastChangeDate);
+                    nextChangeDate.setMonth(nextChangeDate.getMonth() + 1);
+
+                    const now = new Date();
+                    const daysLeft = Math.ceil((nextChangeDate - now) / (1000 * 60 * 60 * 24));
+
+                    lastPasswordChange.style.display = '';
+
+                    if (daysLeft <= 0) {
+                        lastPasswordChange.textContent = 'Можно менять пароль';
+                        lastPasswordChange.className = 'duh-meta user-status can-change';
+                    } else {
+                        lastPasswordChange.textContent = `Смена пароля через ${daysLeft} дней`;
+                        lastPasswordChange.className = 'duh-meta user-status cannot-change';
+                    }
+                } else {
+                    lastPasswordChange.textContent = '';
+                    lastPasswordChange.className = 'duh-meta';
+                    lastPasswordChange.style.display = 'none';
+                }
+            }
+
+            formatDate(value) {
+                if (!value) return '';
+                const date = new Date(value);
+                if (Number.isNaN(date.getTime())) return value;
+                return date.toLocaleDateString('ru-RU');
+            }
+
+            formatMultilineText(value) {
+                if (!value) return '';
+                return String(value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/\n/g, '<br>');
+            }
+
+            getStatusText(status) {
+                const statusMap = {
+                    draft: 'Черновик',
+                    registered: 'В процессе',
+                    executed: 'Исполнен',
+                    archived: 'Архив'
+                };
+
+                return statusMap[status] || '—';
+            }
+
+            showNotification(message, type = 'info') {
+                const messagesContainer = document.getElementById('messages');
+                if (!messagesContainer) return;
+
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.innerHTML = `
+                    <i class="fas fa-${type === 'success' ? 'check-circle' :
+                                      type === 'error' ? 'exclamation-circle' :
+                                      'info-circle'}"></i>
+                    <span>${message}</span>
+                `;
+
+                messagesContainer.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.style.animation = 'slideInRight 0.3s ease reverse';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }, 5000);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            window.incomingJournalPage = new IncomingJournalPage();
+        });
+    </script>
+</body>
+</html>

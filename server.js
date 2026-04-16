@@ -3,6 +3,20 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const path = require('path');
 const cookieParser = require('cookie-parser');
+const ExcelJS = require('exceljs');
+const {
+    AlignmentType,
+    BorderStyle,
+    Document,
+    HeadingLevel,
+    Packer,
+    Paragraph,
+    Table,
+    TableCell,
+    TableRow,
+    TextRun,
+    WidthType
+} = require('docx');
 const UserPasswordManager = require('./user-password-manager.js');
 const fileManager = require('./file-manager.js');
 
@@ -4627,6 +4641,56 @@ app.get('/api/editor/export-logs', requireEditorRole, (req, res) => {
     }
 });
 
+app.get('/api/editor/reports/assignments-word', requireEditorRole, async (req, res) => {
+    try {
+        const assignments = await fetchEditorAssignmentsReportData();
+        const doc = buildEditorAssignmentsWordDocument(assignments);
+        const buffer = await Packer.toBuffer(doc);
+        const dateStamp = new Date().toISOString().slice(0, 10);
+
+        res.setHeader(
+            'Content-Type',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        );
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="editor_assignments_report_${dateStamp}.docx"`
+        );
+        res.send(buffer);
+    } catch (error) {
+        console.error('❌ Ошибка экспорта отчета по закрепленности каталогов:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка формирования Word-отчета по закрепленности каталогов'
+        });
+    }
+});
+
+app.get('/api/editor/reports/incoming-journal-word', requireEditorRole, async (req, res) => {
+    try {
+        const documents = await fetchEditorIncomingJournalReportData();
+        const doc = buildIncomingJournalWordDocument(documents);
+        const buffer = await Packer.toBuffer(doc);
+        const dateStamp = new Date().toISOString().slice(0, 10);
+
+        res.setHeader(
+            'Content-Type',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        );
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="incoming_journal_report_${dateStamp}.docx"`
+        );
+        res.send(buffer);
+    } catch (error) {
+        console.error('❌ Ошибка экспорта журнала входящей документации:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка формирования Word-отчета по журналу входящей документации'
+        });
+    }
+});
+
 // СОЗДАТЬ РЕЗЕРВНУЮ КОПИЮ
 app.post('/api/editor/backup', requireEditorRole, async (req, res) => {
     try {
@@ -4952,177 +5016,543 @@ app.get('/api/check-auth', (req, res) => {
 
 // ============ API ДЛЯ ЛОГОВ ============
 
+function getAdminLogFilters(query = {}) {
+    const normalize = (value) => typeof value === 'string' ? value.trim() : '';
+
+    return {
+        search: normalize(query.search),
+        status: normalize(query.status),
+        module: normalize(query.module),
+        user: normalize(query.user),
+        dateFrom: normalize(query.dateFrom),
+        dateTo: normalize(query.dateTo)
+    };
+}
+
+function buildAdminLogsWhereClause(filters) {
+    let whereSql = `
+        WHERE l.actionType != 'api_request'
+    `;
+    const params = [];
+
+    if (filters.search) {
+        whereSql += ` AND (
+            l.actionType LIKE ? OR
+            l.details LIKE ? OR
+            u.name LIKE ?
+        )`;
+        params.push(`%${filters.search}%`, `%${filters.search}%`, `%${filters.search}%`);
+    }
+
+    if (filters.status) {
+        whereSql += ` AND l.status = ?`;
+        params.push(filters.status);
+    }
+
+    if (filters.module) {
+        whereSql += ` AND l.module = ?`;
+        params.push(filters.module);
+    }
+
+    if (filters.user) {
+        whereSql += ` AND u.name LIKE ?`;
+        params.push(`%${filters.user}%`);
+    }
+
+    if (filters.dateFrom) {
+        whereSql += ` AND DATE(l.createdAt) >= ?`;
+        params.push(filters.dateFrom);
+    }
+
+    if (filters.dateTo) {
+        whereSql += ` AND DATE(l.createdAt) <= ?`;
+        params.push(filters.dateTo);
+    }
+
+    return { whereSql, params };
+}
+
+function buildAdminLogsStatsWhereClause(filters) {
+    let whereSql = `
+        WHERE l.actionType != 'api_request'
+    `;
+    const params = [];
+
+    if (filters.search) {
+        whereSql += ` AND (
+            l.actionType LIKE ? OR
+            l.details LIKE ? OR
+            u.name LIKE ?
+        )`;
+        params.push(`%${filters.search}%`, `%${filters.search}%`, `%${filters.search}%`);
+    }
+
+    if (filters.status) {
+        whereSql += ` AND l.status = ?`;
+        params.push(filters.status);
+    }
+
+    if (filters.module) {
+        whereSql += ` AND l.module = ?`;
+        params.push(filters.module);
+    }
+
+    if (filters.user) {
+        whereSql += ` AND u.name LIKE ?`;
+        params.push(`%${filters.user}%`);
+    }
+
+    if (filters.dateFrom) {
+        whereSql += ` AND DATE(l.createdAt) >= ?`;
+        params.push(filters.dateFrom);
+    }
+
+    if (filters.dateTo) {
+        whereSql += ` AND DATE(l.createdAt) <= ?`;
+        params.push(filters.dateTo);
+    }
+
+    return { whereSql, params };
+}
+
+async function fetchAdminLogs(filters, options = {}) {
+    const {
+        page = 1,
+        limit = 10,
+        paginate = true
+    } = options;
+
+    const { whereSql, params } = buildAdminLogsWhereClause(filters);
+
+    let sql = `
+        SELECT
+            l.actionType,
+            l.details,
+            l.module,
+            l.targetType,
+            l.targetId,
+            l.status,
+            l.userAgent,
+            l.createdAt,
+            DATE_FORMAT(l.createdAt, '%d.%m.%Y %H:%i:%s') as date,
+            IFNULL(u.name, 'Система') as userName
+        FROM Logs l
+        LEFT JOIN Users u ON l.idUsers = u.idUsers
+        ${whereSql}
+        ORDER BY l.createdAt DESC
+    `;
+
+    if (!paginate) {
+        const [logs] = await pool.execute(sql, params);
+        return logs;
+    }
+
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const offset = (pageNum - 1) * limitNum;
+    const dataSql = sql + ` LIMIT ${Number(limitNum)} OFFSET ${Number(offset)}`;
+    const [logs] = await pool.execute(dataSql, params);
+
+    let countSql = `
+        SELECT COUNT(*) as total
+        FROM Logs l
+        LEFT JOIN Users u ON l.idUsers = u.idUsers
+        ${whereSql}
+    `;
+    const [countResult] = await pool.execute(countSql, params);
+    const total = countResult[0]?.total || 0;
+
+    return {
+        logs,
+        pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            pages: Math.ceil(total / limitNum)
+        }
+    };
+}
+
+async function fetchAdminLogsStats(filters) {
+    const { whereSql, params } = buildAdminLogsStatsWhereClause(filters);
+    const statsSql = `
+        SELECT
+            COUNT(*) as totalLogs,
+            COUNT(DISTINCT l.idUsers) as uniqueUsers,
+            SUM(CASE WHEN l.status = 'success' THEN 1 ELSE 0 END) as successLogs,
+            SUM(CASE WHEN l.status = 'failed' THEN 1 ELSE 0 END) as failedLogs,
+            SUM(CASE WHEN l.status = 'warning' THEN 1 ELSE 0 END) as warningLogs,
+            SUM(CASE WHEN l.status = 'info' THEN 1 ELSE 0 END) as infoLogs
+        FROM Logs l
+        LEFT JOIN Users u ON l.idUsers = u.idUsers
+        ${whereSql}
+    `;
+
+    const [stats] = await pool.execute(statsSql, params);
+    return {
+        totalLogs: stats[0]?.totalLogs || 0,
+        uniqueUsers: stats[0]?.uniqueUsers || 0,
+        successLogs: stats[0]?.successLogs || 0,
+        failedLogs: stats[0]?.failedLogs || 0,
+        warningLogs: stats[0]?.warningLogs || 0,
+        infoLogs: stats[0]?.infoLogs || 0
+    };
+}
+
+function formatExportDate(dateValue) {
+    if (!dateValue) return '';
+
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) {
+        return String(dateValue);
+    }
+
+    return date.toLocaleString('ru-RU');
+}
+
+function getAdminLogStatusText(status) {
+    switch (status) {
+        case 'success':
+            return 'Успех';
+        case 'failed':
+            return 'Ошибка';
+        case 'warning':
+            return 'Предупреждение';
+        case 'info':
+            return 'Информация';
+        default:
+            return status || 'Не указано';
+    }
+}
+
+function getAdminLogModuleText(module) {
+    const moduleMap = {
+        auth: 'Авторизация',
+        user: 'Пользователи',
+        file: 'Файлы',
+        folder: 'Папки',
+        system: 'Система',
+        log: 'Журнал',
+        api: 'API'
+    };
+
+    return moduleMap[module] || module || 'Система';
+}
+
+function getAdminLogActionText(actionType) {
+    const actionMap = {
+        user_login: 'Вход в систему',
+        user_logout: 'Выход из системы',
+        user_create: 'Создание пользователя',
+        password_reset: 'Сброс пароля',
+        file_upload: 'Загрузка файла',
+        file_delete: 'Удаление файла',
+        file_download: 'Скачивание файла',
+        folder_create: 'Создание папки',
+        folder_delete: 'Удаление папки',
+        permission_change: 'Изменение прав доступа',
+        role_change: 'Изменение роли',
+        system_start: 'Запуск системы',
+        system_stop: 'Остановка системы',
+        api_request: 'API запрос',
+        database_error: 'Ошибка базы данных',
+        log_cleanup: 'Очистка журнала',
+        user_update: 'Обновление пользователя',
+        logs_export: 'Экспорт журнала'
+    };
+
+    return actionMap[actionType] || actionType || 'Неизвестное действие';
+}
+
+function buildAdminLogExportRows(logs) {
+    return logs.map((log) => ({
+        date: log.date || formatExportDate(log.createdAt),
+        action: getAdminLogActionText(log.actionType),
+        user: log.userName || 'Система',
+        module: getAdminLogModuleText(log.module),
+        status: getAdminLogStatusText(log.status),
+        details: typeof log.details === 'string'
+            ? log.details
+            : JSON.stringify(log.details || '', null, 2)
+    }));
+}
+
+function buildAdminLogFiltersSummary(filters) {
+    const parts = [];
+
+    if (filters.search) parts.push(`Поиск: ${filters.search}`);
+    if (filters.status) parts.push(`Статус: ${getAdminLogStatusText(filters.status)}`);
+    if (filters.module) parts.push(`Модуль: ${getAdminLogModuleText(filters.module)}`);
+    if (filters.user) parts.push(`Пользователь: ${filters.user}`);
+    if (filters.dateFrom) parts.push(`Дата с: ${formatExportDate(filters.dateFrom)}`);
+    if (filters.dateTo) parts.push(`Дата по: ${formatExportDate(filters.dateTo)}`);
+
+    return parts.length > 0 ? parts.join('; ') : 'Без фильтров';
+}
+
+function getEditorAssignmentPermissionText(permission) {
+    switch (permission) {
+        case 'READ':
+            return 'Только чтение';
+        case 'WRITE':
+            return 'Чтение и запись';
+        case 'ADMIN':
+            return 'Полный доступ';
+        default:
+            return permission || 'Не указано';
+    }
+}
+
+function getIncomingDocumentStatusText(status) {
+    const statusMap = {
+        draft: 'Черновик',
+        registered: 'В процессе',
+        executed: 'Исполнен',
+        archived: 'Архив'
+    };
+
+    return statusMap[status] || 'Не указано';
+}
+
+function getEditorAssignmentStatusText(assignment) {
+    if (!assignment.expiresAt) {
+        return 'Активно';
+    }
+
+    const expiresAt = new Date(assignment.expiresAt);
+    const now = new Date();
+    if (Number.isNaN(expiresAt.getTime())) {
+        return 'Активно';
+    }
+
+    if (expiresAt < now) {
+        return 'Просрочено';
+    }
+
+    const daysUntilExpiry = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
+    if (daysUntilExpiry <= 7 && daysUntilExpiry > 0) {
+        return 'Истекает';
+    }
+
+    return 'Активно';
+}
+
+async function fetchEditorAssignmentsReportData() {
+    const [rows] = await pool.execute(`
+        SELECT
+            uf.idUsersFolders as id,
+            uf.idUsers as userId,
+            uf.idFolders as directoryId,
+            uf.permission,
+            u.name as userName,
+            f.Name as directoryName,
+            uf.createdAt as assignedAt,
+            am.expiresAt,
+            am.notes
+        FROM UsersFolders uf
+        JOIN Users u ON uf.idUsers = u.idUsers
+        JOIN Folder f ON uf.idFolders = f.idFolder
+        LEFT JOIN AssignmentMetadata am ON am.assignmentId = uf.idUsersFolders
+        ORDER BY u.name ASC, f.Name ASC, uf.createdAt DESC
+    `);
+
+    return rows;
+}
+
+async function fetchEditorIncomingJournalReportData() {
+    const [rows] = await pool.execute(`
+        SELECT
+            f.receivedDate,
+            f.documentIndex,
+            f.correspondent,
+            f.senderDate,
+            f.senderDocumentIndex,
+            f.description AS summary,
+            f.resolution,
+            f.deadline AS dueDate,
+            f.executionMark,
+            f.documentStatus AS status
+        FROM Files f
+        WHERE f.documentType = 'incoming'
+        ORDER BY f.receivedDate DESC, f.createdAt DESC
+    `);
+
+    return rows;
+}
+
+function buildEditorAssignmentsWordDocument(assignments) {
+    const dateStamp = formatExportDate(new Date());
+
+    const rows = [
+        new TableRow({
+            tableHeader: true,
+            children: ['Пользователь', 'Справочник', 'Права', 'Дата назначения', 'Статус', 'Примечание']
+                .map((title) => new TableCell({
+                    children: [
+                        new Paragraph({
+                            children: [new TextRun({ text: title, bold: true })],
+                            alignment: AlignmentType.CENTER
+                        })
+                    ]
+                }))
+        }),
+        ...assignments.map((assignment) => new TableRow({
+            children: [
+                assignment.userName || 'Не указано',
+                assignment.directoryName || 'Не указано',
+                getEditorAssignmentPermissionText(assignment.permission),
+                formatExportDate(assignment.assignedAt),
+                getEditorAssignmentStatusText(assignment),
+                assignment.notes || ''
+            ].map((value) => new TableCell({
+                children: [
+                    new Paragraph({
+                        children: [new TextRun(String(value || ''))]
+                    })
+                ]
+            }))
+        }))
+    ];
+
+    return new Document({
+        sections: [{
+            children: [
+                new Paragraph({
+                    text: 'Отчет по закрепленности каталогов за пользователями',
+                    heading: HeadingLevel.HEADING_1,
+                    alignment: AlignmentType.CENTER
+                }),
+                new Paragraph({
+                    children: [new TextRun({ text: `Сформировано: ${dateStamp}` })],
+                    alignment: AlignmentType.RIGHT
+                }),
+                new Paragraph({ text: '' }),
+                new Table({
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                    rows
+                })
+            ]
+        }]
+    });
+}
+
+function buildIncomingJournalWordDocument(documents) {
+    const rows = [
+        new TableRow({
+            children: [
+                { text: 'Дата поступления и индекс документа', width: 14 },
+                { text: 'Корреспондент, дата и индекс поступившего документа', width: 20 },
+                { text: 'Краткое содержание', width: 18 },
+                { text: 'Резолюция или кому направлен документ', width: 24 },
+                { text: 'Срок исполнения', width: 10 },
+                { text: 'Отметка об исполнении документа', width: 14 }
+            ].map((cell) => new TableCell({
+                width: { size: cell.width, type: WidthType.PERCENTAGE },
+                children: [
+                    new Paragraph({
+                        children: [new TextRun({ text: cell.text, bold: true })],
+                        alignment: AlignmentType.CENTER
+                    })
+                ],
+                verticalAlign: 'center'
+            }))
+        }),
+        new TableRow({
+            children: ['1', '2', '3', '4', '5', '6'].map((num, index) => new TableCell({
+                width: { size: [14, 20, 18, 24, 10, 14][index], type: WidthType.PERCENTAGE },
+                children: [
+                    new Paragraph({
+                        children: [new TextRun({ text: num })],
+                        alignment: AlignmentType.CENTER
+                    })
+                ]
+            }))
+        }),
+        ...documents.map((doc) => {
+            const firstColumn = [
+                formatExportDate(doc.receivedDate),
+                doc.documentIndex || ''
+            ].filter(Boolean).join('\n');
+
+            const secondColumn = [
+                doc.correspondent || '',
+                doc.senderDate ? `Дата: ${formatExportDate(doc.senderDate)}` : '',
+                doc.senderDocumentIndex ? `Индекс: ${doc.senderDocumentIndex}` : ''
+            ].filter(Boolean).join('\n');
+
+            return new TableRow({
+                children: [
+                    firstColumn,
+                    secondColumn,
+                    doc.summary || '',
+                    doc.resolution || '',
+                    doc.dueDate ? formatExportDate(doc.dueDate) : '',
+                    getIncomingDocumentStatusText(doc.status)
+                ].map((value, index) => new TableCell({
+                    width: { size: [14, 20, 18, 24, 10, 14][index], type: WidthType.PERCENTAGE },
+                    children: String(value || '')
+                        .split('\n')
+                        .map((line) => new Paragraph({ text: line || '' }))
+                }))
+            });
+        })
+    ];
+
+    return new Document({
+        sections: [{
+            children: [
+                new Paragraph({
+                    alignment: AlignmentType.RIGHT,
+                    children: [
+                        new TextRun({ text: 'Приложение 8', break: 1 }),
+                        new TextRun({ text: 'к Инструкции по делопроизводству', break: 1 }),
+                        new TextRun({ text: 'в государственных органах, иных', break: 1 }),
+                        new TextRun({ text: 'организациях', break: 1 }),
+                        new TextRun({ text: '', break: 2 }),
+                        new TextRun({ text: 'Форма', break: 1 })
+                    ]
+                }),
+                new Paragraph({ text: '' }),
+                new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: [
+                        new TextRun({
+                            text: 'Журнал регистрации входящих документов',
+                            bold: true,
+                            size: 30
+                        })
+                    ]
+                }),
+                new Paragraph({ text: '' }),
+                new Table({
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                    rows,
+                    borders: {
+                        top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                        bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                        left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                        right: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                        insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                        insideVertical: { style: BorderStyle.SINGLE, size: 1, color: '000000' }
+                    }
+                })
+            ]
+        }]
+    });
+}
+
 // ПОЛУЧИТЬ ЛОГИ С ПАГИНАЦИЕЙ И ФИЛЬТРАМИ (только для админа)
 app.get('/api/admin/logs', requireAuth('Администратор'), async (req, res) => {
     try {
-        const { 
-            page = 1, 
-            limit = 10,
-            search = '',
-            status = '',
-            module = '',
-            user = '',
-            dateFrom = '',
-            dateTo = ''
-        } = req.query;
-        
-        const pageNum = parseInt(page, 10);
-        const limitNum = parseInt(limit, 10);
-        const offset = (pageNum - 1) * limitNum;
-        
-        let sql = `
-            SELECT 
-                l.idLogs,
-                l.actionType,
-                l.details,
-                l.module,
-                l.targetType,
-                l.targetId,
-                l.status,
-                l.ipAddress,
-                l.userAgent,
-                DATE_FORMAT(l.createdAt, '%d.%m.%Y %H:%i:%s') as date,
-                IFNULL(u.name, 'Система') as userName
-            FROM Logs l
-            LEFT JOIN Users u ON l.idUsers = u.idUsers
-            WHERE l.actionType != 'api_request'
-        `;
-        
-        const params = [];
-        
-        // Добавляем фильтры
-        if (search && search.trim() !== '') {
-            sql += ` AND (
-                l.actionType LIKE ? OR 
-                l.details LIKE ? OR 
-                u.name LIKE ?
-            )`;
-            params.push(`%${search}%`, `%${search}%`, `%${search}%`);
-        }
-        
-        if (status && status.trim() !== '') {
-            sql += ` AND l.status = ?`;
-            params.push(status);
-        }
-        
-        if (module && module.trim() !== '') {
-            sql += ` AND l.module = ?`;
-            params.push(module);
-        }
-        
-        if (user && user.trim() !== '') {
-            sql += ` AND u.name LIKE ?`;
-            params.push(`%${user}%`);
-        }
-        
-        if (dateFrom && dateFrom.trim() !== '') {
-            sql += ` AND DATE(l.createdAt) >= ?`;
-            params.push(dateFrom);
-        }
-        
-        if (dateTo && dateTo.trim() !== '') {
-            sql += ` AND DATE(l.createdAt) <= ?`;
-            params.push(dateTo);
-        }
-        
-        // Сортируем по дате (последние сначала)
-        sql += ` ORDER BY l.createdAt DESC`;
-        
-        // Сначала выполняем запрос для получения данных с пагинацией
-        const safeLimit = Number(limitNum);
-        const safeOffset = Number(offset);
-        const dataSql = sql + ` LIMIT ${safeLimit} OFFSET ${safeOffset}`;
-        
-        const [logs] = await pool.execute(dataSql, params);
-        
-        // Теперь получаем общее количество без LIMIT/OFFSET
-        // ИСКЛЮЧАЕМ API запросы
-        let countSql = `
-            SELECT COUNT(*) as total
-            FROM Logs l
-            LEFT JOIN Users u ON l.idUsers = u.idUsers
-            WHERE l.actionType != 'api_request'
-        `;
-        
-        const countParams = [...params]; // Используем те же параметры фильтрации
-        
-        // Повторяем те же условия фильтрации
-        if (search && search.trim() !== '') {
-            countSql += ` AND (
-                l.actionType LIKE ? OR 
-                l.details LIKE ? OR 
-                u.name LIKE ?
-            )`;
-        }
-        
-        if (status && status.trim() !== '') {
-            countSql += ` AND l.status = ?`;
-        }
-        
-        if (module && module.trim() !== '') {
-            countSql += ` AND l.module = ?`;
-        }
-        
-        if (user && user.trim() !== '') {
-            countSql += ` AND u.name LIKE ?`;
-        }
-        
-        if (dateFrom && dateFrom.trim() !== '') {
-            countSql += ` AND DATE(l.createdAt) >= ?`;
-        }
-        
-        if (dateTo && dateTo.trim() !== '') {
-            countSql += ` AND DATE(l.createdAt) <= ?`;
-        }
-        
-        const [countResult] = await pool.execute(countSql, countParams);
-        const total = countResult[0]?.total || 0;
-        
-        // Получаем статистику - ТОЖЕ ИСКЛЮЧАЕМ API запросы
-        let statsSql = `
-            SELECT 
-                COUNT(*) as totalLogs,
-                COUNT(DISTINCT l.idUsers) as uniqueUsers,
-                SUM(CASE WHEN l.status = 'success' THEN 1 ELSE 0 END) as successLogs,
-                SUM(CASE WHEN l.status = 'failed' THEN 1 ELSE 0 END) as failedLogs,
-                SUM(CASE WHEN l.status = 'warning' THEN 1 ELSE 0 END) as warningLogs,
-                SUM(CASE WHEN l.status = 'info' THEN 1 ELSE 0 END) as infoLogs
-            FROM Logs l
-            WHERE l.actionType != 'api_request'
-        `;
-        
-        const statsParams = [];
-        
-        if (dateFrom && dateFrom.trim() !== '') {
-            statsSql += ` AND DATE(l.createdAt) >= ?`;
-            statsParams.push(dateFrom);
-        }
-        
-        if (dateTo && dateTo.trim() !== '') {
-            statsSql += ` AND DATE(l.createdAt) <= ?`;
-            statsParams.push(dateTo);
-        }
-        
-        const [stats] = await pool.execute(statsSql, statsParams);
-        
-        const statsData = {
-            totalLogs: stats[0]?.totalLogs || 0,
-            uniqueUsers: stats[0]?.uniqueUsers || 0,
-            successLogs: stats[0]?.successLogs || 0,
-            failedLogs: stats[0]?.failedLogs || 0,
-            warningLogs: stats[0]?.warningLogs || 0,
-            infoLogs: stats[0]?.infoLogs || 0
-        };
-        
+        const { page = 1, limit = 10 } = req.query;
+        const filters = getAdminLogFilters(req.query);
+        const { logs, pagination } = await fetchAdminLogs(filters, { page, limit, paginate: true });
+        const statsData = await fetchAdminLogsStats(filters);
+
         res.json({
             success: true,
-            logs: logs,
-            pagination: {
-                page: pageNum,
-                limit: limitNum,
-                total: total,
-                pages: Math.ceil(total / limitNum)
-            },
+            logs,
+            pagination,
             stats: statsData
         });
         
@@ -5134,6 +5564,187 @@ app.get('/api/admin/logs', requireAuth('Администратор'), async (req
             success: false, 
             message: 'Внутренняя ошибка сервера',
             error: error.message 
+        });
+    }
+});
+
+app.get('/api/admin/logs/export', requireAuth('Администратор'), async (req, res) => {
+    try {
+        const format = String(req.query.format || '').toLowerCase();
+        const filters = getAdminLogFilters(req.query);
+        const logs = await fetchAdminLogs(filters, { paginate: false });
+
+        if (!['excel', 'word'].includes(format)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Неподдерживаемый формат экспорта'
+            });
+        }
+
+        if (!logs.length) {
+            return res.status(404).json({
+                success: false,
+                message: 'Нет данных для экспорта по выбранным фильтрам'
+            });
+        }
+
+        const exportRows = buildAdminLogExportRows(logs);
+        const dateStamp = new Date().toISOString().slice(0, 10);
+        const filtersSummary = buildAdminLogFiltersSummary(filters);
+
+        if (format === 'excel') {
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Журнал действий');
+
+            worksheet.columns = [
+                { key: 'date', width: 22 },
+                { key: 'action', width: 30 },
+                { key: 'user', width: 22 },
+                { key: 'module', width: 18 },
+                { key: 'status', width: 18 },
+                { key: 'details', width: 60 }
+            ];
+
+            worksheet.mergeCells('A1:F1');
+            worksheet.getCell('A1').value = 'Журнал действий пользователей';
+            worksheet.getCell('A1').font = { size: 16, bold: true };
+            worksheet.getCell('A1').alignment = { horizontal: 'center' };
+
+            worksheet.mergeCells('A2:F2');
+            worksheet.getCell('A2').value = `Фильтры: ${filtersSummary}`;
+            worksheet.getCell('A2').font = { italic: true, color: { argb: 'FF4B5563' } };
+
+            worksheet.mergeCells('A3:F3');
+            worksheet.getCell('A3').value = `Сформировано: ${formatExportDate(new Date())}`;
+            worksheet.getCell('A3').font = { color: { argb: 'FF6B7280' } };
+
+            worksheet.addRow({});
+            const headerRow = worksheet.addRow([
+                'Дата и время',
+                'Действие',
+                'Пользователь',
+                'Модуль',
+                'Статус',
+                'Детали'
+            ]);
+            exportRows.forEach((row) => worksheet.addRow(row));
+
+            headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            headerRow.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF1D4F91' }
+            };
+
+            worksheet.eachRow((row, rowNumber) => {
+                row.alignment = { vertical: 'top', wrapText: true };
+
+                if (rowNumber >= 5) {
+                    row.eachCell((cell) => {
+                        cell.border = {
+                            top: { style: 'thin', color: { argb: 'FFD8E3F3' } },
+                            left: { style: 'thin', color: { argb: 'FFD8E3F3' } },
+                            bottom: { style: 'thin', color: { argb: 'FFD8E3F3' } },
+                            right: { style: 'thin', color: { argb: 'FFD8E3F3' } }
+                        };
+                    });
+                }
+            });
+
+            res.setHeader(
+                'Content-Type',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            );
+            res.setHeader(
+                'Content-Disposition',
+                `attachment; filename="admin_logs_${dateStamp}.xlsx"`
+            );
+
+            await workbook.xlsx.write(res);
+            res.end();
+        } else {
+            const tableRows = [
+                new TableRow({
+                    tableHeader: true,
+                    children: ['Дата и время', 'Действие', 'Пользователь', 'Модуль', 'Статус', 'Детали']
+                        .map((title) => new TableCell({
+                            children: [
+                                new Paragraph({
+                                    children: [new TextRun({ text: title, bold: true })],
+                                    alignment: AlignmentType.CENTER
+                                })
+                            ]
+                        }))
+                }),
+                ...exportRows.map((row) => new TableRow({
+                    children: [
+                        row.date,
+                        row.action,
+                        row.user,
+                        row.module,
+                        row.status,
+                        row.details
+                    ].map((value) => new TableCell({
+                        children: [
+                            new Paragraph({
+                                children: [new TextRun(String(value || ''))]
+                            })
+                        ]
+                    }))
+                }))
+            ];
+
+            const doc = new Document({
+                sections: [{
+                    children: [
+                        new Paragraph({
+                            text: 'Журнал действий пользователей',
+                            heading: HeadingLevel.HEADING_1,
+                            alignment: AlignmentType.CENTER
+                        }),
+                        new Paragraph({
+                            children: [new TextRun({ text: `Фильтры: ${filtersSummary}`, italics: true })]
+                        }),
+                        new Paragraph({
+                            children: [new TextRun({ text: `Сформировано: ${formatExportDate(new Date())}` })]
+                        }),
+                        new Paragraph({ text: '' }),
+                        new Table({
+                            width: { size: 100, type: WidthType.PERCENTAGE },
+                            rows: tableRows
+                        })
+                    ]
+                }]
+            });
+
+            const buffer = await Packer.toBuffer(doc);
+            res.setHeader(
+                'Content-Type',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            );
+            res.setHeader(
+                'Content-Disposition',
+                `attachment; filename="admin_logs_${dateStamp}.docx"`
+            );
+            res.send(buffer);
+        }
+
+        logAction(
+            req.user.userId,
+            'logs_export',
+            `Администратор ${req.user.username} экспортировал журнал в формате ${format}. Фильтры: ${filtersSummary}`,
+            'log',
+            'log',
+            null,
+            'success',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+    } catch (error) {
+        console.error('❌ Ошибка экспорта журнала действий:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера при экспорте журнала'
         });
     }
 });
@@ -7817,6 +8428,10 @@ app.get('/logs', requireAuth('Администратор'), (req, res) => {
 // Страница редактора
 app.get('/editor', requireAuth('Редактор'), (req, res) => {
     res.sendFile(path.join(__dirname, 'public','editor', 'editor.html'));
+});
+
+app.get('/editor/incoming-journal', requireAuth('Редактор'), (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'editor', 'incoming-journal.html'));
 });
 
 // Страница пользователя

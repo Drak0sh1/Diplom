@@ -144,10 +144,6 @@ truncateText(text, maxLength) {
                                 <div class="duh-name">${userData.username}</div>
                                 <div class="duh-role">${userData.role}</div>
                             </div>
-                            <div class="dd-item" id="headerBackItem">
-                                <i class="fas fa-arrow-left"></i> Админ-панель
-                            </div>
-                            <div class="dd-divider"></div>
                             <div class="dd-item danger" id="logoutBtn">
                                 <i class="fas fa-sign-out-alt"></i> Выйти
                             </div>
@@ -175,7 +171,6 @@ truncateText(text, maxLength) {
                 <!-- Остальной код остается без изменений -->
                 <div class="filters-container" id="filtersContainer" style="display: none;">
                     <div class="filters-card">
-                        <h3><i class="fas fa-sliders-h"></i> Фильтры</h3>
                         <div class="filters-grid">
                             <div class="filter-group">
                                 <label for="searchFilter"><i class="fas fa-search"></i> Поиск</label>
@@ -271,6 +266,26 @@ truncateText(text, maxLength) {
                         </div>
                     </div>
                 </div>
+
+                <div class="modal" id="exportModal" style="display: none;">
+                    <div class="modal-content export-modal-content">
+                        <div class="modal-header">
+                            <h3><i class="fas fa-download"></i> Экспорт журнала</h3>
+                            <button class="close-btn" id="closeExportModalBtn">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="export-modal-text">Выберите формат выгрузки журнала действий с текущими применёнными фильтрами.</p>
+                            <div class="export-format-actions">
+                                <button class="btn-primary export-format-btn" id="exportExcelBtn">
+                                    <i class="fas fa-file-excel"></i> Excel
+                                </button>
+                                <button class="btn-primary export-format-btn" id="exportWordBtn">
+                                    <i class="fas fa-file-word"></i> Word
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
     
@@ -293,13 +308,15 @@ truncateText(text, maxLength) {
 
         document.getElementById('logoutBtn')?.addEventListener('click', () => this.logout());
         document.getElementById('headerBackBtn')?.addEventListener('click', () => this.goBack());
-        document.getElementById('headerBackItem')?.addEventListener('click', () => this.goBack());
         document.getElementById('refreshBtn')?.addEventListener('click', () => this.loadLogs());
         document.getElementById('showFiltersBtn')?.addEventListener('click', () => this.toggleFilters());
-        document.getElementById('exportBtn')?.addEventListener('click', () => this.exportLogs());
+        document.getElementById('exportBtn')?.addEventListener('click', () => this.openExportModal());
         document.getElementById('applyFiltersBtn')?.addEventListener('click', () => this.applyFilters());
         document.getElementById('resetFiltersBtn')?.addEventListener('click', () => this.resetFilters());
         document.getElementById('closeModalBtn')?.addEventListener('click', () => this.closeModal());
+        document.getElementById('closeExportModalBtn')?.addEventListener('click', () => this.closeExportModal());
+        document.getElementById('exportExcelBtn')?.addEventListener('click', () => this.exportLogs('excel'));
+        document.getElementById('exportWordBtn')?.addEventListener('click', () => this.exportLogs('word'));
         
         document.getElementById('pagination')?.addEventListener('click', (e) => {
             if (e.target.classList.contains('page-btn')) {
@@ -307,13 +324,15 @@ truncateText(text, maxLength) {
                 this.loadLogs();
             }
         });
-document.querySelectorAll('.form-control').forEach(input => {
-    input.addEventListener('input', () => {
-        if (input.value) {
-            this.addClearButton(input);
-        }
-    });
-});
+        document.querySelectorAll('.filter-group input.form-control').forEach(input => {
+            input.addEventListener('input', () => {
+                if (input.value) {
+                    this.addClearButton(input);
+                } else {
+                    this.removeClearButton(input);
+                }
+            });
+        });
 
     }
 
@@ -353,25 +372,31 @@ document.querySelectorAll('.form-control').forEach(input => {
     }
 
     // Метод для добавления кнопки очистки в поле
-addClearButton(input) {
-    const existingClear = input.parentNode.querySelector('.clear-field');
-    if (existingClear) return;
-    
-    const clearBtn = document.createElement('button');
-    clearBtn.type = 'button';
-    clearBtn.className = 'clear-field';
-    clearBtn.innerHTML = '<i class="fas fa-times"></i>';
-    clearBtn.title = 'Очистить поле';
-    
-    clearBtn.addEventListener('click', () => {
-        input.value = '';
-        clearBtn.remove();
-        // Автоматически применяем фильтры
-        setTimeout(() => this.applyFilters(), 300);
-    });
-    
-    input.parentNode.appendChild(clearBtn);
-}
+    addClearButton(input) {
+        const existingClear = input.parentNode.querySelector('.clear-field');
+        if (existingClear) return;
+
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'clear-field';
+        clearBtn.innerHTML = '<i class="fas fa-times"></i>';
+        clearBtn.title = 'Очистить поле';
+
+        clearBtn.addEventListener('click', () => {
+            input.value = '';
+            this.removeClearButton(input);
+            input.focus();
+        });
+
+        input.parentNode.appendChild(clearBtn);
+    }
+
+    removeClearButton(input) {
+        const clearBtn = input.parentNode.querySelector('.clear-field');
+        if (clearBtn) {
+            clearBtn.remove();
+        }
+    }
     toggleFilters() {
         const filtersContainer = document.getElementById('filtersContainer');
         const isVisible = filtersContainer.style.display === 'block';
@@ -402,14 +427,18 @@ addClearButton(input) {
         weekAgo.setDate(weekAgo.getDate() - 7);
         document.getElementById('dateFromFilter').value = weekAgo.toISOString().split('T')[0];
         document.getElementById('dateToFilter').value = today;
+
+        document.querySelectorAll('.filter-group input.form-control').forEach(input => {
+            this.removeClearButton(input);
+        });
         
         this.filters = {
             search: '',
             status: '',
             module: '',
             user: '',
-            dateFrom: weekAgo.toISOString().split('T')[0],
-            dateTo: today
+            dateFrom: '',
+            dateTo: ''
         };
         this.currentPage = 1;
         this.loadLogs();
@@ -777,6 +806,51 @@ addClearButton(input) {
         modal.style.display = 'none';
     }
 
+    openExportModal() {
+        const modal = document.getElementById('exportModal');
+        if (!modal) return;
+
+        modal.style.display = 'flex';
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                this.closeExportModal();
+            }
+        }, { once: true });
+    }
+
+    closeExportModal() {
+        const modal = document.getElementById('exportModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    buildExportQueryParams(format) {
+        const params = new URLSearchParams({ format });
+
+        Object.entries(this.filters).forEach(([key, value]) => {
+            if (value) {
+                params.set(key, value);
+            }
+        });
+
+        return params;
+    }
+
+    getFilenameFromDisposition(disposition, fallbackName) {
+        if (!disposition) {
+            return fallbackName;
+        }
+
+        const utfMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+        if (utfMatch?.[1]) {
+            return decodeURIComponent(utfMatch[1]);
+        }
+
+        const plainMatch = disposition.match(/filename="?([^"]+)"?/i);
+        return plainMatch?.[1] || fallbackName;
+    }
+
     renderPagination() {
         const pagination = document.getElementById('pagination');
         
@@ -889,56 +963,48 @@ addClearButton(input) {
         }
     }
 
-    async exportLogs() {
+    async exportLogs(format) {
         try {
-            const response = await fetch('/api/admin/logs?limit=10000');
-            
+            const params = this.buildExportQueryParams(format);
+            const response = await fetch(`/api/admin/logs/export?${params.toString()}`);
+
             if (!response.ok) {
-                throw new Error(`HTTP error: ${response.status}`);
+                let errorMessage = `HTTP error: ${response.status}`;
+
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorMessage;
+                } catch (e) {
+                    // Игнорируем, если сервер вернул не JSON
+                }
+
+                throw new Error(errorMessage);
             }
-            
-            const result = await response.json();
-            
-            if (result.success && result.logs.length > 0) {
-                // Формируем CSV
-                const headers = ['ID', 'Дата', 'Действие', 'Пользователь', 'Модуль', 'Статус', 'IP адрес', 'Детали'];
-                const rows = result.logs.map(log => [
-                    log.idLogs,
-                    this.formatDateTime(log.timestamp || log.createdAt),
-                    log.actionType,
-                    log.userName || 'Система',
-                    log.module || 'system',
-                    this.getStatusText(log.status),
-                    log.ipAddress || '',
-                    JSON.stringify(log.details || {})
-                ]);
-                
-                const csvContent = [
-                    headers.join(','),
-                    ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-                ].join('\n');
-                
-                // Создаем и скачиваем файл
-                const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                const url = URL.createObjectURL(blob);
-                
-                link.setAttribute('href', url);
-                link.setAttribute('download', `logs-${new Date().toISOString().slice(0, 10)}.csv`);
-                link.style.visibility = 'hidden';
-                
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                this.showMessage('Экспорт завершен успешно!', 'success');
-            } else {
-                this.showMessage('Нет данных для экспорта', 'warning');
-            }
-            
+
+            const blob = await response.blob();
+            const disposition = response.headers.get('content-disposition');
+            const extension = format === 'excel' ? 'xlsx' : 'docx';
+            const filename = this.getFilenameFromDisposition(
+                disposition,
+                `admin_logs_${new Date().toISOString().slice(0, 10)}.${extension}`
+            );
+
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+
+            link.href = url;
+            link.download = filename;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            this.closeExportModal();
+            this.showMessage(`Экспорт в ${format === 'excel' ? 'Excel' : 'Word'} завершен успешно!`, 'success');
         } catch (error) {
             console.error('Ошибка экспорта:', error);
-            this.showMessage('Ошибка при экспорте данных', 'error');
+            this.showMessage(error.message || 'Ошибка при экспорте данных', 'error');
         }
     }
 

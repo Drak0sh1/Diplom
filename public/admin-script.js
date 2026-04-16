@@ -74,10 +74,6 @@ class AdminPanel {
                                     <div class="duh-name">${userData.username}</div>
                                     <div class="duh-role">${userData.role}</div>
                                 </div>
-                                <div class="dd-item" id="headerGoToLogsItem">
-                                    <i class="fas fa-clipboard-list"></i> Журнал действий
-                                </div>
-                                <div class="dd-divider"></div>
                                 <div class="dd-item danger" id="logoutBtn">
                                     <i class="fas fa-sign-out-alt"></i> Выйти
                                 </div>
@@ -231,7 +227,6 @@ class AdminPanel {
         // Обработчики системных функций
         document.getElementById('refreshUsersBtn')?.addEventListener('click', () => this.loadUsers());
         document.getElementById('headerGoToLogsBtn')?.addEventListener('click', () => this.goToLogs());
-        document.getElementById('headerGoToLogsItem')?.addEventListener('click', () => this.goToLogs());
 
         // Обработчики модального окна
         document.getElementById('closeModalBtn')?.addEventListener('click', () => this.hideEditModal());
