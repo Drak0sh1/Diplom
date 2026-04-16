@@ -1218,6 +1218,9 @@
                                 <button class="btn btn-outline-secondary" onclick="refreshCatalog()" title="Обновить">
                                     <i class="fas fa-sync-alt"></i>
                                 </button>
+                                <button class="btn btn-outline-success" onclick="exportCatalogInventory()" title="Экспорт описи в Excel">
+                                    <i class="fas fa-file-excel me-1"></i> Экспорт в Excel
+                                </button>
                                 <div id="addDocumentBtnContainer"></div>
                             </div>
                             
@@ -1569,6 +1572,44 @@
             const catalogId = urlParams.get('id');
             if (catalogId) {
                 loadCatalogInfo(catalogId);
+            }
+        }
+
+        async function exportCatalogInventory() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const catalogId = urlParams.get('id');
+
+            if (!catalogId) {
+                showError('Ошибка', 'Каталог не выбран');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/user/catalogs/${catalogId}/export-inventory`, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => null);
+                    throw new Error(errorData?.message || 'Не удалось сформировать Excel-опись');
+                }
+
+                const blob = await response.blob();
+                const objectUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                const disposition = response.headers.get('content-disposition') || '';
+                const match = disposition.match(/filename\*=UTF-8''([^;]+)/i) || disposition.match(/filename="?([^"]+)"?/i);
+                const rawFilename = match?.[1] || `opis_catalog_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+                link.href = objectUrl;
+                link.download = decodeURIComponent(rawFilename.replace(/"/g, ''));
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(objectUrl);
+            } catch (error) {
+                console.error('Ошибка экспорта описи каталога:', error);
+                showError('Ошибка экспорта', error.message || 'Не удалось сформировать Excel-опись каталога');
             }
         }
         

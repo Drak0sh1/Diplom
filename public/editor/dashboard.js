@@ -58,7 +58,7 @@ function loadRecentActivity() {
             icon: 'tasks',
             title: 'Изменен статус документа #2451 на "В обработке"',
             meta: '3 часа назад • Редактор',
-            color: '#9f7aea'
+            color: '#2563eb'
         }
     ];
     

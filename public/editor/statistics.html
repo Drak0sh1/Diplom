@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Статистика - Панель редактора</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="editor.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="header">
+            <div class="header-left">
+                <div class="logo">
+                    <div class="logo-text">
+                        <h1><i class="fas fa-book"></i> Панель редактора</h1>
+                        <p>Система контроля версий документов</p>
+                    </div>
+                </div>
+                <a href="editor.html" class="header-nav-link">
+                    <i class="fas fa-book"></i> <span>Справочники</span>
+                </a>
+                <a href="assignments.html" class="header-nav-link">
+                    <i class="fas fa-user-shield"></i> <span>Права доступа</span>
+                </a>
+                <a href="incoming-journal.html" class="header-nav-link">
+                    <i class="fas fa-inbox"></i> <span>Входящая документация</span>
+                </a>
+                <a href="outgoing-journal.html" class="header-nav-link">
+                    <i class="fas fa-paper-plane"></i> <span>Исходящая документация</span>
+                </a>
+                <a href="statistics.html" class="header-nav-link active">
+                    <i class="fas fa-chart-pie"></i> <span>Статистика</span>
+                </a>
+            </div>
+            <div class="user-profile" id="userProfile">
+                <div class="user-avatar" id="userAvatar">Р</div>
+                <div class="user-details">
+                    <span class="user-name" id="userName">Загрузка...</span>
+                    <span class="user-role" id="userRole">Редактор</span>
+                </div>
+                <i class="fas fa-chevron-down user-chevron"></i>
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="dd-user-header">
+                        <div class="duh-name" id="dropdownName">—</div>
+                        <div class="duh-role" id="dropdownRole">—</div>
+                        <div class="duh-meta" id="lastPasswordChange"></div>
+                    </div>
+                    <div class="dd-item" id="changePasswordBtn" role="button" tabindex="0">
+                        <i class="fas fa-key"></i> Сменить пароль
+                    </div>
+                    <div class="dd-divider"></div>
+                    <div class="dd-item danger" id="logoutBtn" role="button" tabindex="0">
+                        <i class="fas fa-sign-out-alt"></i> Выйти
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="page-header editor-intro-banner">
+                <h1><i class="fas fa-chart-pie"></i> Информационная панель редактора</h1>
+                <p class="page-subtitle">Статистика по действиям пользователей с ролью "Пользователь", а также по документам, версиям и каталогам</p>
+            </div>
+
+            <div class="card stats-dashboard-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-sliders-h"></i> Параметры статистики</h2>
+                    <div class="header-actions">
+                        <button class="btn-sm btn-secondary" id="refreshStatisticsBtn">
+                            <i class="fas fa-sync-alt"></i> Обновить
+                        </button>
+                    </div>
+                </div>
+                <div class="search-filters stats-filters">
+                    <div class="filter-group">
+                        <select id="statsDays" class="form-control">
+                            <option value="7">Последние 7 дней</option>
+                            <option value="14">Последние 14 дней</option>
+                            <option value="30" selected>Последние 30 дней</option>
+                            <option value="90">Последние 90 дней</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <input type="date" id="statsDateFrom" class="form-control">
+                    </div>
+                    <div class="filter-group">
+                        <input type="date" id="statsDateTo" class="form-control">
+                    </div>
+                    <div class="stats-range-actions">
+                        <button class="btn-sm btn-primary" id="applyStatsRangeBtn">
+                            <i class="fas fa-filter"></i> Применить
+                        </button>
+                        <button class="btn-sm btn-secondary" id="resetStatsRangeBtn">
+                            <i class="fas fa-undo"></i> Сбросить
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <section class="stats-summary-grid">
+                <article class="stat-card-small stats-summary-card">
+                    <div class="stat-icon stats-gradient-purple">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="summaryActions">0</div>
+                        <div class="stat-label">Действий пользователей за период</div>
+                    </div>
+                </article>
+                <article class="stat-card-small stats-summary-card">
+                    <div class="stat-icon stats-gradient-blue">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="summaryUsers">0</div>
+                        <div class="stat-label">Активных пользователей системы</div>
+                    </div>
+                </article>
+                <article class="stat-card-small stats-summary-card">
+                    <div class="stat-icon stats-gradient-green">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="summaryDocuments">0</div>
+                        <div class="stat-label">Документов</div>
+                    </div>
+                </article>
+                <article class="stat-card-small stats-summary-card">
+                    <div class="stat-icon stats-gradient-orange">
+                        <i class="fas fa-code-branch"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="summaryVersions">0</div>
+                        <div class="stat-label">Версий</div>
+                    </div>
+                </article>
+            </section>
+
+            <section class="stats-grid-layout">
+                <div class="card stats-visual-card stats-card-wide">
+                    <div class="card-header">
+                        <div>
+                            <h2><i class="fas fa-chart-line"></i> Динамика действий пользователей</h2>
+                            <p class="stats-card-note">Показывает количество действий пользователей с ролью "Пользователь" по дням за выбранный период.</p>
+                        </div>
+                    </div>
+                    <div class="stats-chart-wrapper">
+                        <canvas id="activityChart" height="280"></canvas>
+                    </div>
+                </div>
+
+                <div class="card stats-visual-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-chart-pie"></i> Документы по статусам</h2>
+                    </div>
+                    <div class="stats-chart-wrapper">
+                        <canvas id="statusChart" height="300"></canvas>
+                    </div>
+                </div>
+
+                <div class="card stats-visual-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-chart-donut"></i> Документы по типам</h2>
+                    </div>
+                    <div class="stats-chart-wrapper">
+                        <canvas id="typeChart" height="300"></canvas>
+                    </div>
+                </div>
+
+                <div class="card stats-visual-card stats-card-wide">
+                    <div class="card-header">
+                        <h2><i class="fas fa-folder-tree"></i> Распределение документов по каталогам</h2>
+                    </div>
+                    <div class="stats-chart-wrapper">
+                        <canvas id="catalogChart" height="320"></canvas>
+                    </div>
+                </div>
+
+                <div class="card stats-visual-card stats-card-wide">
+                    <div class="card-header">
+                        <div>
+                            <h2><i class="fas fa-user-clock"></i> Рейтинг пользователей по активности</h2>
+                            <p class="stats-card-note">Список пользователей с ролью "Пользователь", отсортированный по количеству действий за выбранный период.</p>
+                        </div>
+                    </div>
+                    <div class="stats-ranking-list" id="topUsersList"></div>
+                </div>
+            </section>
+        </main>
+
+        <div class="modal-overlay" id="changePasswordModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="changePasswordTitle">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="changePasswordTitle"><i class="fas fa-key"></i> Смена пароля</h3>
+                    <button type="button" class="close-btn" id="closePasswordModal" aria-label="Закрыть">&times;</button>
+                </div>
+                <form id="changePasswordForm">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="currentPassword">
+                                <i class="fas fa-lock"></i> Текущий пароль *
+                            </label>
+                            <input type="password" id="currentPassword" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newPassword">
+                                <i class="fas fa-lock"></i> Новый пароль *
+                            </label>
+                            <input type="password" id="newPassword" class="form-control" required>
+                            <small class="form-text">Минимум 6 символов, должен содержать буквы и цифры</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">
+                                <i class="fas fa-lock"></i> Подтвердите новый пароль *
+                            </label>
+                            <input type="password" id="confirmPassword" class="form-control" required>
+                        </div>
+                        <div class="password-requirements">
+                            <p><strong>Требования к паролю:</strong></p>
+                            <ul>
+                                <li>Минимум 6 символов</li>
+                                <li>Содержит буквы и цифры</li>
+                                <li>Не должен совпадать с текущим паролем</li>
+                                <li>Пароль можно менять не чаще 1 раза в месяц</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="cancelPasswordChange">Отмена</button>
+                        <button type="submit" class="btn-primary" id="savePasswordBtn">
+                            <i class="fas fa-save"></i> Сохранить
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="messages"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const UserAPI = {
+            async getCurrentUser() {
+                const response = await fetch('/api/editor/current-user');
+                return response.json();
+            },
+
+            async getPasswordLastChange() {
+                const response = await fetch('/api/user/password-last-change');
+                return response.json();
+            },
+
+            async changePassword(currentPassword, newPassword) {
+                const response = await fetch('/api/user/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+                return response.json();
+            }
+        };
+
+        class EditorStatisticsPage {
+            constructor() {
+                this.charts = {};
+                this.defaultDays = '30';
+                this.init();
+            }
+
+            async init() {
+                await this.loadUser();
+                this.setupUserMenu();
+                this.setupPasswordModal();
+                this.setupFilters();
+                await this.loadStatistics();
+            }
+
+            async loadUser() {
+                try {
+                    const response = await UserAPI.getCurrentUser();
+                    if (!response.success || !response.data) return;
+
+                    const user = response.data;
+                    document.getElementById('userAvatar').textContent = (user.name || 'Р').charAt(0).toUpperCase();
+                    document.getElementById('userName').textContent = user.name || 'Редактор';
+                    document.getElementById('userRole').textContent = user.role || 'Редактор';
+                    document.getElementById('dropdownName').textContent = user.name || 'Редактор';
+                    document.getElementById('dropdownRole').textContent = user.role || 'Редактор';
+
+                    const passwordData = await UserAPI.getPasswordLastChange();
+                    if (passwordData.success) {
+                        this.updatePasswordInfo(passwordData.lastChange);
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки пользователя:', error);
+                }
+            }
+
+            setupFilters() {
+                document.getElementById('statsDays')?.addEventListener('change', () => {
+                    document.getElementById('statsDateFrom').value = '';
+                    document.getElementById('statsDateTo').value = '';
+                    this.loadStatistics();
+                });
+
+                document.getElementById('applyStatsRangeBtn')?.addEventListener('click', () => this.loadStatistics());
+                document.getElementById('refreshStatisticsBtn')?.addEventListener('click', () => this.loadStatistics());
+                document.getElementById('resetStatsRangeBtn')?.addEventListener('click', () => {
+                    document.getElementById('statsDays').value = this.defaultDays;
+                    document.getElementById('statsDateFrom').value = '';
+                    document.getElementById('statsDateTo').value = '';
+                    this.loadStatistics();
+                });
+            }
+
+            buildQueryString() {
+                const params = new URLSearchParams();
+                const days = document.getElementById('statsDays')?.value || this.defaultDays;
+                const dateFrom = document.getElementById('statsDateFrom')?.value || '';
+                const dateTo = document.getElementById('statsDateTo')?.value || '';
+
+                if (dateFrom) params.set('dateFrom', dateFrom);
+                if (dateTo) params.set('dateTo', dateTo);
+                if (!dateFrom && !dateTo && days) params.set('days', days);
+
+                return params.toString();
+            }
+
+            async loadStatistics() {
+                try {
+                    const query = this.buildQueryString();
+                    const response = await fetch(`/api/editor/statistics/dashboard${query ? `?${query}` : ''}`);
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success) {
+                        throw new Error(data.message || 'Не удалось загрузить статистику');
+                    }
+
+                    this.renderSummary(data.summary);
+                    this.renderActivityChart(data.activity || []);
+                    this.renderPieChart('statusChart', data.documentsByStatus || [], ['#1d4ed8', '#3b82f6', '#10b981', '#f59e0b', '#ef4444']);
+                    this.renderPieChart('typeChart', data.documentsByType || [], ['#2563eb', '#06b6d4', '#0ea5e9', '#64748b']);
+                    this.renderBarChart('catalogChart', data.documentsByCatalog || [], '#2563eb');
+                    this.renderTopUsers(data.topUsers || []);
+                } catch (error) {
+                    console.error('Ошибка загрузки статистики:', error);
+                    this.showNotification(error.message || 'Ошибка загрузки статистики', 'error');
+                }
+            }
+
+            renderSummary(summary) {
+                document.getElementById('summaryActions').textContent = summary.totalActions || 0;
+                document.getElementById('summaryUsers').textContent = summary.activeUsers || 0;
+                document.getElementById('summaryDocuments').textContent = summary.totalDocuments || 0;
+                document.getElementById('summaryVersions').textContent = summary.totalVersions || 0;
+            }
+
+            destroyChart(id) {
+                if (this.charts[id]) {
+                    this.charts[id].destroy();
+                    this.charts[id] = null;
+                }
+            }
+
+            renderActivityChart(items) {
+                this.destroyChart('activityChart');
+                const canvas = document.getElementById('activityChart');
+                if (!canvas) return;
+
+                const labels = items.length ? items.map((item) => item.label) : ['Нет данных'];
+                const values = items.length ? items.map((item) => item.total) : [0];
+
+                this.charts.activityChart = new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Количество действий',
+                            data: values,
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.16)',
+                            fill: true,
+                            tension: 0.35,
+                            pointBackgroundColor: '#1e40af',
+                            pointRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { precision: 0 }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            }
+
+            renderPieChart(canvasId, items, colors) {
+                this.destroyChart(canvasId);
+                const canvas = document.getElementById(canvasId);
+                if (!canvas) return;
+
+                const labels = items.length ? items.map((item) => item.label) : ['Нет данных'];
+                const values = items.length ? items.map((item) => item.value) : [1];
+
+                this.charts[canvasId] = new Chart(canvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: colors,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+
+            renderBarChart(canvasId, items, color) {
+                this.destroyChart(canvasId);
+                const canvas = document.getElementById(canvasId);
+                if (!canvas) return;
+
+                const labels = items.length ? items.map((item) => item.label) : ['Нет данных'];
+                const values = items.length ? items.map((item) => item.value) : [0];
+
+                this.charts[canvasId] = new Chart(canvas, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Документы',
+                            data: values,
+                            backgroundColor: color,
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: { precision: 0 }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            }
+
+            renderTopUsers(items) {
+                const container = document.getElementById('topUsersList');
+                if (!container) return;
+
+                if (!items.length) {
+                    container.innerHTML = '<div class="stats-empty-state"><i class="fas fa-chart-bar"></i><span>Нет данных за выбранный период</span></div>';
+                    return;
+                }
+
+                const maxValue = Math.max(...items.map((item) => item.total), 1);
+                container.innerHTML = `
+                    <div class="stats-ranking-header">
+                        <span>Место</span>
+                        <span>Пользователь</span>
+                        <span>Уровень активности</span>
+                        <span>Действий</span>
+                    </div>
+                    ${items.map((item, index) => {
+                        const percentage = Math.round((item.total / maxValue) * 100);
+                        return `
+                            <div class="stats-ranking-item">
+                                <div class="stats-ranking-position">
+                                    <span class="stats-ranking-index">${index + 1}</span>
+                                </div>
+                                <div class="stats-ranking-meta">
+                                    <span class="stats-ranking-name">${item.label}</span>
+                                    <span class="stats-ranking-subtitle">Активность за выбранный период</span>
+                                </div>
+                                <div class="stats-ranking-bar-wrap">
+                                    <div class="stats-ranking-bar" style="width:${percentage}%"></div>
+                                    <span class="stats-ranking-percent">${percentage}%</span>
+                                </div>
+                                <span class="stats-ranking-value">${item.total}</span>
+                            </div>
+                        `;
+                    }).join('')}
+                `;
+            }
+
+            setupUserMenu() {
+                const userProfile = document.getElementById('userProfile');
+                const userDropdown = document.getElementById('userDropdown');
+
+                if (userProfile && userDropdown) {
+                    userProfile.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        userProfile.classList.toggle('open');
+                    });
+                    userDropdown.addEventListener('click', (e) => e.stopPropagation());
+                    document.addEventListener('click', () => userProfile.classList.remove('open'));
+                }
+
+                document.getElementById('changePasswordBtn')?.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (userProfile) userProfile.classList.remove('open');
+                    this.showChangePasswordModal();
+                });
+
+                document.getElementById('logoutBtn')?.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    if (userProfile) userProfile.classList.remove('open');
+                    await fetch('/api/logout', { method: 'POST' });
+                    window.location.href = '/';
+                });
+            }
+
+            setupPasswordModal() {
+                document.getElementById('closePasswordModal')?.addEventListener('click', () => this.hideChangePasswordModal());
+                document.getElementById('cancelPasswordChange')?.addEventListener('click', () => this.hideChangePasswordModal());
+                document.getElementById('changePasswordForm')?.addEventListener('submit', (e) => this.handlePasswordChange(e));
+            }
+
+            showChangePasswordModal() {
+                const modal = document.getElementById('changePasswordModal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    document.getElementById('changePasswordForm').reset();
+                }
+            }
+
+            hideChangePasswordModal() {
+                const modal = document.getElementById('changePasswordModal');
+                if (modal) modal.style.display = 'none';
+            }
+
+            async handlePasswordChange(e) {
+                e.preventDefault();
+                const currentPassword = document.getElementById('currentPassword').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                    this.showNotification('Заполните все поля', 'error');
+                    return;
+                }
+                if (newPassword !== confirmPassword) {
+                    this.showNotification('Пароли не совпадают', 'error');
+                    return;
+                }
+                if (newPassword.length < 6) {
+                    this.showNotification('Пароль должен содержать минимум 6 символов', 'error');
+                    return;
+                }
+
+                const hasLetter = /[a-zA-Z]/.test(newPassword);
+                const hasNumber = /[0-9]/.test(newPassword);
+                if (!hasLetter || !hasNumber) {
+                    this.showNotification('Пароль должен содержать буквы и цифры', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await UserAPI.changePassword(currentPassword, newPassword);
+                    if (response.success) {
+                        this.hideChangePasswordModal();
+                        this.showNotification(response.message || 'Пароль успешно изменен', 'success');
+                        const passwordData = await UserAPI.getPasswordLastChange();
+                        if (passwordData.success) this.updatePasswordInfo(passwordData.lastChange);
+                    } else {
+                        this.showNotification(response.message || 'Ошибка смены пароля', 'error');
+                    }
+                } catch (error) {
+                    console.error('Ошибка смены пароля:', error);
+                    this.showNotification('Ошибка смены пароля', 'error');
+                }
+            }
+
+            updatePasswordInfo(lastChange) {
+                const lastPasswordChange = document.getElementById('lastPasswordChange');
+                if (!lastPasswordChange) return;
+
+                if (lastChange) {
+                    const lastChangeDate = new Date(lastChange);
+                    const nextChangeDate = new Date(lastChangeDate);
+                    nextChangeDate.setMonth(nextChangeDate.getMonth() + 1);
+                    const now = new Date();
+                    const daysLeft = Math.ceil((nextChangeDate - now) / (1000 * 60 * 60 * 24));
+
+                    lastPasswordChange.style.display = '';
+                    if (daysLeft <= 0) {
+                        lastPasswordChange.textContent = 'Можно менять пароль';
+                        lastPasswordChange.className = 'duh-meta user-status can-change';
+                    } else {
+                        lastPasswordChange.textContent = `Смена пароля через ${daysLeft} дней`;
+                        lastPasswordChange.className = 'duh-meta user-status cannot-change';
+                    }
+                } else {
+                    lastPasswordChange.textContent = '';
+                    lastPasswordChange.className = 'duh-meta';
+                    lastPasswordChange.style.display = 'none';
+                }
+            }
+
+            showNotification(message, type = 'info') {
+                const messagesContainer = document.getElementById('messages');
+                if (!messagesContainer) return;
+
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.innerHTML = `
+                    <i class="fas fa-${type === 'success' ? 'check-circle' :
+                                      type === 'error' ? 'exclamation-circle' :
+                                      'info-circle'}"></i>
+                    <span>${message}</span>
+                `;
+                messagesContainer.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.style.animation = 'slideInRight 0.3s ease reverse';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }, 5000);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            window.editorStatisticsPage = new EditorStatisticsPage();
+        });
+    </script>
+</body>
+</html>

@@ -27,6 +27,12 @@
                 <a href="incoming-journal.html" class="header-nav-link">
                     <i class="fas fa-inbox"></i> <span>Входящая документация</span>
                 </a>
+                <a href="outgoing-journal.html" class="header-nav-link">
+                    <i class="fas fa-paper-plane"></i> <span>Исходящая документация</span>
+                </a>
+                <a href="statistics.html" class="header-nav-link">
+                    <i class="fas fa-chart-pie"></i> <span>Статистика</span>
+                </a>
             </div>
             <div class="user-profile" id="userProfile">
                 <div class="user-avatar" id="userAvatar">Р</div>
@@ -108,15 +114,15 @@
 
                     <!-- Таблица справочников -->
                     <div class="table-container table-container--directories">
-                        <table class="directories-table directories-table--modern">
+                        <table class="directories-table directories-table--modern" aria-label="Список справочников каталогов">
                             <thead>
                                 <tr>
-                                    <th class="col-id">ID</th>
-                                    <th class="col-name">Название</th>
-                                    <th class="col-parent">Родительский каталог</th>
-                                    <th class="col-date">Дата создания</th>
-                                    <th class="col-status">Статус</th>
-                                    <th class="col-actions">Действия</th>
+                                    <th scope="col" class="col-id">ID</th>
+                                    <th scope="col" class="col-name">Название</th>
+                                    <th scope="col" class="col-parent">Родитель</th>
+                                    <th scope="col" class="col-date">Создан</th>
+                                    <th scope="col" class="col-status">Статус</th>
+                                    <th scope="col" class="col-actions">Действия</th>
                                 </tr>
                             </thead>
                             <tbody id="directoriesTable">
@@ -835,11 +841,11 @@
                 
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="empty-state">
-                            <i class="fas fa-exclamation-triangle" style="color: #f56565;"></i>
+                        <td colspan="6" class="empty-state empty-state--error">
+                            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
                             <h3>Ошибка загрузки каталогов</h3>
                             <p>${errorMessage}</p>
-                            <button class="btn-primary" onclick="directoriesPage.loadDirectories()" style="margin-top: 15px;">
+                            <button type="button" class="btn-primary empty-state__retry" onclick="directoriesPage.loadDirectories()">
                                 <i class="fas fa-redo"></i> Попробовать снова
                             </button>
                         </td>
@@ -887,14 +893,14 @@
                     const titleName = (dir.name || 'Без названия').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
                     const titleParent = String(parentName).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
                     html += `
-                        <tr>
+                        <tr class="directories-table__row" data-directory-id="${dir.id}">
                             <td class="dir-td-num">${dir.id}</td>
                             <td class="dir-td-clip" title="${titleName}">
                                 <span class="dir-name-line"><i class="fas fa-folder" aria-hidden="true"></i> ${safeName}</span>
                             </td>
                             <td class="dir-td-muted dir-td-clip" title="${titleParent}">${safeParent}</td>
                             <td class="dir-td-muted dir-td-nowrap">${createdAt}</td>
-                            <td>
+                            <td class="dir-td-status">
                                 <span class="status-badge ${statusClass}">${statusText}</span>
                             </td>
                             <td class="dir-td-actions">

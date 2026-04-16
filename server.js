@@ -4668,7 +4668,7 @@ app.get('/api/editor/reports/assignments-word', requireEditorRole, async (req, r
 
 app.get('/api/editor/reports/incoming-journal-word', requireEditorRole, async (req, res) => {
     try {
-        const documents = await fetchEditorIncomingJournalReportData();
+        const documents = await fetchEditorIncomingJournalReportData(req.query);
         const doc = buildIncomingJournalWordDocument(documents);
         const buffer = await Packer.toBuffer(doc);
         const dateStamp = new Date().toISOString().slice(0, 10);
@@ -4687,6 +4687,233 @@ app.get('/api/editor/reports/incoming-journal-word', requireEditorRole, async (r
         res.status(500).json({
             success: false,
             message: 'Ошибка формирования Word-отчета по журналу входящей документации'
+        });
+    }
+});
+
+app.get('/api/editor/reports/outgoing-journal-word', requireEditorRole, async (req, res) => {
+    try {
+        const documents = await fetchEditorOutgoingJournalReportData(req.query);
+        const doc = buildOutgoingJournalWordDocument(documents);
+        const buffer = await Packer.toBuffer(doc);
+        const dateStamp = new Date().toISOString().slice(0, 10);
+
+        res.setHeader(
+            'Content-Type',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        );
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="outgoing_journal_report_${dateStamp}.docx"`
+        );
+        res.send(buffer);
+    } catch (error) {
+        console.error('❌ Ошибка экспорта журнала исходящей документации:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка формирования Word-отчета по журналу исходящей документации'
+        });
+    }
+});
+
+function getEditorStatisticsDateRange(query = {}) {
+    const dateFrom = query.dateFrom ? String(query.dateFrom).trim() : '';
+    const dateTo = query.dateTo ? String(query.dateTo).trim() : '';
+    const days = Math.max(parseInt(query.days, 10) || 30, 1);
+
+    if (dateFrom || dateTo) {
+        return {
+            dateFrom,
+            dateTo,
+            days,
+            label: 'custom'
+        };
+    }
+
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - (days - 1));
+
+    return {
+        dateFrom: startDate.toISOString().slice(0, 10),
+        dateTo: endDate.toISOString().slice(0, 10),
+        days,
+        label: `${days}d`
+    };
+}
+
+function buildDateWhereClause(alias, column, range) {
+    const conditions = [];
+    const params = [];
+
+    if (range.dateFrom) {
+        conditions.push(`DATE(${alias}.${column}) >= ?`);
+        params.push(range.dateFrom);
+    }
+
+    if (range.dateTo) {
+        conditions.push(`DATE(${alias}.${column}) <= ?`);
+        params.push(range.dateTo);
+    }
+
+    return {
+        sql: conditions.length ? `WHERE ${conditions.join(' AND ')}` : '',
+        params
+    };
+}
+
+function getCatalogDocumentStatusLabel(status) {
+    switch (status) {
+        case 'draft':
+            return 'Черновик';
+        case 'registered':
+            return 'В процессе';
+        case 'executed':
+            return 'Исполнен';
+        case 'archived':
+            return 'Архив';
+        default:
+            return status || 'Не указано';
+    }
+}
+
+function getCatalogDocumentTypeLabel(type) {
+    switch (type) {
+        case 'incoming':
+            return 'Входящие';
+        case 'outgoing':
+            return 'Исходящие';
+        default:
+            return 'Документы';
+    }
+}
+
+app.get('/api/editor/statistics/dashboard', requireEditorRole, async (req, res) => {
+    try {
+        const range = getEditorStatisticsDateRange(req.query);
+        const logsWhere = buildDateWhereClause('l', 'createdAt', range);
+        const filesWhere = buildDateWhereClause('f', 'createdAt', range);
+        const versionsWhere = buildDateWhereClause('fv', 'createdAt', range);
+
+        const logsWhereSql = logsWhere.sql
+            ? `${logsWhere.sql} AND l.actionType != 'api_request'`
+            : `WHERE l.actionType != 'api_request'`;
+        const logsWhereWithUserSql = logsWhere.sql
+            ? `${logsWhere.sql} AND l.actionType != 'api_request' AND l.idUsers IS NOT NULL`
+            : `WHERE l.actionType != 'api_request' AND l.idUsers IS NOT NULL`;
+        const logsWhereEndUserSql = logsWhere.sql
+            ? `${logsWhere.sql} AND l.actionType != 'api_request' AND r.name = 'Пользователь'`
+            : `WHERE l.actionType != 'api_request' AND r.name = 'Пользователь'`;
+        const logsWhereEndUserWithUserSql = logsWhere.sql
+            ? `${logsWhere.sql} AND l.actionType != 'api_request' AND l.idUsers IS NOT NULL AND r.name = 'Пользователь'`
+            : `WHERE l.actionType != 'api_request' AND l.idUsers IS NOT NULL AND r.name = 'Пользователь'`;
+
+        const [activityRows] = await pool.execute(`
+            SELECT
+                DATE(l.createdAt) AS actionDate,
+                COUNT(*) AS total
+            FROM Logs l
+            INNER JOIN Users u ON l.idUsers = u.idUsers
+            INNER JOIN Roles r ON u.idRoles = r.idRoles
+            ${logsWhereEndUserSql}
+            GROUP BY DATE(l.createdAt)
+            ORDER BY actionDate ASC
+        `, logsWhere.params);
+
+        const [topUsersRows] = await pool.execute(`
+            SELECT
+                IFNULL(u.name, 'Система') AS userName,
+                COUNT(*) AS total
+            FROM Logs l
+            INNER JOIN Users u ON l.idUsers = u.idUsers
+            INNER JOIN Roles r ON u.idRoles = r.idRoles
+            ${logsWhereEndUserSql}
+            GROUP BY IFNULL(u.name, 'Система')
+            ORDER BY total DESC, userName ASC
+            LIMIT 8
+        `, logsWhere.params);
+
+        const [summaryRows] = await pool.execute(`
+            SELECT
+                (SELECT COUNT(*) FROM Logs l
+                    INNER JOIN Users u ON l.idUsers = u.idUsers
+                    INNER JOIN Roles r ON u.idRoles = r.idRoles
+                    ${logsWhereEndUserSql}) AS totalActions,
+                (SELECT COUNT(DISTINCT l.idUsers) FROM Logs l
+                    INNER JOIN Users u ON l.idUsers = u.idUsers
+                    INNER JOIN Roles r ON u.idRoles = r.idRoles
+                    ${logsWhereEndUserWithUserSql}) AS activeUsers,
+                (SELECT COUNT(*) FROM Files f ${filesWhere.sql}) AS totalDocuments,
+                (SELECT COUNT(*) FROM FileVersions fv ${versionsWhere.sql}) AS totalVersions
+        `, [...logsWhere.params, ...logsWhere.params, ...filesWhere.params, ...versionsWhere.params]);
+
+        const [statusRows] = await pool.execute(`
+            SELECT
+                COALESCE(f.documentStatus, 'registered') AS status,
+                COUNT(*) AS total
+            FROM Files f
+            ${filesWhere.sql}
+            GROUP BY COALESCE(f.documentStatus, 'registered')
+            ORDER BY total DESC
+        `, filesWhere.params);
+
+        const [typeRows] = await pool.execute(`
+            SELECT
+                COALESCE(f.documentType, 'document') AS documentType,
+                COUNT(*) AS total
+            FROM Files f
+            ${filesWhere.sql}
+            GROUP BY COALESCE(f.documentType, 'document')
+            ORDER BY total DESC
+        `, filesWhere.params);
+
+        const [catalogRows] = await pool.execute(`
+            SELECT
+                COALESCE(fd.Name, 'Без каталога') AS catalogName,
+                COUNT(*) AS total
+            FROM Files f
+            LEFT JOIN Folder fd ON f.idFolders = fd.idFolder
+            ${filesWhere.sql}
+            GROUP BY COALESCE(fd.Name, 'Без каталога')
+            ORDER BY total DESC, catalogName ASC
+            LIMIT 10
+        `, filesWhere.params);
+
+        res.json({
+            success: true,
+            range,
+            summary: {
+                totalActions: summaryRows[0]?.totalActions || 0,
+                activeUsers: summaryRows[0]?.activeUsers || 0,
+                totalDocuments: summaryRows[0]?.totalDocuments || 0,
+                totalVersions: summaryRows[0]?.totalVersions || 0
+            },
+            activity: activityRows.map((row) => ({
+                label: new Date(row.actionDate).toLocaleDateString('ru-RU'),
+                total: row.total
+            })),
+            topUsers: topUsersRows.map((row) => ({
+                label: row.userName,
+                total: row.total
+            })),
+            documentsByStatus: statusRows.map((row) => ({
+                label: getCatalogDocumentStatusLabel(row.status),
+                value: row.total
+            })),
+            documentsByType: typeRows.map((row) => ({
+                label: getCatalogDocumentTypeLabel(row.documentType),
+                value: row.total
+            })),
+            documentsByCatalog: catalogRows.map((row) => ({
+                label: row.catalogName,
+                value: row.total
+            }))
+        });
+    } catch (error) {
+        console.error('❌ Ошибка загрузки статистики редактора:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка загрузки статистики редактора'
         });
     }
 });
@@ -5314,6 +5541,17 @@ function getIncomingDocumentStatusText(status) {
     return statusMap[status] || 'Не указано';
 }
 
+function getOutgoingDocumentStatusText(status) {
+    const statusMap = {
+        draft: 'Черновик',
+        registered: 'В процессе',
+        executed: 'Исполнен',
+        archived: 'Архив'
+    };
+
+    return statusMap[status] || 'Не указано';
+}
+
 function getEditorAssignmentStatusText(assignment) {
     if (!assignment.expiresAt) {
         return 'Активно';
@@ -5359,7 +5597,42 @@ async function fetchEditorAssignmentsReportData() {
     return rows;
 }
 
-async function fetchEditorIncomingJournalReportData() {
+async function fetchEditorIncomingJournalReportData(filters = {}) {
+    const {
+        search = '',
+        dateFrom = '',
+        dateTo = '',
+        status = ''
+    } = filters;
+
+    const conditions = [`f.documentType = 'incoming'`];
+    const params = [];
+
+    if (search.trim()) {
+        conditions.push(`(
+            f.documentIndex LIKE ? OR
+            f.correspondent LIKE ? OR
+            f.description LIKE ? OR
+            f.resolution LIKE ?
+        )`);
+        params.push(`%${search.trim()}%`, `%${search.trim()}%`, `%${search.trim()}%`, `%${search.trim()}%`);
+    }
+
+    if (dateFrom.trim()) {
+        conditions.push(`DATE(f.receivedDate) >= ?`);
+        params.push(dateFrom.trim());
+    }
+
+    if (dateTo.trim()) {
+        conditions.push(`DATE(f.receivedDate) <= ?`);
+        params.push(dateTo.trim());
+    }
+
+    if (status && CATALOG_DOCUMENT_STATUSES.includes(status)) {
+        conditions.push(`f.documentStatus = ?`);
+        params.push(status);
+    }
+
     const [rows] = await pool.execute(`
         SELECT
             f.receivedDate,
@@ -5373,9 +5646,59 @@ async function fetchEditorIncomingJournalReportData() {
             f.executionMark,
             f.documentStatus AS status
         FROM Files f
-        WHERE f.documentType = 'incoming'
+        WHERE ${conditions.join(' AND ')}
         ORDER BY f.receivedDate DESC, f.createdAt DESC
-    `);
+    `, params);
+
+    return rows;
+}
+
+async function fetchEditorOutgoingJournalReportData(filters = {}) {
+    const {
+        search = '',
+        dateFrom = '',
+        dateTo = '',
+        status = ''
+    } = filters;
+
+    const conditions = [`f.documentType = 'outgoing'`];
+    const params = [];
+
+    if (search.trim()) {
+        conditions.push(`(
+            f.documentIndex LIKE ? OR
+            f.correspondent LIKE ? OR
+            f.description LIKE ?
+        )`);
+        params.push(`%${search.trim()}%`, `%${search.trim()}%`, `%${search.trim()}%`);
+    }
+
+    if (dateFrom.trim()) {
+        conditions.push(`DATE(f.receivedDate) >= ?`);
+        params.push(dateFrom.trim());
+    }
+
+    if (dateTo.trim()) {
+        conditions.push(`DATE(f.receivedDate) <= ?`);
+        params.push(dateTo.trim());
+    }
+
+    if (status && CATALOG_DOCUMENT_STATUSES.includes(status)) {
+        conditions.push(`f.documentStatus = ?`);
+        params.push(status);
+    }
+
+    const [rows] = await pool.execute(`
+        SELECT
+            f.receivedDate AS documentDate,
+            f.documentIndex,
+            f.correspondent,
+            f.description AS summary,
+            f.documentStatus AS status
+        FROM Files f
+        WHERE ${conditions.join(' AND ')}
+        ORDER BY f.receivedDate DESC, f.createdAt DESC
+    `, params);
 
     return rows;
 }
@@ -5437,27 +5760,29 @@ function buildEditorAssignmentsWordDocument(assignments) {
 }
 
 function buildIncomingJournalWordDocument(documents) {
-    const rows = [
-        new TableRow({
+    const titleRow = new TableRow({
+        children: [
+            { text: 'Дата поступления и индекс документа', width: 14 },
+            { text: 'Корреспондент, дата и индекс поступившего документа', width: 20 },
+            { text: 'Краткое содержание', width: 18 },
+            { text: 'Резолюция или кому направлен документ', width: 24 },
+            { text: 'Срок исполнения', width: 10 },
+            { text: 'Отметка об исполнении документа', width: 14 }
+        ].map((cell) => new TableCell({
+            width: { size: cell.width, type: WidthType.PERCENTAGE },
             children: [
-                { text: 'Дата поступления и индекс документа', width: 14 },
-                { text: 'Корреспондент, дата и индекс поступившего документа', width: 20 },
-                { text: 'Краткое содержание', width: 18 },
-                { text: 'Резолюция или кому направлен документ', width: 24 },
-                { text: 'Срок исполнения', width: 10 },
-                { text: 'Отметка об исполнении документа', width: 14 }
-            ].map((cell) => new TableCell({
-                width: { size: cell.width, type: WidthType.PERCENTAGE },
-                children: [
-                    new Paragraph({
-                        children: [new TextRun({ text: cell.text, bold: true })],
-                        alignment: AlignmentType.CENTER
-                    })
-                ],
-                verticalAlign: 'center'
-            }))
-        }),
+                new Paragraph({
+                    children: [new TextRun({ text: cell.text, bold: true })],
+                    alignment: AlignmentType.CENTER
+                })
+            ],
+            verticalAlign: 'center'
+        }))
+    });
+
+    const dataRows = [
         new TableRow({
+            tableHeader: true,
             children: ['1', '2', '3', '4', '5', '6'].map((num, index) => new TableCell({
                 width: { size: [14, 20, 18, 24, 10, 14][index], type: WidthType.PERCENTAGE },
                 children: [
@@ -5526,7 +5851,116 @@ function buildIncomingJournalWordDocument(documents) {
                 new Paragraph({ text: '' }),
                 new Table({
                     width: { size: 100, type: WidthType.PERCENTAGE },
-                    rows,
+                    rows: [titleRow],
+                    borders: {
+                        top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                        bottom: { style: BorderStyle.NONE, size: 0, color: '000000' },
+                        left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                        right: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                        insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                        insideVertical: { style: BorderStyle.SINGLE, size: 1, color: '000000' }
+                    }
+                }),
+                new Table({
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                    rows: dataRows,
+                    borders: {
+                        top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                        bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                        left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                        right: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                        insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                        insideVertical: { style: BorderStyle.SINGLE, size: 1, color: '000000' }
+                    }
+                })
+            ]
+        }]
+    });
+}
+
+function buildOutgoingJournalWordDocument(documents) {
+    const titleRow = new TableRow({
+        children: [
+            { text: 'Дата документа и индекс', width: 20 },
+            { text: 'Корреспондент', width: 24 },
+            { text: 'Краткое содержание', width: 36 },
+            { text: 'Отметка об исполнении документа', width: 20 }
+        ].map((cell) => new TableCell({
+            width: { size: cell.width, type: WidthType.PERCENTAGE },
+            children: [
+                new Paragraph({
+                    children: [new TextRun({ text: cell.text, bold: true })],
+                    alignment: AlignmentType.CENTER
+                })
+            ],
+            verticalAlign: 'center'
+        }))
+    });
+
+    const dataRows = [
+        new TableRow({
+            tableHeader: true,
+            children: ['1', '2', '3', '4'].map((num, index) => new TableCell({
+                width: { size: [20, 24, 36, 20][index], type: WidthType.PERCENTAGE },
+                children: [
+                    new Paragraph({
+                        children: [new TextRun({ text: num })],
+                        alignment: AlignmentType.CENTER
+                    })
+                ]
+            }))
+        }),
+        ...documents.map((doc) => {
+            const firstColumn = [
+                formatExportDate(doc.documentDate),
+                doc.documentIndex || ''
+            ].filter(Boolean).join('\n');
+
+            return new TableRow({
+                children: [
+                    firstColumn,
+                    doc.correspondent || '',
+                    doc.summary || '',
+                    getOutgoingDocumentStatusText(doc.status)
+                ].map((value, index) => new TableCell({
+                    width: { size: [20, 24, 36, 20][index], type: WidthType.PERCENTAGE },
+                    children: String(value || '')
+                        .split('\n')
+                        .map((line) => new Paragraph({ text: line || '' }))
+                }))
+            });
+        })
+    ];
+
+    return new Document({
+        sections: [{
+            children: [
+                new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: [
+                        new TextRun({
+                            text: 'Журнал регистрации исходящих документов',
+                            bold: true,
+                            size: 30
+                        })
+                    ]
+                }),
+                new Paragraph({ text: '' }),
+                new Table({
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                    rows: [titleRow],
+                    borders: {
+                        top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                        bottom: { style: BorderStyle.NONE, size: 0, color: '000000' },
+                        left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                        right: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                        insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                        insideVertical: { style: BorderStyle.SINGLE, size: 1, color: '000000' }
+                    }
+                }),
+                new Table({
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                    rows: dataRows,
                     borders: {
                         top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
                         bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
@@ -7622,6 +8056,14 @@ function sendFileResponse(res, fileInfo, options = {}) {
     res.setHeader('Content-Disposition', `attachment; filename="document"; filename*=UTF-8''${encodedName}`);
     res.send(fileInfo.buffer);
 }
+
+function buildSafeExportFilename(value, fallback = 'catalog') {
+    return String(value || fallback)
+        .toLowerCase()
+        .replace(/[^a-zа-я0-9]+/gi, '_')
+        .replace(/^_+|_+$/g, '')
+        || fallback;
+}
 // ПОЛУЧИТЬ ДОСТУП К КАТАЛОГУ С УЧЕТОМ ИЕРАРХИИ
 app.get('/api/user/catalog-access-hierarchy/:id', requireAuth(), async (req, res) => {
     try {
@@ -7768,6 +8210,172 @@ app.get('/api/user/catalogs/:id/documents-with-inheritance', requireAuth(), asyn
             success: false, 
             message: 'Ошибка сервера',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
+app.get('/api/user/catalogs/:id/export-inventory', requireAuth(), async (req, res) => {
+    try {
+        const catalogId = req.params.id;
+        const userId = req.user.userId;
+
+        let accessCheck;
+        if (isUserAdmin(req)) {
+            accessCheck = { hasAccess: true, permission: 'ADMIN', accessType: 'admin' };
+        } else {
+            accessCheck = await getCatalogAccessInfo(userId, catalogId);
+        }
+
+        if (!accessCheck.hasAccess) {
+            return res.status(403).json({
+                success: false,
+                message: 'Доступ к каталогу запрещен',
+                code: 'ACCESS_DENIED'
+            });
+        }
+
+        const [catalogInfo] = await pool.execute(`
+            SELECT Name, description
+            FROM Folder
+            WHERE idFolder = ? AND status = 'active'
+        `, [catalogId]);
+
+        if (catalogInfo.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Каталог не найден или неактивен'
+            });
+        }
+
+        const [documents] = await pool.execute(`
+            SELECT
+                f.idFiles AS id,
+                f.name,
+                f.documentType,
+                f.documentIndex,
+                f.description AS summary,
+                f.fileStatus AS status,
+                f.createdAt AS uploadedAt,
+                f.updatedAt,
+                u.name AS uploadedBy,
+                fv.versionNumber,
+                fv.createdAt AS versionDate,
+                fv.fileSize AS versionFileSize,
+                fv.originalFileName,
+                CASE
+                    WHEN f.currentVersionId IS NOT NULL AND fv.idFileVersions = f.currentVersionId THEN 1
+                    ELSE 0
+                END AS isCurrentVersion
+            FROM Files f
+            LEFT JOIN Users u ON f.idUsers = u.idUsers
+            LEFT JOIN FileVersions fv ON f.idFiles = fv.idFiles
+            WHERE f.idFolders = ?
+            ORDER BY f.updatedAt DESC, f.idFiles DESC, fv.versionNumber DESC
+        `, [catalogId]);
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Опись каталога');
+        const dateStamp = new Date().toISOString().slice(0, 10);
+        const catalogName = catalogInfo[0].Name || 'Каталог';
+        const uniqueDocumentsCount = new Set(documents.map((doc) => doc.id)).size;
+
+        worksheet.columns = [
+            { header: '№', key: 'number', width: 8 },
+            { header: 'Название документа', key: 'name', width: 36 },
+            { header: 'Тип документа', key: 'documentType', width: 18 },
+            { header: 'Регистрационный индекс', key: 'documentIndex', width: 22 },
+            { header: 'Описание', key: 'summary', width: 42 },
+            { header: 'Версия', key: 'version', width: 12 },
+            { header: 'Текущая версия', key: 'isCurrentVersion', width: 16 },
+            { header: 'Статус', key: 'status', width: 18 },
+            { header: 'Размер', key: 'size', width: 14 },
+            { header: 'Загрузил', key: 'uploadedBy', width: 24 },
+            { header: 'Дата загрузки', key: 'uploadedAt', width: 18 },
+            { header: 'Дата версии', key: 'versionDate', width: 18 }
+        ];
+
+        worksheet.mergeCells('A1:L1');
+        worksheet.getCell('A1').value = `Опись документов каталога: ${catalogName}`;
+        worksheet.getCell('A1').font = { bold: true, size: 14 };
+        worksheet.getCell('A1').alignment = { horizontal: 'center' };
+
+        worksheet.mergeCells('A2:L2');
+        worksheet.getCell('A2').value = `Сформировано: ${formatExportDate(new Date())}`;
+        worksheet.getCell('A2').alignment = { horizontal: 'right' };
+
+        worksheet.mergeCells('A3:L3');
+        worksheet.getCell('A3').value = `Документов в каталоге: ${uniqueDocumentsCount}. Всего версий: ${documents.length}`;
+
+        const headerRow = worksheet.getRow(5);
+        headerRow.values = worksheet.columns.map((column) => column.header);
+        headerRow.font = { bold: true };
+        headerRow.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        headerRow.eachCell((cell) => {
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'D9E2F3' }
+            };
+            cell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+            };
+        });
+
+        documents.forEach((doc, index) => {
+            const sizeInKB = doc.versionFileSize ? Math.round(doc.versionFileSize / 1024) : 0;
+            const sizeText = sizeInKB > 1024
+                ? `${(sizeInKB / 1024).toFixed(1)} MB`
+                : `${sizeInKB} KB`;
+
+            const row = worksheet.addRow({
+                number: index + 1,
+                name: doc.originalFileName || doc.name || '',
+                documentType: doc.documentType === 'incoming'
+                    ? 'Входящий'
+                    : doc.documentType === 'outgoing'
+                        ? 'Исходящий'
+                        : 'Документ',
+                documentIndex: doc.documentIndex || '',
+                summary: doc.summary || '',
+                version: doc.versionNumber ? `v${doc.versionNumber}` : 'v1.0',
+                isCurrentVersion: doc.isCurrentVersion ? 'Да' : 'Нет',
+                status: doc.status || '',
+                size: sizeText,
+                uploadedBy: doc.uploadedBy || 'Неизвестно',
+                uploadedAt: formatExportDate(doc.uploadedAt),
+                versionDate: formatExportDate(doc.versionDate || doc.updatedAt)
+            });
+
+            row.alignment = { vertical: 'top', wrapText: true };
+            row.eachCell((cell) => {
+                cell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' }
+                };
+            });
+        });
+
+        worksheet.views = [{ state: 'frozen', ySplit: 5 }];
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const safeCatalogName = buildSafeExportFilename(catalogName, `catalog_${catalogId}`);
+        const filename = `opis_${safeCatalogName}_${dateStamp}.xlsx`;
+        const encodedName = encodeURIComponent(filename).replace(/'/g, '%27');
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Length', buffer.length);
+        res.setHeader('Content-Disposition', `attachment; filename="inventory.xlsx"; filename*=UTF-8''${encodedName}`);
+        res.send(Buffer.from(buffer));
+    } catch (error) {
+        console.error('❌ Ошибка экспорта описи каталога:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка формирования Excel-описи каталога'
         });
     }
 });
@@ -8432,6 +9040,14 @@ app.get('/editor', requireAuth('Редактор'), (req, res) => {
 
 app.get('/editor/incoming-journal', requireAuth('Редактор'), (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'editor', 'incoming-journal.html'));
+});
+
+app.get('/editor/outgoing-journal', requireAuth('Редактор'), (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'editor', 'outgoing-journal.html'));
+});
+
+app.get('/editor/statistics', requireAuth('Редактор'), (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'editor', 'statistics.html'));
 });
 
 // Страница пользователя

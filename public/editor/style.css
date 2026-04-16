@@ -662,9 +662,10 @@ body {
 /* Таблицы */
 .table-container {
     overflow-x: auto;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-    background: white;
+    border-radius: 10px;
+    border: 1px solid #d8e3f3;
+    background: rgba(244, 248, 253, 0.94);
+    box-shadow: 0 14px 34px rgba(8, 18, 38, 0.10);
     margin: 20px 0;
 }
 
@@ -675,33 +676,38 @@ table {
 }
 
 thead {
-    background: linear-gradient(135deg, #f7fafc, #edf2f7);
+    background: #edf3fb;
 }
 
 th {
-    color: #4a5568;
+    color: #49607c;
     font-weight: 600;
     text-align: left;
-    padding: 16px 20px;
-    font-size: 12px;
+    padding: 15px 20px;
+    font-size: 14px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 2px solid #e2e8f0;
+    border-bottom: 2px solid #d8e3f3;
 }
 
 td {
-    padding: 14px 20px;
+    padding: 15px 20px;
     border-bottom: 1px solid #edf2f7;
     color: #4a5568;
-    font-size: 14px;
-    vertical-align: middle;
+    font-size: 15px;
+    vertical-align: top;
+    background: #ffffff;
+}
+
+tbody tr:nth-child(even) td {
+    background: #fafafa;
 }
 
 tbody tr {
     transition: all 0.2s ease;
 }
 
-tbody tr:hover {
+tbody tr:hover td {
     background: #f8fafc;
 }
 
