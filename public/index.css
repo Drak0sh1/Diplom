@@ -1,264 +1,253 @@
-* { 
-    margin: 0; 
-    padding: 0; 
-    box-sizing: border-box; 
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-body { 
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+body.login-page {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 32px 20px;
+    color: #ffffff;
+    background:
+        radial-gradient(circle at top left, rgba(167, 139, 250, 0.4), transparent 28%),
+        radial-gradient(circle at top right, rgba(96, 165, 250, 0.35), transparent 26%),
+        radial-gradient(circle at bottom center, rgba(124, 58, 237, 0.28), transparent 34%),
+        linear-gradient(180deg, #201a4f 0%, #41236f 48%, #180f3d 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+body.login-page::before,
+body.login-page::after {
+    content: "";
+    position: absolute;
+    inset: auto;
+    border-radius: 50%;
+    filter: blur(16px);
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+body.login-page::before {
+    width: 420px;
+    height: 420px;
+    left: -120px;
+    bottom: -120px;
+    background: radial-gradient(circle, rgba(182, 121, 255, 0.45), rgba(182, 121, 255, 0));
+}
+
+body.login-page::after {
+    width: 360px;
+    height: 360px;
+    right: -90px;
+    top: -70px;
+    background: radial-gradient(circle, rgba(116, 191, 255, 0.4), rgba(116, 191, 255, 0));
 }
 
 .login-container {
     width: 100%;
-    max-width: 450px;
-    padding: 20px;
+    max-width: 520px;
+    position: relative;
+    z-index: 1;
 }
 
 .login-card {
-    background: white;
-    border-radius: 15px;
-    padding: 40px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    padding: 42px 38px 36px;
+    border-radius: 28px;
+    background: linear-gradient(180deg, rgba(61, 67, 124, 0.72) 0%, rgba(39, 35, 79, 0.76) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow:
+        0 24px 80px rgba(5, 5, 20, 0.42),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
 }
 
-/* Стили для шапки на странице авторизации */
-.login-project-header {
-    background: transparent;
-    color: #2d3748;
-    padding: 0 0 25px 0;
-    margin-bottom: 25px;
-    border-bottom: 2px solid #f7fafc;
-    text-align: center;
-    position: static;
-    box-shadow: none;
-}
-
-.login-project-header .project-info {
+.login-badge {
+    width: 62px;
+    height: 62px;
+    margin: 0 auto 18px;
+    border-radius: 50%;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 15px;
-}
-
-.login-project-header .project-info i {
-    font-size: 42px;
-    color: #4299e1;
-    background: linear-gradient(135deg, #4299e1 0%, #667eea 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.login-project-header .project-info h1 {
+    justify-content: center;
     font-size: 24px;
-    margin: 0 0 5px 0;
-    color: #2d3748;
-    font-weight: 600;
+    color: #ffffff;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.06));
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 12px 30px rgba(10, 12, 34, 0.32);
 }
 
-.login-project-header .project-info p {
-    font-size: 14px;
-    color: #718096;
-    margin: 0;
-}
-
-.login-project-header .project-version {
-    margin-top: 10px;
-}
-
-.login-project-header .version-badge {
-    background: #e2e8f0;
-    color: #4a5568;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-}
-
-.logo {
+.logo,
+.login-hero {
     text-align: center;
+}
+
+.login-hero {
     margin-bottom: 30px;
 }
 
-.logo i {
-    font-size: 48px;
-    color: #4a5568;
-    margin-bottom: 15px;
+.login-hero h1 {
+    font-size: clamp(2rem, 4vw, 2.65rem);
+    font-weight: 600;
+    line-height: 1.1;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
 }
 
-.logo h2 {
-    color: #2d3748;
-    font-size: 22px;
-    margin-bottom: 8px;
-}
-
-.logo p {
-    color: #718096;
-    margin-top: 5px;
-    font-size: 14px;
+.login-hero p {
+    max-width: 360px;
+    margin: 0 auto;
+    color: rgba(237, 236, 255, 0.78);
+    font-size: 0.98rem;
+    line-height: 1.55;
 }
 
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 18px;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 8px;
-    color: #4a5568;
-    font-weight: 500;
-}
-
-.form-control {
-    width: 100%;
-    padding: 14px 16px;
-    border: 2px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 16px;
-    transition: border-color 0.2s ease;
-}
-
-.form-control:focus {
-    outline: none;
-    border-color: #4299e1;
+    margin-bottom: 9px;
+    font-size: 0.9rem;
+    color: rgba(237, 236, 255, 0.9);
 }
 
 .password-container {
     position: relative;
 }
 
+.form-control {
+    width: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+    font-size: 1rem;
+    padding: 15px 18px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.password-container .form-control {
+    padding-right: 52px;
+}
+
+.form-control::placeholder {
+    color: rgba(228, 225, 255, 0.42);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: rgba(185, 153, 255, 0.9);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 4px rgba(151, 111, 255, 0.14);
+}
+
 .show-password {
     position: absolute;
-    right: 15px;
     top: 50%;
+    right: 14px;
     transform: translateY(-50%);
-    background: none;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border: none;
-    color: #718096;
+    border-radius: 50%;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.72);
     cursor: pointer;
-    font-size: 14px;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.show-password:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.error-message {
+    display: none;
+    margin: 4px 0 18px;
+    padding: 13px 15px;
+    border-radius: 16px;
+    color: #ffe4e6;
+    background: rgba(185, 28, 28, 0.28);
+    border: 1px solid rgba(254, 202, 202, 0.16);
+    text-align: center;
 }
 
 .btn-primary {
-    background: #4299e1;
-    color: white;
-    border: none;
-    padding: 16px;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
     width: 100%;
-    transition: all 0.3s ease;
+    border: none;
+    border-radius: 999px;
+    padding: 15px 18px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
+    background: linear-gradient(180deg, #ffffff 0%, #f1edff 100%);
+    color: #24184d;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    box-shadow: 0 14px 30px rgba(12, 12, 40, 0.24);
 }
 
 .btn-primary:hover {
-    background: #3182ce;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 18px 32px rgba(12, 12, 40, 0.32);
 }
 
 .btn-primary:disabled {
-    background: #a0aec0;
     cursor: not-allowed;
+    opacity: 0.75;
     transform: none;
-    box-shadow: none;
+    box-shadow: 0 10px 22px rgba(12, 12, 40, 0.2);
+}
+
+.btn-login {
+    position: relative;
 }
 
 .loading {
     display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    border-top-color: white;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(36, 24, 77, 0.2);
+    border-top-color: #24184d;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-    to { 
-        transform: rotate(360deg); 
-    }
-}
-
-.error-message {
-    background: #fed7d7;
-    color: #9b2c2c;
-    padding: 15px;
-    border-radius: 8px;
-    margin-top: 20px;
-    display: none;
-    text-align: center;
-}
-
-.notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 15px 25px;
-    border-radius: 8px;
-    color: white;
-    font-weight: 500;
-    z-index: 1000;
-    animation: slideIn 0.3s ease;
-}
-
-.notification.success {
-    background: #38a169;
-}
-
-.notification.error {
-    background: #e53e3e;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateX(400px);
-        opacity: 0;
-    }
     to {
-        transform: translateX(0);
-        opacity: 1;
+        transform: rotate(360deg);
     }
 }
 
-@media (max-width: 480px) {
-    .login-card {
-        padding: 30px 20px;
-    }
-    
-    .login-project-header .project-info h1 {
-        font-size: 20px;
-    }
-    
-    .logo h2 {
-        font-size: 20px;
-    }
-}
 .notification {
     position: fixed;
     top: 20px;
     right: 20px;
-    padding: 15px 25px;
-    border-radius: 8px;
+    padding: 15px 20px;
+    border-radius: 14px;
     color: white;
     font-weight: 500;
     z-index: 9999;
     display: flex;
     align-items: center;
     gap: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.24);
     transition: all 0.3s ease;
     max-width: 400px;
+    backdrop-filter: blur(8px);
 }
 
 .notification.success {
@@ -282,37 +271,34 @@ body {
 }
 
 .notification i {
-    font-size: 1.2em;
+    font-size: 1.1em;
 }
 
-/* Стили для страницы логина */
-.login-container {
-    max-width: 400px;
-    margin: 100px auto;
-    padding: 30px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-}
+@media (max-width: 640px) {
+    body.login-page {
+        padding: 20px 14px;
+    }
 
-.error-message {
-    display: none;
-    background: #ffeaea;
-    color: #d32f2f;
-    padding: 12px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-    border-left: 4px solid #d32f2f;
-}
+    .login-card {
+        padding: 32px 22px 26px;
+        border-radius: 24px;
+    }
 
-.btn-login {
-    position: relative;
-}
+    .login-badge {
+        width: 56px;
+        height: 56px;
+        margin-bottom: 16px;
+    }
 
-.btn-login .spinner {
-    display: none;
-    position: absolute;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
+    .login-hero {
+        margin-bottom: 24px;
+    }
+
+    .login-hero h1 {
+        font-size: 1.9rem;
+    }
+
+    .login-hero p {
+        font-size: 0.93rem;
+    }
 }

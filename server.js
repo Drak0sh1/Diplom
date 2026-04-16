@@ -3604,8 +3604,6 @@ function validateIncomingDocument(body, isCreate = true) {
         if (!receivedDate)        errors.push('receivedDate обязателен');
         if (!documentIndex)       errors.push('documentIndex обязателен');
         if (!correspondent)       errors.push('correspondent обязателен');
-        if (!senderDate)          errors.push('senderDate обязателен');
-        if (!senderDocumentIndex) errors.push('senderDocumentIndex обязателен');
         if (!summary)             errors.push('summary обязателен');
     }
 
@@ -3615,6 +3613,13 @@ function validateIncomingDocument(body, isCreate = true) {
             errors.push('receivedDate: неверный формат даты');
         } else if (rd > new Date(Date.now() + 60 * 1000)) {
             errors.push('receivedDate не может быть в будущем');
+        }
+    }
+
+    if (senderDate) {
+        const sd = new Date(senderDate);
+        if (isNaN(sd.getTime())) {
+            errors.push('senderDate: неверный формат даты');
         }
     }
 
@@ -3636,10 +3641,44 @@ function validateIncomingDocument(body, isCreate = true) {
     return errors;
 }
 
+function validateOutgoingDocument(body, isCreate = true) {
+    const errors = [];
+    const {
+        documentDate, documentIndex, correspondent, summary
+    } = body;
+
+    if (isCreate) {
+        if (!documentDate)   errors.push('documentDate обязателен');
+        if (!documentIndex)  errors.push('documentIndex обязателен');
+        if (!correspondent)  errors.push('correspondent обязателен');
+        if (!summary)        errors.push('summary обязателен');
+    }
+
+    if (documentDate) {
+        const dd = new Date(documentDate);
+        if (isNaN(dd.getTime())) {
+            errors.push('documentDate: неверный формат даты');
+        } else if (dd > new Date(Date.now() + 60 * 1000)) {
+            errors.push('documentDate не может быть в будущем');
+        }
+    }
+
+    return errors;
+}
+
 // ПОЛУЧИТЬ СПИСОК ВХОДЯЩИХ ДОКУМЕНТОВ
 app.get('/api/user/journals/incoming', requireAuth(), async (req, res) => {
     try {
-        const { page = 1, limit = 20, sender = '', date = '', index = '', execution = '' } = req.query;
+        const {
+            page = 1,
+            limit = 20,
+            sender = '',
+            date = '',
+            dateFrom = '',
+            dateTo = '',
+            index = '',
+            execution = ''
+        } = req.query;
         const offset = (parseInt(page) - 1) * parseInt(limit);
 
         let conditions = ["f.documentType = 'incoming'"];
@@ -3660,15 +3699,24 @@ app.get('/api/user/journals/incoming', requireAuth(), async (req, res) => {
             params.push(`%${index.trim()}%`);
         }
 
-        if (date.trim()) {
+        if (dateFrom.trim()) {
+            conditions.push('DATE(f.receivedDate) >= ?');
+            params.push(dateFrom.trim());
+        }
+
+        if (dateTo.trim()) {
+            conditions.push('DATE(f.receivedDate) <= ?');
+            params.push(dateTo.trim());
+        }
+
+        if (!dateFrom.trim() && !dateTo.trim() && date.trim()) {
             conditions.push('DATE(f.receivedDate) = ?');
             params.push(date.trim());
         }
 
-        if (execution === 'yes') {
-            conditions.push("f.executionMark = 'yes'");
-        } else if (execution === 'no') {
-            conditions.push('(f.executionMark IS NULL OR f.executionMark != \'yes\')');
+        if (execution && CATALOG_DOCUMENT_STATUSES.includes(execution)) {
+            conditions.push('f.documentStatus = ?');
+            params.push(execution);
         }
 
         const where = conditions.join(' AND ');
@@ -3736,6 +3784,7 @@ app.post('/api/user/journals/incoming', requireAuth(), async (req, res) => {
 
         const allowedStatus = ['draft','registered','executed','archived'];
         const docStatus = allowedStatus.includes(status) ? status : 'registered';
+        const resolvedExecutionMark = getExecutionMarkByStatus(docStatus) || executionMark || null;
 
         const [result] = await pool.execute(
             `INSERT INTO Files
@@ -3750,12 +3799,12 @@ app.post('/api/user/journals/incoming', requireAuth(), async (req, res) => {
                 receivedDate,
                 documentIndex.trim(),
                 correspondent.trim(),
-                senderDate,
-                senderDocumentIndex.trim(),
+                senderDate || null,
+                senderDocumentIndex ? senderDocumentIndex.trim() : null,
                 summary.trim(),
                 resolution || null,
                 dueDate || null,
-                executionMark || null,
+                resolvedExecutionMark,
                 userId
             ]
         );
@@ -3825,12 +3874,15 @@ app.get('/api/user/journals/incoming/:id', requireAuth(), async (req, res) => {
     }
 });
 
-// ОТМЕТИТЬ ИСПОЛНЕНИЕ (чекбокс)
+// ОБНОВИТЬ СТАТУС ВХОДЯЩЕГО ДОКУМЕНТА
 app.patch('/api/user/journals/incoming/:id/execution', requireAuth(), async (req, res) => {
     try {
-        const { executed } = req.body;
-        const mark   = executed ? 'yes' : null;
-        const status = executed ? 'executed' : 'registered';
+        const nextStatus = normalizeCatalogDocumentStatus(req.body.status || req.body.documentStatus);
+        if (!nextStatus) {
+            return res.status(400).json({ success: false, message: 'Недопустимый статус документа' });
+        }
+
+        const mark = getExecutionMarkByStatus(nextStatus);
 
         const ownerClause = isUserEditor(req) ? '' : ' AND idUsers = ?';
         const ownerParam  = isUserEditor(req) ? [] : [req.user.userId];
@@ -3838,14 +3890,14 @@ app.patch('/api/user/journals/incoming/:id/execution', requireAuth(), async (req
         const [result] = await pool.execute(
             `UPDATE Files SET executionMark = ?, documentStatus = ?, updatedAt = CURRENT_TIMESTAMP
              WHERE idFiles = ? AND documentType = 'incoming'${ownerClause}`,
-            [mark, status, req.params.id, ...ownerParam]
+            [mark, nextStatus, req.params.id, ...ownerParam]
         );
 
         if (result.affectedRows === 0) {
             return res.status(403).json({ success: false, message: 'Документ не найден или нет прав' });
         }
 
-        res.json({ success: true, executed: !!executed });
+        res.json({ success: true, status: nextStatus });
     } catch (error) {
         console.error('❌ Ошибка отметки исполнения:', error);
         res.status(500).json({ success: false, message: 'Ошибка сервера' });
@@ -3896,6 +3948,8 @@ app.put('/api/user/journals/incoming/:id', requireAuth(), async (req, res) => {
         if (status && ['draft','registered','executed','archived'].includes(status)) {
             fields.push('documentStatus = ?');
             params.push(status);
+            fields.push('executionMark = ?');
+            params.push(getExecutionMarkByStatus(status));
         }
 
         if (fields.length === 0) {
@@ -3969,6 +4023,344 @@ app.delete('/api/user/journals/incoming/:id', requireAuth(), async (req, res) =>
         res.json({ success: true, message: 'Документ удалён' });
     } catch (error) {
         console.error('❌ Ошибка удаления входящего документа:', error);
+        res.status(500).json({ success: false, message: 'Ошибка сервера' });
+    }
+});
+
+// ============ ЖУРНАЛ ИСХОДЯЩИХ ДОКУМЕНТОВ ============
+
+// ПОЛУЧИТЬ СПИСОК ИСХОДЯЩИХ ДОКУМЕНТОВ
+app.get('/api/user/journals/outgoing', requireAuth(), async (req, res) => {
+    try {
+        const {
+            page = 1,
+            limit = 20,
+            correspondent = '',
+            date = '',
+            dateFrom = '',
+            dateTo = '',
+            index = '',
+            status = ''
+        } = req.query;
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+
+        const conditions = ["f.documentType = 'outgoing'"];
+        const params = [];
+
+        if (!isUserEditor(req)) {
+            conditions.push('f.idUsers = ?');
+            params.push(req.user.userId);
+        }
+
+        if (correspondent.trim()) {
+            conditions.push('f.correspondent LIKE ?');
+            params.push(`%${correspondent.trim()}%`);
+        }
+
+        if (index.trim()) {
+            conditions.push('f.documentIndex LIKE ?');
+            params.push(`%${index.trim()}%`);
+        }
+
+        if (dateFrom.trim()) {
+            conditions.push('DATE(f.receivedDate) >= ?');
+            params.push(dateFrom.trim());
+        }
+
+        if (dateTo.trim()) {
+            conditions.push('DATE(f.receivedDate) <= ?');
+            params.push(dateTo.trim());
+        }
+
+        if (!dateFrom.trim() && !dateTo.trim() && date.trim()) {
+            conditions.push('DATE(f.receivedDate) = ?');
+            params.push(date.trim());
+        }
+
+        if (status && CATALOG_DOCUMENT_STATUSES.includes(status)) {
+            conditions.push('f.documentStatus = ?');
+            params.push(status);
+        }
+
+        const where = conditions.join(' AND ');
+
+        const [countRows] = await pool.execute(
+            `SELECT COUNT(*) AS total FROM Files f WHERE ${where}`,
+            params
+        );
+        const total = countRows[0].total;
+
+        const safeLimit  = parseInt(limit)  || 20;
+        const safeOffset = parseInt(offset) || 0;
+        const [rows] = await pool.execute(
+            `SELECT
+                f.idFiles        AS id,
+                f.name           AS documentName,
+                f.receivedDate   AS documentDate,
+                f.documentIndex,
+                f.correspondent,
+                f.description    AS summary,
+                f.executionMark,
+                f.documentStatus AS status,
+                f.createdAt,
+                f.updatedAt
+             FROM Files f
+             WHERE ${where}
+             ORDER BY f.receivedDate DESC, f.idFiles DESC
+             LIMIT ${safeLimit} OFFSET ${safeOffset}`,
+            params
+        );
+
+        res.json({
+            success: true,
+            documents: rows,
+            pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                pages: Math.ceil(total / parseInt(limit))
+            }
+        });
+    } catch (error) {
+        console.error('❌ Ошибка получения журнала исходящих:', error);
+        res.status(500).json({ success: false, message: 'Ошибка сервера' });
+    }
+});
+
+// СОЗДАТЬ ИСХОДЯЩИЙ ДОКУМЕНТ
+app.post('/api/user/journals/outgoing', requireAuth(), async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const {
+            documentDate, documentIndex, correspondent, summary,
+            status = 'registered'
+        } = req.body;
+
+        const errors = validateOutgoingDocument(req.body, true);
+        if (errors.length > 0) {
+            return res.status(400).json({ success: false, message: errors.join('; ') });
+        }
+
+        const docStatus = normalizeCatalogDocumentStatus(status) || 'registered';
+        const executionMark = getExecutionMarkByStatus(docStatus);
+
+        const [result] = await pool.execute(
+            `INSERT INTO Files
+                (name, idFolders, fileSize, documentType, documentStatus,
+                 receivedDate, documentIndex, correspondent, description,
+                 executionMark, idUsers)
+             VALUES (?, NULL, 0, 'outgoing', ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                documentIndex.trim(),
+                docStatus,
+                documentDate,
+                documentIndex.trim(),
+                correspondent.trim(),
+                summary.trim(),
+                executionMark,
+                userId
+            ]
+        );
+
+        const [newDoc] = await pool.execute(
+            `SELECT
+                f.idFiles AS id,
+                f.receivedDate AS documentDate,
+                f.documentIndex,
+                f.correspondent,
+                f.description AS summary,
+                f.executionMark,
+                f.documentStatus AS status,
+                f.createdAt
+             FROM Files f
+             WHERE f.idFiles = ?`,
+            [result.insertId]
+        );
+
+        await logAction(
+            userId,
+            'outgoing_document_create',
+            `Создан исходящий документ ${documentIndex}`,
+            'journals',
+            'file',
+            result.insertId,
+            'success',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+
+        res.status(201).json({ success: true, document: newDoc[0] });
+    } catch (error) {
+        console.error('❌ Ошибка создания исходящего документа:', error);
+        res.status(500).json({ success: false, message: 'Ошибка сервера' });
+    }
+});
+
+// ПОЛУЧИТЬ ИСХОДЯЩИЙ ДОКУМЕНТ ПО ID
+app.get('/api/user/journals/outgoing/:id', requireAuth(), async (req, res) => {
+    try {
+        const ownerClause = isUserEditor(req) ? '' : ' AND f.idUsers = ?';
+        const ownerParam  = isUserEditor(req) ? [] : [req.user.userId];
+
+        const [rows] = await pool.execute(
+            `SELECT
+                f.idFiles AS id,
+                f.name AS documentName,
+                f.receivedDate AS documentDate,
+                f.documentIndex,
+                f.correspondent,
+                f.description AS summary,
+                f.executionMark,
+                f.documentStatus AS status,
+                f.createdAt,
+                f.updatedAt
+             FROM Files f
+             WHERE f.idFiles = ? AND f.documentType = 'outgoing'${ownerClause}`,
+            [req.params.id, ...ownerParam]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Документ не найден' });
+        }
+
+        res.json({ success: true, document: rows[0] });
+    } catch (error) {
+        console.error('❌ Ошибка получения исходящего документа:', error);
+        res.status(500).json({ success: false, message: 'Ошибка сервера' });
+    }
+});
+
+// ОБНОВИТЬ СТАТУС ИСХОДЯЩЕГО ДОКУМЕНТА
+app.patch('/api/user/journals/outgoing/:id/execution', requireAuth(), async (req, res) => {
+    try {
+        const nextStatus = normalizeCatalogDocumentStatus(req.body.status || req.body.documentStatus);
+        if (!nextStatus) {
+            return res.status(400).json({ success: false, message: 'Недопустимый статус документа' });
+        }
+
+        const mark = getExecutionMarkByStatus(nextStatus);
+        const ownerClause = isUserEditor(req) ? '' : ' AND idUsers = ?';
+        const ownerParam  = isUserEditor(req) ? [] : [req.user.userId];
+
+        const [result] = await pool.execute(
+            `UPDATE Files SET executionMark = ?, documentStatus = ?, updatedAt = CURRENT_TIMESTAMP
+             WHERE idFiles = ? AND documentType = 'outgoing'${ownerClause}`,
+            [mark, nextStatus, req.params.id, ...ownerParam]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(403).json({ success: false, message: 'Документ не найден или нет прав' });
+        }
+
+        res.json({ success: true, status: nextStatus });
+    } catch (error) {
+        console.error('❌ Ошибка обновления статуса исходящего:', error);
+        res.status(500).json({ success: false, message: 'Ошибка сервера' });
+    }
+});
+
+// ОБНОВИТЬ ИСХОДЯЩИЙ ДОКУМЕНТ
+app.put('/api/user/journals/outgoing/:id', requireAuth(), async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const docId  = req.params.id;
+
+        const [existing] = await pool.execute(
+            `SELECT idFiles, idUsers FROM Files WHERE idFiles = ? AND documentType = 'outgoing'`,
+            [docId]
+        );
+        if (existing.length === 0) {
+            return res.status(404).json({ success: false, message: 'Документ не найден' });
+        }
+        if (existing[0].idUsers !== userId && !isUserAdmin(req) && !isUserEditor(req)) {
+            return res.status(403).json({ success: false, message: 'Недостаточно прав' });
+        }
+
+        const errors = validateOutgoingDocument(req.body, false);
+        if (errors.length > 0) {
+            return res.status(400).json({ success: false, message: errors.join('; ') });
+        }
+
+        const { documentDate, documentIndex, correspondent, summary, status } = req.body;
+        const fields = [];
+        const params = [];
+
+        if (documentDate !== undefined)  { fields.push('receivedDate = ?');  params.push(documentDate); }
+        if (documentIndex !== undefined) { fields.push('documentIndex = ?'); params.push(documentIndex.trim()); }
+        if (correspondent !== undefined) { fields.push('correspondent = ?'); params.push(correspondent.trim()); }
+        if (summary !== undefined)       { fields.push('description = ?');   params.push(summary.trim()); }
+        if (status && CATALOG_DOCUMENT_STATUSES.includes(status)) {
+            fields.push('documentStatus = ?');
+            params.push(status);
+            fields.push('executionMark = ?');
+            params.push(getExecutionMarkByStatus(status));
+        }
+
+        if (fields.length === 0) {
+            return res.status(400).json({ success: false, message: 'Нет данных для обновления' });
+        }
+
+        fields.push('updatedAt = CURRENT_TIMESTAMP');
+        params.push(docId);
+
+        await pool.execute(
+            `UPDATE Files SET ${fields.join(', ')} WHERE idFiles = ?`,
+            params
+        );
+
+        await logAction(
+            userId,
+            'outgoing_document_update',
+            `Обновлён исходящий документ ID:${docId}`,
+            'journals',
+            'file',
+            docId,
+            'success',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+
+        res.json({ success: true, message: 'Документ обновлён' });
+    } catch (error) {
+        console.error('❌ Ошибка обновления исходящего документа:', error);
+        res.status(500).json({ success: false, message: 'Ошибка сервера' });
+    }
+});
+
+// УДАЛИТЬ ИСХОДЯЩИЙ ДОКУМЕНТ
+app.delete('/api/user/journals/outgoing/:id', requireAuth(), async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const docId  = req.params.id;
+
+        const [existing] = await pool.execute(
+            `SELECT idFiles, idUsers, documentIndex FROM Files WHERE idFiles = ? AND documentType = 'outgoing'`,
+            [docId]
+        );
+        if (existing.length === 0) {
+            return res.status(404).json({ success: false, message: 'Документ не найден' });
+        }
+        if (existing[0].idUsers !== userId && !isUserAdmin(req) && !isUserEditor(req)) {
+            return res.status(403).json({ success: false, message: 'Недостаточно прав' });
+        }
+
+        await pool.execute('DELETE FROM Files WHERE idFiles = ?', [docId]);
+
+        await logAction(
+            userId,
+            'outgoing_document_delete',
+            `Удалён исходящий документ ${existing[0].documentIndex} (ID:${docId})`,
+            'journals',
+            'file',
+            docId,
+            'success',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+
+        res.json({ success: true, message: 'Документ удалён' });
+    } catch (error) {
+        console.error('❌ Ошибка удаления исходящего документа:', error);
         res.status(500).json({ success: false, message: 'Ошибка сервера' });
     }
 });
@@ -5022,6 +5414,9 @@ app.get('/api/user/catalogs/:id/documents', requireAuth(), async (req, res) => {
                 f.createdAt as uploadedAt,
                 f.updatedAt,
                 f.fileStatus as status,
+                f.documentType,
+                f.documentIndex,
+                f.description as summary,
                 u.name as uploadedBy,
                 fv.versionNumber as currentVersion,
                 fv.createdAt as versionDate
@@ -5045,14 +5440,17 @@ app.get('/api/user/catalogs/:id/documents', requireAuth(), async (req, res) => {
             return {
                 id: doc.id,
                 name: doc.name,
-                description: `Загружен: ${uploadedDate}`,
+                description: doc.summary || `Загружен: ${uploadedDate}`,
+                summary: doc.summary || '',
                 version: doc.currentVersion ? `v${doc.currentVersion}` : 'v1.0',
                 size: sizeText,
                 uploadedBy: doc.uploadedBy || 'Неизвестно',
                 uploadedAt: doc.uploadedAt,
                 fileType: fileExtension,
                 status: doc.status || 'new',
-                lastModified: doc.updatedAt
+                lastModified: doc.updatedAt,
+                documentType: doc.documentType || 'document',
+                documentIndex: doc.documentIndex || null
             };
         });
         
@@ -5189,22 +5587,125 @@ app.post('/api/user/catalogs/:id/documents', requireAuth(), async (req, res) => 
 });
 // ============ ЭНДПОИНТЫ ДЛЯ ДОКУМЕНТОВ И ВЕРСИЙ ============
 
+function normalizeOptionalText(value) {
+    if (value === undefined || value === null) {
+        return null;
+    }
+
+    const trimmed = String(value).trim();
+    return trimmed === '' ? null : trimmed;
+}
+
+const CATALOG_DOCUMENT_STATUSES = ['draft', 'registered', 'executed', 'archived'];
+
+function normalizeCatalogDocumentStatus(value) {
+    const normalized = normalizeOptionalText(value);
+    if (!normalized) {
+        return 'registered';
+    }
+
+    return CATALOG_DOCUMENT_STATUSES.includes(normalized) ? normalized : null;
+}
+
+function getExecutionMarkByStatus(documentStatus) {
+    return ['executed', 'archived'].includes(documentStatus) ? 'yes' : null;
+}
+
+function validateCatalogDocumentUpload(body) {
+    const errors = [];
+    const journalType = normalizeOptionalText(body.journalType);
+
+    if (!['incoming', 'outgoing'].includes(journalType)) {
+        errors.push('Необходимо выбрать тип журнала: incoming или outgoing');
+        return { errors, journalType: null, normalized: null };
+    }
+
+    const normalized = {
+        journalType,
+        documentIndex: normalizeOptionalText(body.documentIndex),
+        correspondent: normalizeOptionalText(body.correspondent),
+        description: normalizeOptionalText(body.description),
+        documentStatus: normalizeCatalogDocumentStatus(body.documentStatus),
+        receivedDate: normalizeOptionalText(journalType === 'incoming' ? body.receivedDate : body.documentDate),
+        senderDate: journalType === 'incoming' ? normalizeOptionalText(body.senderDate) : null,
+        senderDocumentIndex: journalType === 'incoming' ? normalizeOptionalText(body.senderDocumentIndex) : null,
+        resolution: journalType === 'incoming' ? normalizeOptionalText(body.resolution) : null,
+        deadline: journalType === 'incoming' ? normalizeOptionalText(body.deadline) : null
+    };
+
+    if (!normalized.receivedDate) {
+        errors.push(journalType === 'incoming' ? 'receivedDate обязателен' : 'documentDate обязателен');
+    } else if (isNaN(new Date(normalized.receivedDate).getTime())) {
+        errors.push(journalType === 'incoming' ? 'receivedDate: неверный формат даты' : 'documentDate: неверный формат даты');
+    }
+
+    if (!normalized.documentIndex) {
+        errors.push('documentIndex обязателен');
+    }
+
+    if (!normalized.correspondent) {
+        errors.push('correspondent обязателен');
+    }
+
+    if (!normalized.description) {
+        errors.push('description обязателен');
+    }
+
+    if (!normalized.documentStatus) {
+        errors.push('documentStatus: недопустимое значение статуса');
+    }
+
+    if (journalType === 'incoming') {
+        if (normalized.senderDate && isNaN(new Date(normalized.senderDate).getTime())) {
+            errors.push('senderDate: неверный формат даты');
+        }
+
+        if (normalized.receivedDate && normalized.senderDate) {
+            const receivedDate = new Date(normalized.receivedDate);
+            const senderDate = new Date(normalized.senderDate);
+            if (!isNaN(receivedDate.getTime()) && !isNaN(senderDate.getTime()) && senderDate > receivedDate) {
+                errors.push('senderDate не может быть позже receivedDate');
+            }
+        }
+
+        if (normalized.deadline && isNaN(new Date(normalized.deadline).getTime())) {
+            errors.push('deadline: неверный формат даты');
+        }
+
+        if (normalized.deadline && normalized.receivedDate) {
+            const receivedDate = new Date(normalized.receivedDate);
+            const deadlineDate = new Date(normalized.deadline);
+
+            if (!isNaN(receivedDate.getTime()) && !isNaN(deadlineDate.getTime())) {
+                receivedDate.setHours(0, 0, 0, 0);
+                deadlineDate.setHours(0, 0, 0, 0);
+
+                if (deadlineDate < receivedDate) {
+                    errors.push('deadline не может быть раньше даты регистрации');
+                }
+            }
+        }
+    }
+
+    return { errors, journalType, normalized };
+}
+
 // ЗАГРУЗИТЬ НОВЫЙ ДОКУМЕНТ
 // ЗАГРУЗИТЬ НОВЫЙ ДОКУМЕНТ
-app.post('/api/documents/upload', requireAuth(), fileManager.getUploadMiddleware(), async (req, res) => {
-    let file = null;
+app.post('/api/documents/upload', requireAuth(), fileManager.getUploadMiddleware({ multiple: true, maxCount: 20 }), async (req, res) => {
+    let files = [];
     
     try {
         const userId = req.user.userId;
-        const { catalogId, description = '', resolution = null, deadline = null } = req.body;
-        file = req.file;
+        const { catalogId } = req.body;
+        files = Array.isArray(req.files) ? req.files : [];
         const ip = getClientIp(req);
         const userAgent = req.headers['user-agent'] || '';
         
         console.log(`📤 ЗАГРУЗКА ДОКУМЕНТА НАЧАТА:`);
         console.log(`   👤 Пользователь: ${req.user.username} (ID: ${userId})`);
         console.log(`   📁 Каталог назначения: ${catalogId}`);
-        console.log(`   📄 Файл: ${file ? file.originalname : 'нет'}`);
+        console.log(`   📄 Файлов выбрано: ${files.length}`);
         
         if (!catalogId) {
             console.log('❌ Не указан каталог');
@@ -5214,13 +5715,25 @@ app.post('/api/documents/upload', requireAuth(), fileManager.getUploadMiddleware
             });
         }
         
-        if (!file) {
-            console.log('❌ Файл не загружен');
+        if (files.length === 0) {
+            console.log('❌ Файлы не загружены');
             return res.status(400).json({
                 success: false,
-                message: 'Файл не загружен'
+                message: 'Не выбраны файлы для загрузки'
             });
         }
+
+        const validation = validateCatalogDocumentUpload(req.body);
+        if (validation.errors.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: validation.errors.join('; ')
+            });
+        }
+
+        const { journalType, normalized } = validation;
+        const documentStatus = normalized.documentStatus;
+        const executionMark = getExecutionMarkByStatus(documentStatus);
         
         // Проверяем доступ к каталогу с подробным логированием
         console.log(`🔍 ПРОВЕРКА ДОСТУПА к каталогу ${catalogId}...`);
@@ -5267,46 +5780,56 @@ app.post('/api/documents/upload', requireAuth(), fileManager.getUploadMiddleware
         
         try {
             await connection.beginTransaction();
-            
-            const { fileBuffer, originalName, mimeType, fileSize } = getUploadedFileInfo(file);
-            
-            console.log(`💾 Сохранение файла: ${originalName} (${formatFileSize(fileSize)})`);
-            
-            // Генерируем порядковый индекс для журнала входящих
-            const currentYear = new Date().getFullYear();
-            const [countRows] = await connection.execute(
-                `SELECT COUNT(*) AS cnt FROM Files WHERE documentType = 'incoming' AND YEAR(receivedDate) = ?`,
-                [currentYear]
-            );
-            const nextNum = (countRows[0].cnt || 0) + 1;
-            const docIndex = `ВХ-${currentYear}-${String(nextNum).padStart(5, '0')}`;
+            const createdDocuments = [];
 
-            // Создаем запись о файле с полями журнала входящих документов
-            const [fileResult] = await connection.execute(`
-                INSERT INTO Files (
-                    name, idFolders, fileSize, idUsers, fileStatus,
-                    documentType, documentStatus,
-                    receivedDate, documentIndex, correspondent,
-                    description, resolution, deadline, executionMark
-                )
-                VALUES (?, ?, ?, ?, 'new', 'incoming', 'registered', NOW(), ?, ?, ?, ?, ?, NULL)
-            `, [
-                originalName, catalogId, fileSize, userId,
-                docIndex,
-                req.user.username,
-                description || null,
-                resolution || null,
-                deadline || null
-            ]);
-            
-            const fileId = fileResult.insertId;
-            console.log(`📝 Создана запись файла ID: ${fileId}`);
-            
-            const versionPayload = fileManager.prepareVersionData(fileBuffer, originalName, mimeType);
-            const versionId = await insertFileVersion(connection, fileId, 1, 'full', null, versionPayload);
-            
-            // Обновляем файл с ссылкой на текущую версию
-            await updateDocumentCurrentVersion(connection, fileId, versionId);
+            for (let index = 0; index < files.length; index++) {
+                const file = files[index];
+                const { fileBuffer, originalName, mimeType, fileSize } = getUploadedFileInfo(file);
+                const documentIndex = normalized.documentIndex;
+
+                console.log(`💾 Сохранение файла: ${originalName} (${formatFileSize(fileSize)})`);
+
+                const [fileResult] = await connection.execute(`
+                    INSERT INTO Files (
+                        name, idFolders, fileSize, idUsers, fileStatus,
+                        documentType, documentStatus,
+                        receivedDate, documentIndex, correspondent,
+                        senderDate, senderDocumentIndex,
+                        description, resolution, deadline, executionMark
+                    )
+                    VALUES (?, ?, ?, ?, 'new', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `, [
+                    originalName, catalogId, fileSize, userId,
+                    journalType,
+                    documentStatus,
+                    normalized.receivedDate,
+                    documentIndex,
+                    normalized.correspondent,
+                    normalized.senderDate,
+                    normalized.senderDocumentIndex,
+                    normalized.description,
+                    normalized.resolution,
+                    normalized.deadline,
+                    executionMark
+                ]);
+
+                const fileId = fileResult.insertId;
+                console.log(`📝 Создана запись файла ID: ${fileId}`);
+
+                const versionPayload = fileManager.prepareVersionData(fileBuffer, originalName, mimeType);
+                const versionId = await insertFileVersion(connection, fileId, 1, 'full', null, versionPayload);
+
+                await updateDocumentCurrentVersion(connection, fileId, versionId);
+
+                createdDocuments.push({
+                    id: fileId,
+                    name: originalName,
+                    documentIndex,
+                    size: fileSize,
+                    versionId,
+                    versionNumber: 1
+                });
+            }
             
             await connection.commit();
             
@@ -5314,10 +5837,10 @@ app.post('/api/documents/upload', requireAuth(), fileManager.getUploadMiddleware
             await logAction(
                 userId,
                 'document_upload',
-                `Пользователь ${req.user.username} загрузил документ "${originalName}" (${formatFileSize(fileSize)}) в каталог ID:${catalogId}`,
+                `Пользователь ${req.user.username} загрузил ${files.length} ${journalType} файл(ов) с базовым индексом "${normalized.documentIndex}" в каталог ID:${catalogId}`,
                 'documents',
                 'file',
-                fileId,
+                createdDocuments[0]?.id || null,
                 'success',
                 ip,
                 userAgent
@@ -5325,17 +5848,16 @@ app.post('/api/documents/upload', requireAuth(), fileManager.getUploadMiddleware
             
             connection.release();
             
-            console.log(`✅ ФАЙЛ УСПЕШНО ЗАГРУЖЕН: ${originalName} (ID: ${fileId})`);
+            console.log(`✅ ФАЙЛЫ УСПЕШНО ЗАГРУЖЕНЫ: ${createdDocuments.length}`);
             
             res.json({
                 success: true,
-                message: 'Документ успешно загружен',
+                message: createdDocuments.length > 1
+                    ? `Письма успешно загружены: ${createdDocuments.length}`
+                    : 'Письмо успешно загружено',
                 data: {
-                    id: fileId,
-                    name: originalName,
-                    size: fileSize,
-                    versionId: versionId,
-                    versionNumber: 1
+                    count: createdDocuments.length,
+                    documents: createdDocuments
                 }
             });
             
@@ -5346,6 +5868,13 @@ app.post('/api/documents/upload', requireAuth(), fileManager.getUploadMiddleware
         }
         
     } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({
+                success: false,
+                message: `Документ с индексом "${req.body.documentIndex}" уже существует`
+            });
+        }
+
         console.error('❌ ОШИБКА ЗАГРУЗКИ ДОКУМЕНТА:', error);
         console.error('Stack trace:', error.stack);
         
@@ -6570,6 +7099,9 @@ app.get('/api/user/catalogs/:id/documents-with-inheritance', requireAuth(), asyn
                 f.createdAt as uploadedAt,
                 f.updatedAt,
                 f.fileStatus as status,
+                f.documentType,
+                f.documentIndex,
+                f.description as summary,
                 u.name as uploadedBy,
                 fv.versionNumber as currentVersion,
                 fv.createdAt as versionDate
@@ -6593,14 +7125,17 @@ app.get('/api/user/catalogs/:id/documents-with-inheritance', requireAuth(), asyn
             return {
                 id: doc.id,
                 name: doc.name,
-                description: `Загружен: ${uploadedDate}`,
+                description: doc.summary || `Загружен: ${uploadedDate}`,
+                summary: doc.summary || '',
                 version: doc.currentVersion ? `v${doc.currentVersion}` : 'v1.0',
                 size: sizeText,
                 uploadedBy: doc.uploadedBy || 'Неизвестно',
                 uploadedAt: doc.uploadedAt,
                 fileType: fileExtension,
                 status: doc.status || 'new',
-                lastModified: doc.updatedAt
+                lastModified: doc.updatedAt,
+                documentType: doc.documentType || 'document',
+                documentIndex: doc.documentIndex || null
             };
         });
         

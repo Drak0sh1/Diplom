@@ -90,7 +90,9 @@
             box-shadow: 0 1px 6px rgba(0,0,0,.05);
             display: flex; gap: 0;
         }
-        .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .filter-row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+        .filter-field { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
+        .filter-label { font-size: 12px; color: #64748b; line-height: 1; min-height: 14px; }
 
         /* Кастомный select */
         .cp-select {
@@ -225,6 +227,7 @@
             .main-content { margin-top: 60px; padding: 15px; }
             .header-nav-link span { display: none; }
             .control-panel { flex-direction: column; align-items: stretch; }
+            .filter-row { align-items: stretch; }
         }
         @media (max-width: 480px) { .user-details { display: none; } }
     </style>
@@ -270,22 +273,43 @@
     <!-- Панель управления -->
     <div class="control-panel">
         <div class="filter-row">
-            <select class="cp-select" id="executionFilter" style="width:175px" onchange="loadDocuments()">
-                <option value="">Все документы</option>
-                <option value="yes">Исполненные</option>
-                <option value="no">Не исполненные</option>
-            </select>
-            <div class="cp-input-group" style="width:200px">
-                <span class="cp-icon"><i class="fas fa-user"></i></span>
-                <input type="text" id="searchSender" placeholder="Имя отправителя">
+            <div class="filter-field">
+                <div class="filter-label">Статус</div>
+                <select class="cp-select" id="executionFilter" style="width:190px" onchange="loadDocuments()">
+                    <option value="">Все документы</option>
+                    <option value="registered">В процессе</option>
+                    <option value="executed">Выполнен</option>
+                    <option value="archived">В архиве</option>
+                    <option value="draft">Черновик</option>
+                </select>
             </div>
-            <div class="cp-input-group" style="width:170px">
-                <span class="cp-icon"><i class="fas fa-calendar-alt"></i></span>
-                <input type="date" id="searchDate" style="padding-right:10px">
+            <div class="filter-field">
+                <div class="filter-label">Отправитель</div>
+                <div class="cp-input-group" style="width:200px">
+                    <span class="cp-icon"><i class="fas fa-user"></i></span>
+                    <input type="text" id="searchSender" placeholder="Имя отправителя">
+                </div>
             </div>
-            <div class="cp-input-group" style="width:190px">
-                <span class="cp-icon"><i class="fas fa-hashtag"></i></span>
-                <input type="text" id="searchIndex" placeholder="№ документа">
+            <div class="filter-field">
+                <div class="filter-label">Дата с</div>
+                <div class="cp-input-group" style="width:170px">
+                    <span class="cp-icon"><i class="fas fa-calendar-alt"></i></span>
+                    <input type="date" id="searchDateFrom" style="padding-right:10px">
+                </div>
+            </div>
+            <div class="filter-field">
+                <div class="filter-label">Дата по</div>
+                <div class="cp-input-group" style="width:170px">
+                    <span class="cp-icon"><i class="fas fa-calendar-check"></i></span>
+                    <input type="date" id="searchDateTo" style="padding-right:10px">
+                </div>
+            </div>
+            <div class="filter-field">
+                <div class="filter-label">Индекс</div>
+                <div class="cp-input-group" style="width:190px">
+                    <span class="cp-icon"><i class="fas fa-hashtag"></i></span>
+                    <input type="text" id="searchIndex" placeholder="№ документа">
+                </div>
             </div>
             <button class="cp-btn cp-btn-primary" onclick="state.page=1; loadDocuments()">
                 <i class="fas fa-search"></i> Найти
@@ -330,8 +354,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (e.key === 'Enter') loadDocuments();
         });
     });
-    document.getElementById('searchDate').addEventListener('change', () => loadDocuments());
+    document.getElementById('searchDateFrom').addEventListener('change', handleDateRangeChange);
+    document.getElementById('searchDateTo').addEventListener('change', handleDateRangeChange);
 });
+
+function normalizeDateRange(dateFromInput, dateToInput) {
+    if (!dateFromInput || !dateToInput) return;
+    if (dateFromInput.value && dateToInput.value && dateToInput.value < dateFromInput.value) {
+        const temp = dateFromInput.value;
+        dateFromInput.value = dateToInput.value;
+        dateToInput.value = temp;
+    }
+}
+
+function handleDateRangeChange() {
+    const dateFromInput = document.getElementById('searchDateFrom');
+    const dateToInput = document.getElementById('searchDateTo');
+    normalizeDateRange(dateFromInput, dateToInput);
+    loadDocuments();
+}
 
 // ── Пользователь ──
 async function loadUserInfo() {
@@ -388,13 +429,14 @@ function initUI() {
 // ── Загрузка данных ──
 async function loadDocuments() {
     const sender    = document.getElementById('searchSender').value.trim();
-    const date      = document.getElementById('searchDate').value;
+    const dateFrom  = document.getElementById('searchDateFrom').value;
+    const dateTo    = document.getElementById('searchDateTo').value;
     const index     = document.getElementById('searchIndex').value.trim();
     const execution = document.getElementById('executionFilter').value;
     renderLoading();
 
     try {
-        const params = new URLSearchParams({ page: state.page, limit: state.limit, sender, date, index, execution });
+        const params = new URLSearchParams({ page: state.page, limit: state.limit, sender, dateFrom, dateTo, index, execution });
         const res  = await fetch(`/api/user/journals/incoming?${params}`, { credentials: 'include' });
         const data = await res.json();
         if (!data.success) throw new Error(data.message);
@@ -422,7 +464,7 @@ function renderTable(docs) {
                     <th>Кто прислал</th>
                     <th>Кому направлен</th>
                     <th>Срок исполнения</th>
-                    <th>Исполнено</th>
+                    <th>Статус</th>
                 </tr>
             </thead>
             <tbody>
@@ -435,22 +477,34 @@ function renderTable(docs) {
                         <td class="truncate" title="${esc(d.resolution)}">${esc(d.resolution) || '<span class="text-muted">—</span>'}</td>
                         <td class="truncate" title="${esc(d.correspondent)}">${esc(d.correspondent) || '<span class="text-muted">—</span>'}</td>
                         <td style="white-space:nowrap">${deadlineCell(d.dueDate)}</td>
-                        <td>${execCell(d.id, d.executionMark)}</td>
+                        <td>${statusCell(d.id, d.status)}</td>
                     </tr>
                 `).join('')}
             </tbody>
         </table>`;
 }
 
-function execCell(id, mark) {
-    const done = mark === 'yes';
+function statusCell(id, status) {
     return `
-        <label class="exec-label ${done ? 'done' : 'undone'}">
-            <input type="checkbox" class="exec-checkbox"
-                   ${done ? 'checked' : ''}
-                   onchange="toggleExecution(${id}, this.checked)">
-            ${done ? 'Да' : 'Нет'}
-        </label>`;
+        <select class="form-select form-select-sm" style="min-width: 150px"
+                onchange="toggleExecution(${id}, this.value)">
+            ${statusOptions(status)}
+        </select>`;
+}
+
+function statusOptions(currentStatus) {
+    const options = [
+        { value: 'registered', label: 'В процессе' },
+        { value: 'executed', label: 'Выполнен' },
+        { value: 'archived', label: 'В архиве' },
+        { value: 'draft', label: 'Черновик' }
+    ];
+
+    return options.map(option => `
+        <option value="${option.value}" ${option.value === currentStatus ? 'selected' : ''}>
+            ${option.label}
+        </option>
+    `).join('');
 }
 
 function deadlineCell(date) {
@@ -464,14 +518,14 @@ function deadlineCell(date) {
     return `<span class="${cls}">${formatDate(date)}</span>`;
 }
 
-// ── Переключение чекбокса исполнения ──
-async function toggleExecution(id, executed) {
+// ── Обновление статуса документа ──
+async function toggleExecution(id, status) {
     try {
         const res  = await fetch(`/api/user/journals/incoming/${id}/execution`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ executed })
+            body: JSON.stringify({ status })
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.message);
@@ -566,9 +620,10 @@ async function saveEdit() {
 
 // ── Сброс фильтров ──
 function clearFilters() {
-    document.getElementById('searchSender').value  = '';
-    document.getElementById('searchDate').value    = '';
-    document.getElementById('searchIndex').value   = '';
+    document.getElementById('searchSender').value   = '';
+    document.getElementById('searchDateFrom').value = '';
+    document.getElementById('searchDateTo').value   = '';
+    document.getElementById('searchIndex').value    = '';
     document.getElementById('executionFilter').value = '';
     state.page = 1;
     loadDocuments();

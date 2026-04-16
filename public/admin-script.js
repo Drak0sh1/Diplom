@@ -44,26 +44,48 @@ class AdminPanel {
         container.innerHTML = `
             
 
-                    <div class="header">
-                    <h1>Система контроля версий документов</h1><br><br><br>
-                        <h2><i class="fas fa-users-cog">
-                        </i> Управление пользователями</h2>
-                        <div class="user-info">
+                    <header class="header">
+                        <div class="header-left">
+                            <div class="header-text">
+                                <h1>Система контроля версий документов</h1>
+                                <p class="header-subtitle">
+                                    <i class="fas fa-users-cog"></i>
+                                    <span>Управление пользователями</span>
+                                </p>
+                            </div>
+                            <nav class="header-nav">
+                                <button type="button" class="header-nav-link" id="headerGoToLogsBtn">
+                                    <i class="fas fa-clipboard-list"></i>
+                                    <span>Журнал действий</span>
+                                </button>
+                            </nav>
+                        </div>
+                        <div class="user-profile" id="userProfile" tabindex="0">
                             <div class="user-avatar">
                                 ${userData.username.charAt(0).toUpperCase()}
                             </div>
-                            <div>
-                                <strong>${userData.username}</strong><br>
-                                <small>${userData.role}</small>
+                            <div class="user-details">
+                                <span class="user-name">${userData.username}</span>
+                                <span class="user-role">${userData.role}</span>
                             </div>
-                            <button class="logout-btn" id="logoutBtn">
-                                <i class="fas fa-sign-out-alt"></i> Выйти
-                            </button>
+                            <i class="fas fa-chevron-down user-chevron"></i>
+                            <div class="user-dropdown" id="userDropdown">
+                                <div class="dd-user-header">
+                                    <div class="duh-name">${userData.username}</div>
+                                    <div class="duh-role">${userData.role}</div>
+                                </div>
+                                <div class="dd-item" id="headerGoToLogsItem">
+                                    <i class="fas fa-clipboard-list"></i> Журнал действий
+                                </div>
+                                <div class="dd-divider"></div>
+                                <div class="dd-item danger" id="logoutBtn">
+                                    <i class="fas fa-sign-out-alt"></i> Выйти
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </header>
 
                     <div id="messages"></div>
-                </div>
 
                 <!-- Статистика пользователей -->
                 <div class="stats-section" id="statsSection">
@@ -120,13 +142,6 @@ class AdminPanel {
                                 <span>Создать пользователя</span>
                             </button>
                         </form>
-                        
-                        <div class="system-actions">
-                            <h3><i class="fas fa-history"></i> Журнал действий</h3>
-                            <button class="btn-secondary" id="goToLogsBtn">
-                                <i class="fas fa-clipboard-list"></i> Перейти в журнал действий
-                            </button>
-                        </div>
                     </div>
                 </div>
 
@@ -205,6 +220,8 @@ class AdminPanel {
 
     // ... остальные методы остаются без изменений ...
     bindEvents() {
+        this.bindUserProfileMenu();
+
         // Обработчик выхода
         document.getElementById('logoutBtn')?.addEventListener('click', () => this.logout());
 
@@ -213,12 +230,48 @@ class AdminPanel {
 
         // Обработчики системных функций
         document.getElementById('refreshUsersBtn')?.addEventListener('click', () => this.loadUsers());
-        document.getElementById('goToLogsBtn')?.addEventListener('click', () => this.goToLogs());
+        document.getElementById('headerGoToLogsBtn')?.addEventListener('click', () => this.goToLogs());
+        document.getElementById('headerGoToLogsItem')?.addEventListener('click', () => this.goToLogs());
 
         // Обработчики модального окна
         document.getElementById('closeModalBtn')?.addEventListener('click', () => this.hideEditModal());
         document.getElementById('cancelEditBtn')?.addEventListener('click', () => this.hideEditModal());
         document.getElementById('editUserForm')?.addEventListener('submit', (e) => this.updateUser(e));
+    }
+
+    bindUserProfileMenu() {
+        const userProfile = document.getElementById('userProfile');
+        const userDropdown = document.getElementById('userDropdown');
+
+        if (!userProfile || !userDropdown) {
+            return;
+        }
+
+        userProfile.addEventListener('click', (event) => {
+            event.stopPropagation();
+            userProfile.classList.toggle('open');
+        });
+
+        userDropdown.addEventListener('click', (event) => {
+            event.stopPropagation();
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!userProfile.contains(event.target)) {
+                userProfile.classList.remove('open');
+            }
+        });
+
+        userProfile.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                userProfile.classList.toggle('open');
+            }
+
+            if (event.key === 'Escape') {
+                userProfile.classList.remove('open');
+            }
+        });
     }
 
     goToLogs() {

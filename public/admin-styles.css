@@ -887,3 +887,322 @@ body {
     10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
     20%, 40%, 60%, 80% { transform: translateX(5px); }
 }
+
+/* Хэдер администратора в стиле страниц пользователя/редактора */
+.header {
+    background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 45%, #8b5cf6 100%);
+    color: white;
+    padding: 18px 28px;
+    margin-bottom: 30px;
+    border-radius: 16px;
+    box-shadow: 0 10px 28px rgba(96, 69, 180, 0.24);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.header-text h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.header-subtitle {
+    margin: 6px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.header-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.header-nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+button.header-nav-link {
+    font: inherit;
+    border-width: 1px;
+}
+
+.header-nav-link:hover {
+    background: rgba(255, 255, 255, 0.24);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+.user-profile {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px 8px 8px;
+    border-radius: 12px;
+    cursor: pointer;
+    user-select: none;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    transition: background 0.2s ease;
+}
+
+.user-profile:hover {
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: white;
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+}
+
+.user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.user-role {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.user-chevron {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.78);
+    transition: transform 0.2s ease;
+}
+
+.user-profile.open .user-chevron {
+    transform: rotate(180deg);
+}
+
+.user-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 240px;
+    background: #ffffff;
+    border: 1px solid #ece9fb;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 16px 40px rgba(31, 41, 55, 0.18);
+    z-index: 100;
+}
+
+.user-profile.open .user-dropdown {
+    display: block;
+}
+
+.dd-user-header {
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.duh-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.duh-role {
+    margin-top: 3px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.dd-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 16px;
+    color: #374151;
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: background 0.15s ease;
+}
+
+.dd-item:hover {
+    background: #f8fafc;
+}
+
+.dd-item i {
+    width: 16px;
+    color: #8b5cf6;
+    font-size: 13px;
+}
+
+.dd-item.danger,
+.dd-item.danger i {
+    color: #ef4444;
+}
+
+.dd-divider {
+    height: 1px;
+    background: #f1f5f9;
+}
+
+@media (max-width: 768px) {
+    .header {
+        padding: 16px 18px;
+    }
+
+    .header-left {
+        width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .header-text h1 {
+        font-size: 21px;
+    }
+
+    .header-nav-link span {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .user-details {
+        display: none;
+    }
+
+    .header-text h1 {
+        font-size: 19px;
+    }
+}
+
+/* Тёмно-синяя палитра администратора */
+body {
+    background:
+        radial-gradient(circle at top left, rgba(96, 165, 250, 0.22), transparent 26%),
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.18), transparent 30%),
+        linear-gradient(160deg, #13233f 0%, #1a2f52 45%, #223c67 100%);
+}
+
+.header {
+    background: linear-gradient(135deg, #0b1f3f 0%, #12366f 48%, #1d4f91 100%);
+    box-shadow: 0 16px 36px rgba(5, 13, 29, 0.38);
+}
+
+.header-subtitle {
+    color: rgba(219, 234, 254, 0.88);
+}
+
+.header-nav-link {
+    background: rgba(147, 197, 253, 0.12);
+    border-color: rgba(191, 219, 254, 0.24);
+    color: #eff6ff;
+}
+
+.header-nav-link:hover {
+    background: rgba(147, 197, 253, 0.22);
+    border-color: rgba(191, 219, 254, 0.4);
+}
+
+.user-profile {
+    background: rgba(147, 197, 253, 0.08);
+    border-color: rgba(191, 219, 254, 0.18);
+}
+
+.user-profile:hover {
+    background: rgba(147, 197, 253, 0.16);
+}
+
+.user-avatar {
+    background: rgba(191, 219, 254, 0.16);
+}
+
+.card,
+.stat-card,
+.modal-content {
+    background: rgba(244, 248, 253, 0.94);
+    box-shadow: 0 14px 34px rgba(8, 18, 38, 0.12);
+}
+
+.card-header,
+.system-actions {
+    border-color: #d8e3f3;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #163d77, #2457a6);
+    box-shadow: 0 10px 22px rgba(22, 61, 119, 0.28);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #143665, #214d91);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #0f274e, #183b72);
+    box-shadow: 0 10px 22px rgba(15, 39, 78, 0.24);
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, #0c203f, #15325f);
+}
+
+.form-control:focus {
+    border-color: #2457a6;
+    box-shadow: 0 0 0 3px rgba(36, 87, 166, 0.12);
+}
+
+.stat-card:hover,
+.stat-card.active {
+    border-color: #2457a6;
+}
+
+.stat-card.active {
+    background: #e8f0fb;
+}
+
+.stat-icon,
+.stat-card:nth-child(2) .stat-icon,
+.stat-card:nth-child(3) .stat-icon,
+.stat-card:nth-child(4) .stat-icon {
+    background: linear-gradient(135deg, #163d77, #2457a6);
+}

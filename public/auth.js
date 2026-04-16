@@ -109,6 +109,8 @@ class AuthSystem {
             console.log('Ответ сервера:', result); // ← ДЛЯ ОТЛАДКИ
     
             if (response.ok && result.success) {
+                sessionStorage.removeItem('new_document_badges');
+
                 // Сохраняем токены из ответа
                 if (result.accessToken) {
                     localStorage.setItem('access_token', result.accessToken);

@@ -68,8 +68,10 @@ ALTER TABLE Files ADD COLUMN deadline
 -- ─────────────────────────────────────────────────────────────────────────────
 -- ШАГ 3: Индексы
 -- Пропустите строки для уже существующих индексов.
+-- Если уникального индекса uq_files_documentIndex ещё нет, строку DROP INDEX пропустите.
 -- ─────────────────────────────────────────────────────────────────────────────
-ALTER TABLE Files ADD UNIQUE INDEX uq_files_documentIndex   (documentIndex);
+ALTER TABLE Files DROP INDEX uq_files_documentIndex;
+ALTER TABLE Files ADD        INDEX idx_files_documentIndex  (documentIndex);
 ALTER TABLE Files ADD        INDEX idx_files_documentType   (documentType);
 ALTER TABLE Files ADD        INDEX idx_files_documentStatus (documentStatus);
 ALTER TABLE Files ADD        INDEX idx_files_receivedDate   (receivedDate);

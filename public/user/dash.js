@@ -859,11 +859,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
             
-            // Обработчики для ссылок на каталоги
-            container.querySelectorAll('.catalog-link').forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const catalogId = link.dataset.id;
+            container.querySelectorAll('.catalog-item-content[data-has-children="false"]').forEach(content => {
+                content.addEventListener('click', () => {
+                    const catalogId = content.dataset.id;
                     this.openCatalogPage(catalogId);
                 });
             });
@@ -941,7 +939,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     
                     <div class="catalogs-info">
-                        <p><i class="fas fa-info-circle"></i> Нажмите на ссылку "Открыть каталог" для перехода к управлению документами</p>
+                        <p><i class="fas fa-info-circle"></i> Нажмите на строку каталога для перехода к управлению документами</p>
                     </div>
                     
                     <div class="catalogs-list">
@@ -994,7 +992,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let html = `
                 <div class="catalog-item ${permissionClass} ${directlyAssignedClass}" data-id="${catalog.id}" data-level="${level}">
                     <div class="catalog-item-header ${hasChildren ? 'has-children' : ''}">
-                        <div class="catalog-item-content" data-id="${catalog.id}" data-has-children="${hasChildren}">
+                        <div class="catalog-item-content ${!hasChildren ? 'catalog-item-content-link' : ''}" data-id="${catalog.id}" data-has-children="${hasChildren}">
             `;
             
             if (hasChildren) {
@@ -1015,16 +1013,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="catalog-header">
                         <span class="catalog-name">${catalog.name || 'Без названия'}</span>
             `;
-            
-            // Только для каталогов БЕЗ детей показываем ссылку
-            if (!hasChildren) {
-                html += `
-                        <a href="/catalog.html?id=${catalog.id}" class="catalog-link" data-id="${catalog.id}">
-                            <i class="fas fa-external-link-alt"></i> Открыть каталог
-                        </a>
-                `;
-            }
-            // Для каталогов с детьми ссылку не показываем
             
             html += `
                     </div>
@@ -1102,11 +1090,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
             
-            // Обработчики для ссылок на каталоги
-            document.querySelectorAll('.catalog-link').forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const catalogId = link.dataset.id;
+            document.querySelectorAll('.catalog-item-content[data-has-children="false"]').forEach(content => {
+                content.addEventListener('click', () => {
+                    const catalogId = content.dataset.id;
                     this.openCatalogPage(catalogId);
                 });
             });
@@ -1618,6 +1604,10 @@ document.addEventListener('DOMContentLoaded', function() {
             align-items: center;
             gap: 12px;
         }
+
+        .catalog-item-content-link {
+            cursor: pointer;
+        }
         
         .catalog-toggle {
             width: 24px;
@@ -1667,24 +1657,8 @@ document.addEventListener('DOMContentLoaded', function() {
             font-size: 15px;
         }
         
-        .catalog-link {
-            color: #3b82f6;
-            text-decoration: none;
-            font-size: 13px;
-            padding: 4px 10px;
-            border-radius: 4px;
-            background: rgba(59, 130, 246, 0.1);
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-weight: 500;
-        }
-        
-        .catalog-link:hover {
-            background: rgba(59, 130, 246, 0.2);
-            transform: translateY(-1px);
-            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2);
+        .catalog-item-header:has(.catalog-item-content-link):hover {
+            background: #eff6ff;
         }
         
         .directly-assigned .catalog-name {

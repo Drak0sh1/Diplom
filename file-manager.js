@@ -28,10 +28,29 @@ class FileManager {
         }
     }
 
-    getUploadMiddleware() {
+    getUploadMiddleware(options = {}) {
+        const {
+            fieldName = 'file',
+            multiple = false,
+            maxCount = 20
+        } = options;
+
         return (req, res, next) => {
-            this.upload.single('file')(req, res, (error) => {
-                if (req.file?.originalname) {
+            const middleware = multiple
+                ? this.upload.array(fieldName, maxCount)
+                : this.upload.single(fieldName);
+
+            middleware(req, res, (error) => {
+                if (multiple && Array.isArray(req.files)) {
+                    req.files = req.files.map(file => ({
+                        ...file,
+                        originalname: file?.originalname
+                            ? this.normalizeOriginalName(file.originalname)
+                            : file.originalname
+                    }));
+                }
+
+                if (!multiple && req.file?.originalname) {
                     req.file.originalname = this.normalizeOriginalName(req.file.originalname);
                 }
 

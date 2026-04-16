@@ -114,40 +114,50 @@ truncateText(text, maxLength) {
         const container = document.getElementById('adminContainer');
         container.innerHTML = `
             <div class="admin-container">
-                <!-- Шапка проекта -->
-                <div class="card">
-                    <div class="project-header">
-                        <div class="project-info">
-                            <div>
-                                <h1>Система контроля версий документов</h1>
-                            </div>
+                <header class="header">
+                    <div class="header-left">
+                        <div class="header-text">
+                            <h1>Система контроля версий документов</h1>
+                            <p class="header-subtitle">
+                                <i class="fas fa-clipboard-list"></i>
+                                <span>Журнал действий системы</span>
+                            </p>
                         </div>
-                    </div>
-    
-                    <div class="header">
-                        <h2><i class="fas fa-clipboard-list"></i> Журнал действий системы</h2>
-                        <div class="user-info">
-                            <div class="user-avatar">
-                                ${userData.username.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                                <strong>${userData.username}</strong><br>
-                                <small>${userData.role}</small>
-                            </div>
-                            <button class="logout-btn" id="logoutBtn">
-                                <i class="fas fa-sign-out-alt"></i> Выйти
+                        <nav class="header-nav">
+                            <button type="button" class="header-nav-link" id="headerBackBtn">
+                                <i class="fas fa-arrow-left"></i>
+                                <span>Админ-панель</span>
                             </button>
+                        </nav>
+                    </div>
+                    <div class="user-profile" id="userProfile" tabindex="0">
+                        <div class="user-avatar">
+                            ${userData.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div class="user-details">
+                            <span class="user-name">${userData.username}</span>
+                            <span class="user-role">${userData.role}</span>
+                        </div>
+                        <i class="fas fa-chevron-down user-chevron"></i>
+                        <div class="user-dropdown" id="userDropdown">
+                            <div class="dd-user-header">
+                                <div class="duh-name">${userData.username}</div>
+                                <div class="duh-role">${userData.role}</div>
+                            </div>
+                            <div class="dd-item" id="headerBackItem">
+                                <i class="fas fa-arrow-left"></i> Админ-панель
+                            </div>
+                            <div class="dd-divider"></div>
+                            <div class="dd-item danger" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt"></i> Выйти
+                            </div>
                         </div>
                     </div>
-    
-                    <div id="messages"></div>
-                </div>
+                </header>
+
+                <div id="messages"></div>
     
                 <div class="controls">
-                    <button class="control-btn back-btn" id="backBtn">
-                        <i class="fas fa-arrow-left"></i>
-                        Назад в админ-панель
-                    </button>
                     <button class="control-btn refresh-btn" id="refreshBtn">
                         <i class="fas fa-sync-alt"></i>
                         Обновить журнал
@@ -279,8 +289,11 @@ truncateText(text, maxLength) {
     }
 
     bindEvents() {
+        this.bindUserProfileMenu();
+
         document.getElementById('logoutBtn')?.addEventListener('click', () => this.logout());
-        document.getElementById('backBtn')?.addEventListener('click', () => this.goBack());
+        document.getElementById('headerBackBtn')?.addEventListener('click', () => this.goBack());
+        document.getElementById('headerBackItem')?.addEventListener('click', () => this.goBack());
         document.getElementById('refreshBtn')?.addEventListener('click', () => this.loadLogs());
         document.getElementById('showFiltersBtn')?.addEventListener('click', () => this.toggleFilters());
         document.getElementById('exportBtn')?.addEventListener('click', () => this.exportLogs());
@@ -302,8 +315,43 @@ document.querySelectorAll('.form-control').forEach(input => {
     });
 });
 
-
     }
+
+    bindUserProfileMenu() {
+        const userProfile = document.getElementById('userProfile');
+        const userDropdown = document.getElementById('userDropdown');
+
+        if (!userProfile || !userDropdown) {
+            return;
+        }
+
+        userProfile.addEventListener('click', (event) => {
+            event.stopPropagation();
+            userProfile.classList.toggle('open');
+        });
+
+        userDropdown.addEventListener('click', (event) => {
+            event.stopPropagation();
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!userProfile.contains(event.target)) {
+                userProfile.classList.remove('open');
+            }
+        });
+
+        userProfile.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                userProfile.classList.toggle('open');
+            }
+
+            if (event.key === 'Escape') {
+                userProfile.classList.remove('open');
+            }
+        });
+    }
+
     // Метод для добавления кнопки очистки в поле
 addClearButton(input) {
     const existingClear = input.parentNode.querySelector('.clear-field');

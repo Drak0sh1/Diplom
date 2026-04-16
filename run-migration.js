@@ -16,7 +16,7 @@ const dbConfig = {
 };
 
 const steps = [
-    // ШАГ 1: FK и NULL для idFolders
+    // ШАГ 1:                                                                                   FK и NULL для idFolders
     {
         label: 'DROP FK fk_Files_Folder',
         sql: 'ALTER TABLE Files DROP FOREIGN KEY fk_Files_Folder',
@@ -94,8 +94,13 @@ const steps = [
 
     // ШАГ 3: Индексы
     {
-        label: 'ADD UNIQUE INDEX uq_files_documentIndex',
-        sql: 'ALTER TABLE Files ADD UNIQUE INDEX uq_files_documentIndex (documentIndex)',
+        label: 'DROP UNIQUE INDEX uq_files_documentIndex',
+        sql: 'ALTER TABLE Files DROP INDEX uq_files_documentIndex',
+        ignore: ['ER_CANT_DROP_FIELD_OR_KEY', 'ER_DUP_KEYNAME']
+    },
+    {
+        label: 'ADD INDEX idx_files_documentIndex',
+        sql: 'ALTER TABLE Files ADD INDEX idx_files_documentIndex (documentIndex)',
         ignore: ['ER_DUP_KEYNAME']
     },
     {

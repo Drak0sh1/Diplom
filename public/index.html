@@ -7,46 +7,47 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="index.css">
 </head>
-<body>
+<body class="login-page">
     <div class="login-container">
         <div class="login-card">
-            <div class="project-header login-project-header">
-                <div class="project-info">
-                    <i class="fas fa-shield-alt"></i>
-                    <div>
-                        <h1>Система контроля версий документов</h1>
-                    </div>
-                </div>
+            <div class="login-badge" aria-hidden="true">
+                <i class="fas fa-shield-alt"></i>
             </div>
-            
-            <div class="logo">
-                <h2>Авторизация</h2>
-                <p>Войдите в свою учетную запись</p>
+
+            <div class="logo login-hero">
+                <h1>С возвращением!</h1>
+                <p>Войдите в систему контроля версий документов, чтобы продолжить работу.</p>
             </div>
-            
+
             <form id="loginForm">
                 <div class="form-group">
                     <label for="username">Имя пользователя</label>
-                    <input type="text" id="username" class="form-control" 
-                           placeholder="Введите логин" required>
+                    <input
+                        type="text"
+                        id="username"
+                        class="form-control"
+                        placeholder="Введите логин"
+                        required
+                    >
                 </div>
-                
+
                 <div class="form-group">
                     <label for="password">Пароль</label>
                     <div class="password-container">
-                        <input type="password" id="password" class="form-control" 
-                               placeholder="Введите пароль" required>
-                        <!--<button type="button" class="show-password">
-                            <i class="fas fa-eye"></i>
-                        </button>-->
+                        <input
+                            type="password"
+                            id="password"
+                            class="form-control"
+                            placeholder="Введите пароль"
+                            required
+                        >
                     </div>
                 </div>
-                
-                <div class="error-message" id="errorMessage">
-                </div>
-                
-                <button type="submit" class="btn-primary" id="loginBtn">
-                    <span id="btnText">Войти в систему</span>
+
+                <div class="error-message" id="errorMessage"></div>
+
+                <button type="submit" class="btn-primary btn-login" id="loginBtn">
+                    <span id="btnText">Войти</span>
                     <span id="loadingSpinner" class="loading" style="display: none;"></span>
                 </button>
             </form>

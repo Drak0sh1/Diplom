@@ -405,6 +405,46 @@
         .meta-item i {
             font-size: 10px;
         }
+
+        .meta-item.journal-type {
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .meta-item.journal-type.incoming i {
+            color: #2563eb;
+        }
+
+        .meta-item.journal-type.outgoing i {
+            color: #16a34a;
+        }
+
+        .document-summary {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 10px;
+            line-height: 1.45;
+        }
+
+        .journal-fields-container {
+            display: none;
+        }
+
+        .journal-fields-section {
+            display: none;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            background: #f8fafc;
+        }
+
+        .journal-fields-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 12px;
+        }
         
         .document-actions {
             display: flex;
@@ -608,6 +648,138 @@
             margin-bottom: 4px;
         }
 
+        .add-document-modal {
+            align-items: flex-start;
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        .add-document-modal .modal-content {
+            width: 96vw;
+            max-width: 1700px;
+            margin: auto;
+        }
+
+        .add-document-modal .modal-body {
+            max-height: none;
+            overflow: visible;
+            padding: 14px 16px;
+        }
+
+        .add-document-top-grid {
+            display: grid;
+            grid-template-columns: 0.95fr 0.95fr 1.4fr;
+            gap: 12px;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+
+        .add-document-panel {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px 14px;
+            height: 100%;
+        }
+
+        .add-document-panel p:last-child,
+        .add-document-panel .form-text:last-child,
+        .add-document-panel .alert:last-child {
+            margin-bottom: 0;
+        }
+
+        .add-document-panel-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .add-document-modal .journal-fields-section {
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .add-document-modal .journal-fields-title {
+            margin-bottom: 8px;
+        }
+
+        .add-document-modal .form-label {
+            margin-bottom: 4px;
+            font-size: 13px;
+        }
+
+        .add-document-modal .form-control,
+        .add-document-modal .form-select {
+            padding-top: 8px;
+            padding-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .document-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .document-preview-grid .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .document-preview-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .document-preview-section:first-child {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
+        }
+
+        .document-preview-section-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .document-preview-hint {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 8px;
+        }
+
+        .document-preview-readonly {
+            background: #f8fafc;
+            color: #6b7280;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .document-preview-readonly:focus {
+            border-color: #d1d5db;
+            box-shadow: none;
+            outline: none;
+        }
+
+        @media (max-width: 768px) {
+            .add-document-top-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .document-preview-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -641,6 +813,10 @@
                 <a href="/journals/incoming" class="header-nav-link">
                     <i class="fas fa-inbox"></i>
                     <span>Входящие</span>
+                </a>
+                <a href="/journals/outgoing" class="header-nav-link">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Исходящие</span>
                 </a>
             </nav>
         </div>
@@ -1087,7 +1263,7 @@
                         <h4>В этом каталоге пока нет документов</h4>
                         <p class="text-muted">Добавьте первый документ или дождитесь, пока его добавят другие пользователи</p>
                         <button class="btn btn-primary" id="addFirstDocumentBtn" style="display: none;">
-                            <i class="fas fa-plus"></i> Добавить документ
+                            <i class="fas fa-plus"></i> Добавить письмо
                         </button>
                     </div>
                 </div>
@@ -1153,7 +1329,7 @@
                                 if (addDocumentBtnContainer) {
                                     addDocumentBtnContainer.innerHTML = `
                                         <button class="btn btn-primary" onclick="showAddDocumentModal('${catalogId}')">
-                                            <i class="fas fa-plus me-1"></i> Добавить документ
+                                            <i class="fas fa-plus me-1"></i> Добавить письмо
                                         </button>
                                     `;
                                 }
@@ -1161,7 +1337,7 @@
                                 if (addDocumentBtnContainer) {
                                     addDocumentBtnContainer.innerHTML = `
                                         <button class="btn btn-secondary" disabled title="Только для чтения">
-                                            <i class="fas fa-plus me-1"></i> Добавить документ
+                                            <i class="fas fa-plus me-1"></i> Добавить письмо
                                         </button>
                                     `;
                                 }
@@ -1181,13 +1357,13 @@
                             if (permission === 'WRITE' || permission === 'ADMIN') {
                                 addDocumentBtnContainer.innerHTML = `
                                     <button class="btn btn-primary" onclick="showAddDocumentModal('${catalogId}')">
-                                        <i class="fas fa-plus me-1"></i> Добавить документ
+                                        <i class="fas fa-plus me-1"></i> Добавить письмо
                                     </button>
                                 `;
                             } else {
                                 addDocumentBtnContainer.innerHTML = `
                                     <button class="btn btn-secondary" disabled title="Только для чтения">
-                                        <i class="fas fa-plus me-1"></i> Добавить документ
+                                        <i class="fas fa-plus me-1"></i> Добавить письмо
                                     </button>
                                 `;
                             }
@@ -1241,12 +1417,22 @@
                     <!-- Иконка типа файла -->
                     <div class="document-icon ${getFileTypeClass(doc.fileType)}">
                         <i class="${getFileIcon(doc.fileType)}"></i>
-                        ${doc.status === 'new' ? '<span class="badge bg-success badge-new">NEW</span>' : ''}
+                        ${isDocumentNewInSession(doc.id) ? '<span class="badge bg-success badge-new">NEW</span>' : ''}
                     </div>
                     
                     <!-- Информация о документе -->
                     <div class="document-info">
                         <h6 class="document-title" title="${doc.name}">${truncateText(doc.name, 30)}</h6>
+                        <div class="document-meta">
+                            <span class="meta-item journal-type ${doc.documentType || 'document'}" title="Тип журнала">
+                                <i class="${getDocumentTypeIcon(doc.documentType)}"></i> ${getDocumentTypeLabel(doc.documentType)}
+                            </span>
+                            ${doc.documentIndex ? `
+                                <span class="meta-item" title="Регистрационный индекс">
+                                    <i class="fas fa-hashtag"></i> ${doc.documentIndex}
+                                </span>
+                            ` : ''}
+                        </div>
                         <div class="document-meta">
                             <span class="meta-item" title="Версия">
                                 <i class="fas fa-code-branch"></i> ${doc.version || 'v1.0'}
@@ -1263,6 +1449,9 @@
                                 <i class="fas fa-calendar"></i> ${formatDate(doc.uploadedAt) || 'Неизвестно'}
                             </span>
                         </div>
+                        ${doc.description ? `
+                            <p class="document-summary" title="${doc.description}">${truncateText(doc.description, 90)}</p>
+                        ` : ''}
                     </div>
                     
                     <!-- Действия с документом -->
@@ -1480,12 +1669,329 @@
                 return 'img';
             return 'default';
         }
+
+        function getDocumentTypeLabel(documentType) {
+            switch (documentType) {
+                case 'incoming':
+                    return 'Входящий';
+                case 'outgoing':
+                    return 'Исходящий';
+                default:
+                    return 'Документ';
+            }
+        }
+
+        function getDocumentTypeIcon(documentType) {
+            switch (documentType) {
+                case 'incoming':
+                    return 'fas fa-inbox';
+                case 'outgoing':
+                    return 'fas fa-paper-plane';
+                default:
+                    return 'fas fa-file-alt';
+            }
+        }
         
         // Обрезает текст
         function truncateText(text, maxLength) {
             if (!text) return '';
             if (text.length <= maxLength) return text;
             return text.substring(0, maxLength) + '...';
+        }
+
+        function getNewDocumentBadges() {
+            try {
+                const raw = sessionStorage.getItem('new_document_badges');
+                const parsed = raw ? JSON.parse(raw) : [];
+                return Array.isArray(parsed) ? parsed.map(id => String(id)) : [];
+            } catch (error) {
+                console.error('Ошибка чтения меток новых документов:', error);
+                return [];
+            }
+        }
+
+        function setNewDocumentBadges(ids) {
+            sessionStorage.setItem('new_document_badges', JSON.stringify(ids.map(id => String(id))));
+        }
+
+        function markDocumentsAsNew(documentIds) {
+            const existing = new Set(getNewDocumentBadges());
+            documentIds.forEach(id => {
+                if (id !== undefined && id !== null) {
+                    existing.add(String(id));
+                }
+            });
+            setNewDocumentBadges(Array.from(existing));
+        }
+
+        function isDocumentNewInSession(documentId) {
+            return getNewDocumentBadges().includes(String(documentId));
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function getCurrentDocumentById(documentId) {
+            if (!Array.isArray(window.currentDocuments)) return null;
+            return window.currentDocuments.find(doc => String(doc.id) === String(documentId)) || null;
+        }
+
+        function createPreviewField(label, value, options = {}) {
+            const {
+                type = 'text',
+                readOnly = true,
+                fullWidth = false,
+                id = '',
+                placeholder = 'Не заполнено'
+            } = options;
+
+            const safeValue = value ?? '';
+            const wrapperClass = fullWidth ? 'full-width' : '';
+            const fieldId = id ? ` id="${escapeHtml(id)}"` : '';
+            const readOnlyAttr = readOnly ? ' readonly' : '';
+
+            if (type === 'textarea') {
+                return `
+                    <div class="${wrapperClass}">
+                        <label class="form-label">${escapeHtml(label)}</label>
+                        <textarea class="form-control ${readOnly ? 'document-preview-readonly' : ''}" rows="3"${fieldId}${readOnlyAttr} placeholder="${escapeHtml(placeholder)}">${escapeHtml(safeValue)}</textarea>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="${wrapperClass}">
+                    <label class="form-label">${escapeHtml(label)}</label>
+                    <input type="${escapeHtml(type)}" class="form-control ${readOnly ? 'document-preview-readonly' : ''}" value="${escapeHtml(safeValue)}"${fieldId}${readOnlyAttr} placeholder="${escapeHtml(placeholder)}">
+                </div>
+            `;
+        }
+
+        function getDocumentStatusLabel(status) {
+            switch (status) {
+                case 'draft':
+                    return 'Черновик';
+                case 'registered':
+                    return 'В процессе';
+                case 'executed':
+                    return 'Выполнен';
+                case 'archived':
+                    return 'В архиве';
+                case 'new':
+                    return 'Новый';
+                case 'processing':
+                    return 'В обработке';
+                case 'approved':
+                    return 'Утвержден';
+                case 'rejected':
+                    return 'Отклонен';
+                default:
+                    return status || 'Не указано';
+            }
+        }
+
+        function buildPreviewModalBody(documentData, summaryEditable) {
+            const generalFields = `
+                <div class="document-preview-section">
+                    <div class="document-preview-section-title">
+                        <i class="fas fa-file-alt"></i> Основная информация
+                    </div>
+                    <div class="document-preview-grid">
+                        ${createPreviewField('Название документа', documentData.documentName || documentData.name || '', { fullWidth: true })}
+                        ${createPreviewField('Тип документа', getDocumentTypeLabel(documentData.documentType))}
+                        ${createPreviewField('Статус', getDocumentStatusLabel(documentData.status))}
+                        ${createPreviewField('Дата создания', documentData.createdAt ? formatDate(documentData.createdAt) : '')}
+                        ${createPreviewField('Дата обновления', documentData.updatedAt ? formatDate(documentData.updatedAt) : '')}
+                        ${createPreviewField('Краткое содержание', documentData.summary || '', {
+                            type: 'textarea',
+                            readOnly: !summaryEditable,
+                            fullWidth: true,
+                            id: 'previewDocumentSummary',
+                            placeholder: 'Введите краткое содержание'
+                        })}
+                    </div>
+                </div>
+            `;
+
+            let journalFields = '';
+
+            if (documentData.documentType === 'incoming') {
+                journalFields = `
+                    <div class="document-preview-section">
+                        <div class="document-preview-section-title">
+                            <i class="fas fa-inbox"></i> Реквизиты входящего документа
+                        </div>
+                        <div class="document-preview-grid">
+                            ${createPreviewField('Дата поступления', documentData.receivedDate ? formatDate(documentData.receivedDate) : '')}
+                            ${createPreviewField('Индекс документа', documentData.documentIndex || '')}
+                            ${createPreviewField('Корреспондент', documentData.correspondent || '', { fullWidth: true })}
+                            ${createPreviewField('Дата документа корреспондента', documentData.senderDate ? formatDate(documentData.senderDate) : '')}
+                            ${createPreviewField('Индекс документа корреспондента', documentData.senderDocumentIndex || '')}
+                            ${createPreviewField('Резолюция / кому направлен', documentData.resolution || '', { fullWidth: true })}
+                            ${createPreviewField('Срок исполнения', documentData.dueDate ? formatDate(documentData.dueDate) : '')}
+                            ${createPreviewField('Отметка об исполнении', documentData.executionMark || '')}
+                        </div>
+                    </div>
+                `;
+            } else if (documentData.documentType === 'outgoing') {
+                journalFields = `
+                    <div class="document-preview-section">
+                        <div class="document-preview-section-title">
+                            <i class="fas fa-paper-plane"></i> Реквизиты исходящего документа
+                        </div>
+                        <div class="document-preview-grid">
+                            ${createPreviewField('Дата документа', documentData.documentDate ? formatDate(documentData.documentDate) : '')}
+                            ${createPreviewField('Индекс документа', documentData.documentIndex || '')}
+                            ${createPreviewField('Корреспондент', documentData.correspondent || '', { fullWidth: true })}
+                            ${createPreviewField('Отметка об исполнении', documentData.executionMark || '')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            return generalFields + journalFields;
+        }
+
+        function createDocumentPreviewModal(modalId) {
+            const modalHTML = `
+                <div class="modal-overlay" id="${modalId}" style="display: none;">
+                    <div class="modal-content" style="max-width: 760px;">
+                        <div class="modal-header">
+                            <h3 id="documentPreviewTitle">
+                                <i class="fas fa-eye"></i> Просмотр документа
+                            </h3>
+                            <button class="close-btn" onclick="closeModal('${modalId}')">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="documentPreviewLoading" class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Загрузка...</span>
+                                </div>
+                                <p class="mt-3 mb-0">Загрузка данных документа...</p>
+                            </div>
+                            <div id="documentPreviewError" class="alert alert-danger" style="display: none;"></div>
+                            <div id="documentPreviewContent" style="display: none;"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeModal('${modalId}')">Закрыть</button>
+                            <button type="button" class="btn btn-primary" id="savePreviewSummaryBtn" style="display: none;" onclick="savePreviewSummary()">
+                                Сохранить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            return document.getElementById(modalId);
+        }
+
+        async function loadDocumentPreviewData(documentId, documentType) {
+            const type = documentType === 'incoming' || documentType === 'outgoing' ? documentType : null;
+
+            if (type) {
+                const response = await fetch(`/api/user/journals/${type}/${documentId}`, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Не удалось получить данные документа');
+                }
+
+                return {
+                    ...data.document,
+                    documentType: type
+                };
+            }
+
+            const response = await fetch(`/api/documents/${documentId}`, {
+                credentials: 'include'
+            });
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Не удалось получить данные документа');
+            }
+
+            return {
+                ...data.document,
+                documentType: 'document',
+                documentName: data.document.name,
+                summary: data.document.description || ''
+            };
+        }
+
+        async function savePreviewSummary() {
+            const previewState = window.documentPreviewState;
+            if (!previewState || !previewState.canEditSummary) return;
+
+            const summaryField = document.getElementById('previewDocumentSummary');
+            const saveBtn = document.getElementById('savePreviewSummaryBtn');
+            if (!summaryField || !saveBtn) return;
+
+            const nextSummary = summaryField.value.trim();
+            const originalText = saveBtn.innerHTML;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сохранение...';
+
+            try {
+                let url = `/api/documents/${previewState.documentId}`;
+                let payload = { description: nextSummary };
+
+                if (previewState.documentType === 'incoming') {
+                    url = `/api/user/journals/incoming/${previewState.documentId}`;
+                    payload = { summary: nextSummary };
+                } else if (previewState.documentType === 'outgoing') {
+                    url = `/api/user/journals/outgoing/${previewState.documentId}`;
+                    payload = { summary: nextSummary };
+                }
+
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || 'Не удалось сохранить краткое содержание');
+                }
+
+                if (Array.isArray(window.currentDocuments)) {
+                    window.currentDocuments = window.currentDocuments.map(doc =>
+                        String(doc.id) === String(previewState.documentId)
+                            ? { ...doc, description: nextSummary || '', summary: nextSummary || '' }
+                            : doc
+                    );
+                }
+
+                const docsListVisible = document.getElementById('documentsList');
+                if (docsListVisible && docsListVisible.style.display !== 'none') {
+                    renderDocuments(window.currentDocuments || [], window.currentPermission || 'READ');
+                }
+
+                if (previewState.documentData) {
+                    previewState.documentData.summary = nextSummary;
+                }
+
+                alert('Краткое содержание успешно обновлено');
+            } catch (error) {
+                console.error('Ошибка сохранения краткого содержания:', error);
+                alert(error.message || 'Ошибка сохранения краткого содержания');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+            }
         }
         
         // Функция проверки доступа перед загрузкой
@@ -1529,6 +2035,7 @@
             if (form) {
                 form.reset();
                 document.getElementById('uploadCatalogId').value = catalogId;
+                updateJournalFieldsVisibility('');
                 
                 // Обновляем информацию о каталоге
                 const catalogTitle = document.getElementById('catalogTitle');
@@ -1551,73 +2058,256 @@
         /**
          * Создает модальное окно добавления документа
          */
+        function setJournalSectionState(sectionId, enabled) {
+            const section = document.getElementById(sectionId);
+            if (!section) return;
+
+            section.style.display = enabled ? 'block' : 'none';
+            section.querySelectorAll('input, textarea, select').forEach(field => {
+                field.disabled = !enabled;
+                field.required = enabled && field.dataset.required === 'true';
+            });
+        }
+
+        function formatDateInputValue(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatDateTimeLocalValue(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
+        function updateIncomingDeadline(force = false) {
+            const receivedDateInput = document.getElementById('incomingReceivedDate');
+            const deadlineInput = document.getElementById('incomingDeadline');
+            if (!receivedDateInput || !deadlineInput || !receivedDateInput.value) return;
+
+            const registrationDate = new Date(receivedDateInput.value);
+            if (Number.isNaN(registrationDate.getTime())) return;
+
+            const registrationDay = new Date(registrationDate);
+            registrationDay.setHours(0, 0, 0, 0);
+
+            const autoDeadline = new Date(registrationDay);
+            autoDeadline.setDate(autoDeadline.getDate() + 14);
+
+            const minValue = formatDateInputValue(registrationDay);
+            const autoValue = formatDateInputValue(autoDeadline);
+
+            deadlineInput.min = minValue;
+
+            if (force || !deadlineInput.value || deadlineInput.dataset.autoManaged === 'true' || deadlineInput.value < minValue) {
+                deadlineInput.value = autoValue;
+                deadlineInput.dataset.autoManaged = 'true';
+            }
+        }
+
+        function initializeIncomingDeadlineBehavior() {
+            const receivedDateInput = document.getElementById('incomingReceivedDate');
+            const deadlineInput = document.getElementById('incomingDeadline');
+            if (!receivedDateInput || !deadlineInput || receivedDateInput.dataset.deadlineBound === 'true') return;
+
+            receivedDateInput.addEventListener('input', () => updateIncomingDeadline(false));
+            receivedDateInput.addEventListener('change', () => updateIncomingDeadline(false));
+            deadlineInput.addEventListener('input', () => {
+                deadlineInput.dataset.autoManaged = 'false';
+            });
+            deadlineInput.addEventListener('change', () => {
+                deadlineInput.dataset.autoManaged = 'false';
+            });
+
+            receivedDateInput.dataset.deadlineBound = 'true';
+        }
+
+        function initializeIncomingDefaults(force = false) {
+            const receivedDateInput = document.getElementById('incomingReceivedDate');
+            const deadlineInput = document.getElementById('incomingDeadline');
+            if (!receivedDateInput || !deadlineInput) return;
+
+            initializeIncomingDeadlineBehavior();
+
+            if (force || !receivedDateInput.value) {
+                receivedDateInput.value = formatDateTimeLocalValue(new Date());
+            }
+
+            deadlineInput.dataset.autoManaged = 'true';
+            updateIncomingDeadline(true);
+        }
+
+        function updateJournalFieldsVisibility(journalType) {
+            const container = document.getElementById('journalFieldsContainer');
+            if (!container) return;
+
+            const selectedType = journalType || '';
+            container.style.display = selectedType ? 'block' : 'none';
+
+            setJournalSectionState('uploadIncomingFields', selectedType === 'incoming');
+            setJournalSectionState('uploadOutgoingFields', selectedType === 'outgoing');
+
+            if (selectedType === 'incoming') {
+                initializeIncomingDefaults();
+            }
+        }
+
+        function normalizeDateTimeLocal(value) {
+            if (!value) return '';
+            return value.length === 16 ? `${value.replace('T', ' ')}:00` : value.replace('T', ' ');
+        }
+
         function createAddDocumentModal(modalId) {
             const modalHTML = `
-                <div class="modal-overlay" id="${modalId}" style="display: none;">
-                    <div class="modal-content" style="max-width: 600px;">
+                <div class="modal-overlay add-document-modal" id="${modalId}" style="display: none;">
+                    <div class="modal-content">
                         <div class="modal-header">
-                            <h3><i class="fas fa-upload"></i> Загрузить документ</h3>
+                            <h3><i class="fas fa-envelope-open-text"></i> Добавить письмо</h3>
                             <button class="close-btn" onclick="closeModal('${modalId}')">&times;</button>
                         </div>
                         
                         <form id="uploadDocumentForm" onsubmit="return uploadDocument(event)">
                             <div class="modal-body">
                                 <input type="hidden" id="uploadCatalogId" name="catalogId">
-                                
-                                <div class="mb-3">
-                                    <p>Каталог: <strong id="uploadCatalogName">Неизвестно</strong></p>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="fileInput" class="form-label">
-                                        <i class="fas fa-file"></i> Выберите файл *
-                                    </label>
-                                    <input type="file" class="form-control" id="fileInput" name="file" required 
-                                           onchange="previewFile(this)">
-                                    <div class="form-text">
-                                        Максимальный размер: 100MB. Поддерживаемые форматы: PDF, DOC, DOCX, XLS, XLSX, изображения, текст.
+                                <div class="add-document-top-grid">
+                                    <div class="add-document-panel">
+                                        <div class="add-document-panel-title">
+                                            <i class="fas fa-folder-open"></i> Каталог
+                                        </div>
+                                        <p class="mb-0"><strong id="uploadCatalogName">Неизвестно</strong></p>
+                                    </div>
+
+                                    <div class="add-document-panel">
+                                        <label for="journalTypeSelect" class="form-label">
+                                            <i class="fas fa-book"></i> Журнал регистрации *
+                                        </label>
+                                        <select class="form-select" id="journalTypeSelect" name="journalType" required
+                                                onchange="updateJournalFieldsVisibility(this.value)">
+                                            <option value="">Сначала выберите журнал</option>
+                                            <option value="incoming">Входящий</option>
+                                            <option value="outgoing">Исходящий</option>
+                                        </select>
+                                        <div class="form-text">
+                                            Выбор журнала определяет набор регистрационных полей.
+                                        </div>
+                                    </div>
+
+                                    <div class="add-document-panel">
+                                        <label for="fileInput" class="form-label">
+                                            <i class="fas fa-file"></i> Выберите файлы *
+                                        </label>
+                                        <input type="file" class="form-control" id="fileInput" name="file" required multiple
+                                               onchange="previewFile(this)">
+                                        <div class="form-text">
+                                            Можно выбрать несколько файлов.
+                                        </div>
                                     </div>
                                 </div>
-                                
-                                <div id="filePreview" class="mb-3" style="display: none;">
+
+                                <div id="journalFieldsContainer" class="journal-fields-container">
+                                    <div id="uploadIncomingFields" class="journal-fields-section">
+                                        <div class="journal-fields-title">
+                                            <i class="fas fa-inbox me-1"></i>Поля входящего документа
+                                        </div>
+                                        <div class="row g-3">
+                                            <div class="col-lg-4 col-md-6">
+                                                <label for="incomingReceivedDate" class="form-label">Дата поступления *</label>
+                                                <input type="datetime-local" class="form-control" id="incomingReceivedDate"
+                                                       name="receivedDate" data-required="true" disabled>
+                                            </div>
+                                            <div class="col-lg-4 col-md-6">
+                                                <label for="incomingDocumentIndex" class="form-label">Индекс документа *</label>
+                                                <input type="text" class="form-control" id="incomingDocumentIndex"
+                                                       name="documentIndex" data-required="true" disabled>
+                                            </div>
+                                            <div class="col-lg-4 col-md-6">
+                                                <label for="incomingDeadline" class="form-label">Срок исполнения</label>
+                                                <input type="date" class="form-control" id="incomingDeadline"
+                                                       name="deadline" disabled>
+                                            </div>
+                                            <div class="col-lg-5 col-md-6">
+                                                <label for="incomingCorrespondent" class="form-label">Корреспондент *</label>
+                                                <input type="text" class="form-control" id="incomingCorrespondent"
+                                                       name="correspondent" data-required="true" disabled
+                                                       placeholder="От кого поступил документ">
+                                            </div>
+                                            <div class="col-lg-3 col-md-6">
+                                                <label for="incomingDocumentStatus" class="form-label">Отметка</label>
+                                                <select class="form-select" id="incomingDocumentStatus" name="documentStatus" disabled>
+                                                    <option value="registered" selected>В процессе</option>
+                                                    <option value="executed">Выполнен</option>
+                                                    <option value="archived">В архиве</option>
+                                                    <option value="draft">Черновик</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-lg-4 col-md-12">
+                                                <label for="incomingResolution" class="form-label">Резолюция</label>
+                                                <input type="text" class="form-control" id="incomingResolution"
+                                                       name="resolution" disabled placeholder="Укажите резолюцию">
+                                            </div>
+                                            <div class="col-12">
+                                                <label for="incomingDescription" class="form-label">Краткое содержание *</label>
+                                                <textarea class="form-control" id="incomingDescription" name="description"
+                                                          rows="2" data-required="true" disabled
+                                                          placeholder="Кратко опишите содержание документа"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div id="uploadOutgoingFields" class="journal-fields-section">
+                                        <div class="journal-fields-title">
+                                            <i class="fas fa-paper-plane me-1"></i>Поля исходящего документа
+                                        </div>
+                                        <div class="row g-3">
+                                            <div class="col-lg-4 col-md-6">
+                                                <label for="outgoingDocumentDate" class="form-label">Дата документа *</label>
+                                                <input type="date" class="form-control" id="outgoingDocumentDate"
+                                                       name="documentDate" data-required="true" disabled>
+                                            </div>
+                                            <div class="col-lg-4 col-md-6">
+                                                <label for="outgoingDocumentIndex" class="form-label">Индекс документа *</label>
+                                                <input type="text" class="form-control" id="outgoingDocumentIndex"
+                                                       name="documentIndex" data-required="true" disabled>
+                                            </div>
+                                            <div class="col-lg-4 col-md-6">
+                                                <label for="outgoingDocumentStatus" class="form-label">Отметка</label>
+                                                <select class="form-select" id="outgoingDocumentStatus" name="documentStatus" disabled>
+                                                    <option value="registered" selected>В процессе</option>
+                                                    <option value="executed">Выполнен</option>
+                                                    <option value="archived">В архиве</option>
+                                                    <option value="draft">Черновик</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-lg-6 col-md-12">
+                                                <label for="outgoingCorrespondent" class="form-label">Корреспондент *</label>
+                                                <input type="text" class="form-control" id="outgoingCorrespondent"
+                                                       name="correspondent" data-required="true" disabled
+                                                       placeholder="Кому адресован документ">
+                                            </div>
+                                            <div class="col-lg-6 col-md-12">
+                                                <label for="outgoingDescription" class="form-label">Краткое содержание *</label>
+                                                <textarea class="form-control" id="outgoingDescription" name="description"
+                                                          rows="2" data-required="true" disabled
+                                                          placeholder="Кратко опишите содержание документа"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="filePreview" class="add-document-panel" style="display: none;">
                                     <!-- Предпросмотр файла -->
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="fileDescription" class="form-label">
-                                        <i class="fas fa-align-left"></i> Краткое содержание (необязательно)
-                                    </label>
-                                    <textarea class="form-control" id="fileDescription" name="description" 
-                                              rows="2" placeholder="Кратко опишите содержание документа..."></textarea>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="fileResolution" class="form-label">
-                                        <i class="fas fa-user-tag"></i> Кому направлен
-                                    </label>
-                                    <input type="text" class="form-control" id="fileResolution" name="resolution"
-                                           placeholder="Имя сотрудника или отдела">
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="fileDeadline" class="form-label">
-                                        <i class="fas fa-calendar-alt"></i> Срок исполнения
-                                    </label>
-                                    <input type="date" class="form-control" id="fileDeadline" name="deadline">
-                                </div>
-                                
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle"></i>
-                                    <small>
-                                        Документ будет автоматически зарегистрирован в журнале входящих с присвоением индекса.
-                                    </small>
                                 </div>
                             </div>
                             
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" onclick="closeModal('${modalId}')">Отмена</button>
                                 <button type="submit" class="btn btn-primary" id="uploadBtn">
-                                    <i class="fas fa-upload"></i> Загрузить документ
+                                    <i class="fas fa-upload"></i> Добавить письмо
                                 </button>
                             </div>
                         </form>
@@ -1643,32 +2333,39 @@
          * Предпросмотр файла перед загрузкой
          */
         function previewFile(input) {
+            console.log(input.files)
             const preview = document.getElementById('filePreview');
             
             if (!input.files || input.files.length === 0) {
                 preview.style.display = 'none';
                 return;
             }
-            
-            const file = input.files[0];
-            const fileSize = formatFileSize(file.size);
-            const fileType = getFileIconClass(file.name);
-            
+
+            const files = Array.from(input.files);
+            const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+
             preview.innerHTML = `
                 <div class="card">
                     <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="me-3">
-                                <i class="${fileType.icon} fa-2x ${fileType.color}"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-1">${file.name}</h6>
-                                <div class="text-muted small">
-                                    <div>Размер: ${fileSize}</div>
-                                    <div>Тип: ${file.type || 'Неизвестно'}</div>
-                                    <div>Последнее изменение: ${new Date(file.lastModified).toLocaleString()}</div>
-                                </div>
-                            </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0">Выбрано файлов: ${files.length}</h6>
+                            <span class="text-muted small">Общий размер: ${formatFileSize(totalSize)}</span>
+                        </div>
+                        <div class="text-muted small">
+                            ${files.map(file => {
+                                const fileType = getFileIconClass(file.name);
+                                return `
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="me-2">
+                                            <i class="${fileType.icon} ${fileType.color}"></i>
+                                        </div>
+                                        <div>
+                                            <div>${file.name}</div>
+                                            <div class="text-muted">Размер: ${formatFileSize(file.size)} | Тип: ${file.type || 'Неизвестно'}</div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
                         </div>
                     </div>
                 </div>
@@ -1684,25 +2381,36 @@
             event.preventDefault();
             
             const form = event.target;
-            const formData = new FormData(form);
             const uploadBtn = document.getElementById('uploadBtn');
             const originalBtnText = uploadBtn.innerHTML;
             
             // Валидация
             const fileInput = document.getElementById('fileInput');
             if (!fileInput.files || fileInput.files.length === 0) {
-                alert('Пожалуйста, выберите файл для загрузки');
+                alert('Пожалуйста, выберите хотя бы один файл для загрузки');
                 return false;
             }
-            
-            const file = fileInput.files[0];
-            if (file.size > 100 * 1024 * 1024) { // 100MB
-                alert('Файл слишком большой. Максимальный размер: 100MB');
+
+            const files = Array.from(fileInput.files);
+            const oversizedFile = files.find(file => file.size > 100 * 1024 * 1024);
+            if (oversizedFile) {
+                alert(`Файл "${oversizedFile.name}" слишком большой. Максимальный размер: 100MB`);
                 return false;
+            }
+
+            const journalType = document.getElementById('journalTypeSelect')?.value;
+            if (!journalType) {
+                alert('Сначала выберите журнал регистрации');
+                return false;
+            }
+
+            const formData = new FormData(form);
+            if (journalType === 'incoming' && formData.get('receivedDate')) {
+                formData.set('receivedDate', normalizeDateTimeLocal(formData.get('receivedDate')));
             }
             
             // Блокируем кнопку
-            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Добавление...';
             uploadBtn.disabled = true;
             
             try {
@@ -1715,7 +2423,13 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    alert('✅ Документ успешно загружен!');
+                    const createdIds = (data.data?.documents || []).map(doc => doc.id);
+                    markDocumentsAsNew(createdIds);
+
+                    const uploadedCount = data.data?.count || files.length;
+                    alert(uploadedCount > 1
+                        ? `✅ Письма успешно добавлены: ${uploadedCount}`
+                        : '✅ Письмо успешно добавлено!');
                     closeModal('addDocumentModal');
                     
                     // Обновляем список документов
@@ -2171,9 +2885,71 @@
         /**
          * Просмотр документа (предпросмотр в модальном окне)
          */
-        function previewDocument(documentId) {
-            // Для простоты используем скачивание, в реальной системе можно добавить предпросмотр
-            alert('Предпросмотр документа доступен после скачивания. Для просмотра скачайте документ.');
+        async function previewDocument(documentId) {
+            const modalId = 'documentPreviewModal';
+            let modal = document.getElementById(modalId);
+
+            if (!modal) {
+                modal = createDocumentPreviewModal(modalId);
+            }
+
+            const loading = document.getElementById('documentPreviewLoading');
+            const errorBox = document.getElementById('documentPreviewError');
+            const content = document.getElementById('documentPreviewContent');
+            const title = document.getElementById('documentPreviewTitle');
+            const saveBtn = document.getElementById('savePreviewSummaryBtn');
+            const currentDoc = getCurrentDocumentById(documentId);
+            const documentType = currentDoc?.documentType || 'document';
+            const canEditSummary = window.currentPermission === 'WRITE' || window.currentPermission === 'ADMIN';
+
+            window.documentPreviewState = {
+                documentId,
+                documentType,
+                canEditSummary,
+                documentData: null
+            };
+
+            if (loading) loading.style.display = 'block';
+            if (errorBox) {
+                errorBox.style.display = 'none';
+                errorBox.textContent = '';
+            }
+            if (content) {
+                content.style.display = 'none';
+                content.innerHTML = '';
+            }
+            if (saveBtn) {
+                saveBtn.style.display = canEditSummary ? 'inline-flex' : 'none';
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = 'Сохранить';
+            }
+            if (title) {
+                title.innerHTML = '<i class="fas fa-eye"></i> Просмотр документа';
+            }
+
+            modal.style.display = 'flex';
+
+            try {
+                const documentData = await loadDocumentPreviewData(documentId, documentType);
+                window.documentPreviewState.documentData = documentData;
+
+                if (title) {
+                    title.innerHTML = `<i class="fas fa-eye"></i> ${escapeHtml(documentData.documentName || documentData.name || 'Просмотр документа')}`;
+                }
+
+                if (content) {
+                    content.innerHTML = buildPreviewModalBody(documentData, canEditSummary);
+                    content.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки данных документа:', error);
+                if (errorBox) {
+                    errorBox.textContent = error.message || 'Не удалось загрузить данные документа';
+                    errorBox.style.display = 'block';
+                }
+            } finally {
+                if (loading) loading.style.display = 'none';
+            }
         }
         
         /**
@@ -2242,6 +3018,7 @@
         async function logout() {
             try {
                 console.log('📡 Выход из системы...');
+                sessionStorage.removeItem('new_document_badges');
                 const response = await fetch('/api/logout', { 
                     method: 'POST',
                     credentials: 'include'
