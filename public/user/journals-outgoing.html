@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/user/user-nav.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -199,9 +200,17 @@
         <div class="header-text">
             <h1><i class="fas fa-paper-plane"></i> Журнал исходящих документов</h1>
         </div>
-        <a href="/dashboard" class="header-nav-link">
-            <i class="fas fa-home"></i><span>Главная</span>
-        </a>
+        <nav class="header-nav" aria-label="Основная навигация">
+            <a href="/dashboard" class="header-nav-link" data-nav="home">
+                <i class="fas fa-home"></i><span>Главная</span>
+            </a>
+            <a href="/journals/incoming" class="header-nav-link" data-nav="incoming">
+                <i class="fas fa-inbox"></i><span>Входящие</span>
+            </a>
+            <a href="/journals/outgoing" class="header-nav-link" data-nav="outgoing">
+                <i class="fas fa-paper-plane"></i><span>Исходящие</span>
+            </a>
+        </nav>
     </div>
     <div class="user-profile" id="userProfile">
         <div class="user-avatar" id="userAvatar">?</div>
@@ -294,8 +303,9 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/user/user-nav.js" defer></script>
 <script>
-const state = { page: 1, limit: 20, totalPages: 1 };
+const state = { page: 1, limit: 20, totalPages: 1, dateDefaultsApplied: false };
 
 document.addEventListener('DOMContentLoaded', async () => {
     await loadUserInfo();
@@ -323,7 +333,19 @@ function handleDateRangeChange() {
     const dateFromInput = document.getElementById('searchDateFrom');
     const dateToInput = document.getElementById('searchDateTo');
     normalizeDateRange(dateFromInput, dateToInput);
+    state.dateDefaultsApplied = true;
     loadDocuments();
+}
+
+function applyDefaultJournalDateInputs(dateRange) {
+    if (!dateRange || !dateRange.min || !dateRange.max) return;
+    const df = document.getElementById('searchDateFrom');
+    const dt = document.getElementById('searchDateTo');
+    if (!state.dateDefaultsApplied && !df.value && !dt.value) {
+        df.value = dateRange.min;
+        dt.value = dateRange.max;
+        state.dateDefaultsApplied = true;
+    }
 }
 
 async function loadUserInfo() {
@@ -389,6 +411,8 @@ async function loadDocuments() {
         const res = await fetch(`/api/user/journals/outgoing?${params}`, { credentials: 'include' });
         const data = await res.json();
         if (!data.success) throw new Error(data.message);
+
+        applyDefaultJournalDateInputs(data.dateRange);
 
         state.totalPages = data.pagination.pages || 1;
         document.getElementById('totalCount').textContent = data.pagination.total;
@@ -477,6 +501,7 @@ function clearFilters() {
     document.getElementById('searchIndex').value = '';
     document.getElementById('statusFilter').value = '';
     state.page = 1;
+    state.dateDefaultsApplied = false;
     loadDocuments();
 }
 
@@ -503,7 +528,7 @@ function renderEmpty() {
         `<div class="state-container">
             <div class="state-icon"><i class="fas fa-paper-plane"></i></div>
             <h5>Записей пока нет</h5>
-            <p class="text-muted">Добавьте исходящее письмо в справочнике, и оно появится здесь автоматически</p>
+            <p class="text-muted">Добавьте исходящее письмо в каталоге, и оно появится здесь автоматически</p>
             <a href="/dashboard" class="btn btn-success btn-sm mt-2">
                 <i class="fas fa-arrow-right me-1"></i>Перейти к каталогам
             </a>

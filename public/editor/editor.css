@@ -471,6 +471,156 @@
     gap: 8px;
     flex-wrap: wrap;
 }
+
+.tree-node-main {
+    display: flex;
+    flex: 1;
+    align-items: flex-start;
+    gap: 10px;
+    min-width: 0;
+    text-align: left;
+    cursor: pointer;
+}
+
+.tree-node-text-wrap {
+    flex: 1;
+    min-width: 0;
+}
+
+.tree-toggle--placeholder {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Панель дерева каталогов: фон как у карточек админки, рамка #d8e3f3 */
+.tree-view-container.directories-tree-panel {
+    display: block;
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #d8e3f3;
+    background: rgba(244, 248, 253, 0.94);
+    box-shadow: 0 14px 34px rgba(8, 18, 38, 0.1);
+    color: #23314f;
+}
+
+.directories-tree-panel .tree-view {
+    color: inherit;
+}
+
+.directories-tree-panel .tree-actions {
+    margin-top: 0;
+}
+
+.directories-tree-panel .tree-node-content {
+    border-left-color: #d8e3f3;
+}
+
+.directories-tree-panel .tree-node-header {
+    background: #fff;
+    border: 1px solid #d8e3f3;
+    color: #26324f;
+}
+
+.directories-tree-panel .tree-node-header:hover {
+    background: #f7fafc;
+    border-color: #c5d4ed;
+    box-shadow: 0 2px 8px rgba(8, 18, 38, 0.06);
+}
+
+.directories-tree-panel .tree-node-header.is-selected {
+    background: #e8f0fc;
+    border-color: #2457a6;
+    color: #0f274e;
+    box-shadow: 0 2px 10px rgba(36, 87, 166, 0.12);
+}
+
+.directories-tree-panel .tree-node-header:not(.is-selected) .tree-node-name,
+.directories-tree-panel .tree-node-header:not(.is-selected) .tree-icon {
+    color: #26324f;
+}
+
+.directories-tree-panel .tree-node-header:not(.is-selected) .tree-node-description,
+.directories-tree-panel .tree-node-header:not(.is-selected) .tree-node-children-count,
+.directories-tree-panel .tree-node-header:not(.is-selected) .tree-toggle {
+    color: #71809d;
+}
+
+.directories-tree-panel .tree-node-header:not(.is-selected) .tree-node-info {
+    color: #71809d;
+}
+
+.directories-tree-panel .tree-node-header.is-selected .tree-node-name,
+.directories-tree-panel .tree-node-header.is-selected .tree-node-description,
+.directories-tree-panel .tree-node-header.is-selected .tree-node-children-count,
+.directories-tree-panel .tree-node-header.is-selected .tree-toggle,
+.directories-tree-panel .tree-node-header.is-selected .tree-icon,
+.directories-tree-panel .tree-node-header.is-selected .tree-node-info {
+    color: #0f274e;
+}
+
+.directories-tree-panel .tree-node-header:not(.is-selected) .tree-node-badge {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #d8e3f3;
+}
+
+.directories-tree-panel .tree-node-header.is-selected .tree-node-badge {
+    background: rgba(36, 87, 166, 0.1);
+    color: #0f274e;
+    border-color: rgba(36, 87, 166, 0.2);
+}
+
+.directories-tree-panel .tree-node-header:not(.is-selected) .tree-node-action-btn {
+    color: #71809d;
+}
+
+.directories-tree-panel .tree-node-header:not(.is-selected) .tree-node-action-btn:hover {
+    background: #eef2f8;
+    color: #26324f;
+}
+
+.directories-tree-panel .tree-node-header.is-selected .tree-node-action-btn {
+    color: #4b5563;
+}
+
+.directories-tree-panel .tree-node-header.is-selected .tree-node-action-btn:hover {
+    background: #e5e7eb;
+    color: #111827;
+}
+
+.directories-tree-panel .empty-tree,
+.directories-tree-panel .empty-tree h3,
+.directories-tree-panel .empty-tree p,
+.directories-tree-panel .tree-loading {
+    color: #71809d;
+}
+
+.directories-tree-panel .empty-tree i,
+.directories-tree-panel .tree-loading i {
+    color: #96a2bc;
+}
+
+.directories-tree-panel .tree-path {
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid #d8e3f3;
+    color: #475569;
+}
+
+.directories-tree-panel .tree-path-item {
+    color: #2457a6;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.directories-tree-panel .tree-back-btn {
+    color: #71809d;
+}
+
+.directories-tree-panel .tree-back-btn:hover {
+    color: #2457a6;
+}
+
 /* Стили для статуса пароля в хэдере */
 .user-status {
     font-size: 11px;
@@ -524,7 +674,7 @@
     font-weight: 500;
 }
 
-/* Контейнер таблицы «Список справочников» — ширина и сетка; оформление см. блок в конце файла */
+/* Контейнер таблицы «Список каталогов» — ширина и сетка; оформление см. блок в конце файла */
 .admin-container .table-container.table-container--directories {
     width: 100%;
     max-width: min(1200px, 100%);
@@ -541,7 +691,7 @@
     margin-bottom: 28px;
 }
 
-/* Заголовок карточки: «Список справочников», блок формы — палитра как у шапки */
+/* Заголовок карточки: «Список каталогов», блок формы — палитра как у шапки */
 .admin-container .card .card-header {
     background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 45%, #2563eb 100%);
     border-bottom: 1px solid rgba(255, 255, 255, 0.3);
@@ -556,7 +706,10 @@
 }
 
 .admin-container .card .card-header .view-toggle-btn {
-    color: #1e40af;
+    color: #71809d;
+    background: transparent;
+    border: none;
+    box-shadow: none;
 }
 
 .admin-container .card .card-header .view-toggle-btn.active {
@@ -566,7 +719,8 @@
 }
 
 .admin-container .card .card-header .view-toggle-btn:hover:not(.active) {
-    color: #1e3a8a;
+    color: #5c6b86;
+    background: rgba(255, 255, 255, 0.55);
 }
 
 .admin-container .card .card-header .btn-sm.btn-secondary {
@@ -615,24 +769,37 @@
     }
 }
 
-/* Лавандовый фон страницы (editor.html) */
+/* Фон страницы как в кабинете пользователя */
 body {
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 40%, #bfdbfe 100%);
+    background: #f8fafc;
     background-attachment: fixed;
 }
 
-/* Шапка в стиле личного кабинета, палитра лаванды */
+/* Шапка: те же голубые цвета, что у заголовка карточки «Список каталогов» (.card .card-header) */
 .admin-container > .header {
     background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 45%, #2563eb 100%);
-    padding: 0 32px;
-    height: 80px;
-    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.12);
-    border-bottom: none;
+    padding: 0 30px;
+    height: 68px;
+    box-shadow: 0 2px 15px rgba(30, 58, 138, 0.15);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
     backdrop-filter: none;
 }
 
 .admin-container > .header .header-left {
     gap: 10px;
+    align-items: center;
+}
+
+.admin-container > .header .header-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 12px;
+    flex-wrap: wrap;
+}
+
+.admin-container > .header .header-nav .header-nav-link {
+    margin-left: 0;
 }
 
 .admin-container > .header .logo {
@@ -642,7 +809,7 @@ body {
 }
 
 .admin-container > .header .logo-text h1 {
-    font-size: 20px;
+    font-size: 19px;
     font-weight: 700;
     color: #1e3a8a;
     letter-spacing: -0.3px;
@@ -661,7 +828,7 @@ body {
 }
 
 .admin-container > .header .logo-text p {
-    font-size: 12px;
+    font-size: 11px;
     color: #1e40af;
     margin-top: 1px;
     font-weight: 500;
@@ -671,25 +838,25 @@ body {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: #1e3a8a;
+    color: #1e40af;
     text-decoration: none;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     padding: 7px 14px;
     border-radius: 6px;
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.38);
     border: 1px solid rgba(30, 58, 138, 0.28);
-    transition: background 0.2s, color 0.2s;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
     white-space: nowrap;
-    margin-left: 8px;
 }
 
 .admin-container > .header .header-nav-link i {
-    color: #1e3a8a;
+    color: #1e40af;
 }
 
 .admin-container > .header .header-nav-link:hover {
-    background: rgba(255, 255, 255, 0.72);
+    background: rgba(255, 255, 255, 0.55);
+    border-color: rgba(30, 58, 138, 0.38);
     color: #172554;
 }
 
@@ -706,13 +873,14 @@ body {
     border-radius: 10px;
     cursor: pointer;
     user-select: none;
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    transition: background 0.2s;
+    background: rgba(255, 255, 255, 0.45);
+    border: 1px solid rgba(30, 58, 138, 0.3);
+    transition: background 0.2s, border-color 0.2s;
 }
 
 .admin-container > .header .user-profile:hover {
-    background: rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(30, 58, 138, 0.42);
 }
 
 .admin-container > .header .user-avatar {
@@ -724,10 +892,11 @@ body {
     justify-content: center;
     font-weight: 700;
     font-size: 15px;
-    background: rgba(255, 255, 255, 0.25);
-    color: white;
+    background: rgba(255, 255, 255, 0.65);
+    color: #1e3a8a;
     flex-shrink: 0;
     box-shadow: none;
+    border: 1px solid rgba(30, 58, 138, 0.2);
 }
 
 .admin-container > .header .user-details {
@@ -739,12 +908,12 @@ body {
 .admin-container > .header .user-name {
     font-weight: 600;
     font-size: 13.5px;
-    color: white;
+    color: #1e3a8a;
 }
 
 .admin-container > .header .user-role {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.78);
+    color: #1e40af;
     background: transparent;
     padding: 0;
     border-radius: 0;
@@ -752,7 +921,7 @@ body {
 
 .admin-container > .header .user-chevron {
     font-size: 10px;
-    color: rgba(255, 255, 255, 0.75);
+    color: #1e40af;
     transition: transform 0.2s;
     margin-left: 2px;
 }
@@ -839,7 +1008,7 @@ body {
 
 .admin-container > .header .dd-item i {
     width: 16px;
-    color: #1d4ed8;
+    color: #5b86e5;
     font-size: 13px;
 }
 
@@ -857,12 +1026,12 @@ body {
 }
 
 .admin-container .main-content {
-    margin-top: 80px;
+    margin-top: 68px;
     margin-left: 0;
     width: 100%;
     max-width: none;
     padding: 14px 22px;
-    min-height: calc(100vh - 80px);
+    min-height: calc(100vh - 68px);
 }
 
 /* Компактнее верхний блок (плашка с заголовком страницы) */
@@ -887,7 +1056,7 @@ body {
 @media (max-width: 768px) {
     .admin-container > .header {
         padding: 0 20px;
-        height: 76px;
+        height: 68px;
     }
 
     .admin-container > .header .logo-text p {
@@ -895,9 +1064,9 @@ body {
     }
 
     .admin-container .main-content {
-        margin-top: 76px;
+        margin-top: 68px;
         margin-left: 0;
-        min-height: calc(100vh - 76px);
+        min-height: calc(100vh - 68px);
         padding: 12px 16px;
     }
 }
@@ -919,7 +1088,7 @@ body {
     .admin-container > .header .header-nav-link {
         font-size: 12px;
         padding: 6px 10px;
-        margin-left: 4px;
+        margin-left: 0;
     }
 
     .admin-container .main-content {
@@ -939,7 +1108,7 @@ body {
     }
 }
 
-/* Форма добавления / редактирования справочника и модалка назначений */
+/* Форма добавления / редактирования каталога и модалка назначений */
 #directoryFormModal .form-row,
 #assignmentFormModal .form-row {
     display: grid;
@@ -1100,17 +1269,30 @@ body {
     max-width: min(560px, 94vw);
 }
 
+#reportExportModal .modal-body.directory-form-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    text-align: center;
+}
+
 #reportExportModal .report-export-text {
     margin: 0;
+    width: 100%;
     color: #1e40af;
     font-size: 15px;
     line-height: 1.55;
+    text-align: center;
 }
 
 #reportExportModal .report-export-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
     gap: 14px;
+    width: 100%;
 }
 
 #reportExportModal .report-export-actions .btn-primary {
@@ -1157,10 +1339,8 @@ body {
         gap: 20px;
     }
 
-    #reportExportModal .report-export-actions {
-        grid-template-columns: 1fr;
-    }
 }
+
 
 @media (max-width: 480px) {
     #directoryFormModal .modal-body.directory-form-body,
@@ -1215,14 +1395,22 @@ body {
     background: linear-gradient(135deg, rgba(37, 99, 235, 0.95), rgba(30, 64, 175, 0.95));
 }
 
+/* Активный пункт: как кнопка «Таблица/Дерево» в активном состоянии у «Список каталогов» */
 .admin-container > .header .header-nav-link.active {
-    background: rgba(255, 255, 255, 0.82);
-    color: #172554;
-    border-color: rgba(30, 58, 138, 0.4);
+    background: #ffffff !important;
+    border-color: rgba(37, 99, 235, 0.35) !important;
+    box-shadow: 0 1px 4px rgba(30, 58, 138, 0.12) !important;
+    font-weight: 600;
 }
 
+.admin-container > .header .header-nav-link.active,
 .admin-container > .header .header-nav-link.active i {
-    color: #172554;
+    color: #2563eb !important;
+}
+
+.admin-container > .header .header-nav-link.active:hover,
+.admin-container > .header .header-nav-link.active:hover i {
+    color: #1d4ed8 !important;
 }
 
 .stats-dashboard-card {
@@ -1241,7 +1429,7 @@ body {
 
 .stats-summary-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 18px;
     margin-bottom: 22px;
 }
@@ -1495,7 +1683,7 @@ body {
     }
 }
 
-/* Модалка «Подтверждение удаления» — как окно формы справочника */
+/* Модалка «Подтверждение удаления» — как окно формы каталога */
 #confirmModal .modal-content {
     background: linear-gradient(180deg, #eff6ff 0%, #e0f2fe 50%, #dbeafe 100%);
     border: 1px solid rgba(37, 99, 235, 0.4);
@@ -1582,7 +1770,7 @@ body {
     border-color: rgba(29, 78, 216, 0.55);
 }
 
-/* Модалка «Смена пароля» — как форма справочника */
+/* Модалка «Смена пароля» — как форма каталога */
 #changePasswordModal.modal-overlay {
     z-index: 2150;
 }
@@ -2081,116 +2269,9 @@ body {
     }
 }
 
-/* ===== Editor light auth-like theme ===== */
-body {
-    background:
-        radial-gradient(circle at top left, rgba(96, 165, 250, 0.22), transparent 26%),
-        radial-gradient(circle at top right, rgba(59, 130, 246, 0.18), transparent 30%),
-        linear-gradient(160deg, #13233f 0%, #1a2f52 45%, #223c67 100%);
-    background-attachment: fixed;
-}
-
+/* Основной текст в зоне контента */
 .admin-container {
     color: #24324d;
-}
-
-.admin-container > .header {
-    background: linear-gradient(135deg, #0b1f3f 0%, #12366f 48%, #1d4f91 100%);
-    border: none;
-    box-shadow: 0 16px 36px rgba(5, 13, 29, 0.38);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-}
-
-.admin-container > .header .logo-text h1,
-.admin-container > .header .logo-text h1 > i {
-    color: #eff6ff;
-    text-shadow: 0 1px 0 rgba(4, 11, 24, 0.18);
-}
-
-.admin-container > .header .logo-text p {
-    color: rgba(219, 234, 254, 0.88);
-}
-
-.admin-container > .header .header-nav-link {
-    color: #eff6ff;
-    background: rgba(147, 197, 253, 0.12);
-    border: 1px solid rgba(191, 219, 254, 0.24);
-    border-radius: 10px;
-    box-shadow: none;
-}
-
-.admin-container > .header .header-nav-link i {
-    color: #eff6ff;
-}
-
-.admin-container > .header .header-nav-link:hover,
-.admin-container > .header .header-nav-link.active {
-    background: rgba(147, 197, 253, 0.22);
-    color: #eff6ff;
-    border-color: rgba(191, 219, 254, 0.4);
-    box-shadow: none;
-}
-
-.admin-container > .header .header-nav-link:hover i,
-.admin-container > .header .header-nav-link.active i {
-    color: #eff6ff;
-}
-
-.admin-container > .header .user-profile {
-    background: rgba(147, 197, 253, 0.08);
-    border: 1px solid rgba(191, 219, 254, 0.18);
-    box-shadow: none;
-}
-
-.admin-container > .header .user-profile:hover {
-    background: rgba(147, 197, 253, 0.16);
-}
-
-.admin-container > .header .user-avatar {
-    background: rgba(191, 219, 254, 0.16);
-    color: #ffffff;
-    box-shadow: none;
-}
-
-.admin-container > .header .user-name {
-    color: #eff6ff;
-}
-
-.admin-container > .header .user-role,
-.admin-container > .header .user-chevron {
-    color: rgba(219, 234, 254, 0.78);
-}
-
-.admin-container > .header .user-dropdown {
-    background: rgba(244, 248, 253, 0.98);
-    border: 1px solid #d8e3f3;
-    box-shadow: 0 18px 38px rgba(18, 52, 86, 0.18);
-}
-
-.admin-container > .header .dd-user-header {
-    background: rgba(232, 240, 251, 0.9);
-}
-
-.admin-container > .header .dd-user-header .duh-name {
-    color: #1e3a5f;
-}
-
-.admin-container > .header .dd-user-header .duh-role,
-.admin-container > .header .dd-user-header .duh-meta {
-    color: #5f7897;
-}
-
-.admin-container > .header .dd-item {
-    color: #28486d;
-}
-
-.admin-container > .header .dd-item:hover {
-    background: #edf3fb;
-}
-
-.admin-container > .header .dd-item i {
-    color: #2457a6;
 }
 
 .admin-container .main-content > .card,
@@ -2213,6 +2294,12 @@ body {
     background: rgba(244, 248, 253, 0.94);
     border: 1px solid #d8e3f3;
     box-shadow: 0 14px 34px rgba(8, 18, 38, 0.10);
+}
+
+.admin-container .tree-view-container.directories-tree-panel {
+    background: rgba(244, 248, 253, 0.94);
+    border: 1px solid #d8e3f3;
+    box-shadow: 0 14px 34px rgba(8, 18, 38, 0.1);
 }
 
 .admin-container .page-header h1,
@@ -2613,7 +2700,7 @@ body {
     color: #2457a6 !important;
 }
 
-/* ===== Список справочников: сетка, ячейки, пустые состояния (единый admin-вид) ===== */
+/* ===== Список каталогов: сетка, ячейки, пустые состояния (единый admin-вид) ===== */
 .admin-container .directories-table--modern thead th.col-id {
     width: 4.25rem !important;
     text-align: center !important;

@@ -115,9 +115,9 @@ class AdminPanel {
                         
                         <form id="createUserForm">
                             <div class="form-group">
-                                <label for="username"><i class="fas fa-user"></i> Имя пользователя</label>
+                                <label for="username"><i class="fas fa-user"></i> Логин</label>
                                 <input type="text" id="username" class="form-control" 
-                                       placeholder="Введите логин" required>
+                                       placeholder="Укажите логин" required autocomplete="username">
                             </div>
                             
                             <div class="form-group">
@@ -142,39 +142,42 @@ class AdminPanel {
                 </div>
 
                 <!-- Модальное окно редактирования -->
-                <div class="modal-overlay" id="editModal">
-                    <div class="modal-content">
+                <div class="modal-overlay" id="editModal" role="dialog" aria-modal="true" aria-labelledby="editUserModalTitle">
+                    <div class="modal-content modal-content--edit-user">
                         <div class="modal-header">
-                            <h3><i class="fas fa-edit"></i> Редактировать пользователя</h3>
-                            <button class="close-btn" id="closeModalBtn">&times;</button>
+                            <h3 id="editUserModalTitle"><i class="fas fa-user-edit"></i> Редактировать пользователя</h3>
+                            <button type="button" class="close-btn" id="closeModalBtn" aria-label="Закрыть">&times;</button>
                         </div>
                         <form id="editUserForm">
                             <input type="hidden" id="editUserId">
-                            
-                            <div class="form-group">
-                                <label for="editUsername"><i class="fas fa-user"></i> Имя пользователя</label>
-                                <input type="text" id="editUsername" class="form-control" 
-                                       placeholder="Введите новый логин" required>
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label for="editUsername"><i class="fas fa-at"></i> Логин</label>
+                                    <input type="text" id="editUsername" class="form-control" name="login"
+                                           readonly autocomplete="username" spellcheck="false"
+                                           aria-describedby="editLoginHint" title="Логин нельзя изменить">
+                                    <small id="editLoginHint" class="form-text">Задаётся при создании учётной записи, изменить нельзя.</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="editRole"><i class="fas fa-user-tag"></i> Роль <span class="field-required" aria-hidden="true">*</span></label>
+                                    <select id="editRole" class="form-control" required aria-required="true">
+                                        <option value="">Выберите роль...</option>
+                                    </select>
+                                    <small id="editRoleHint" class="form-text">Права пользователя в системе.</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="editPassword"><i class="fas fa-key"></i> Новый пароль</label>
+                                    <input type="password" id="editPassword" class="form-control" name="newPassword"
+                                           autocomplete="new-password" minlength="4"
+                                           placeholder="Оставьте пустым, если пароль не меняете"
+                                           aria-describedby="editPasswordHint">
+                                    <small id="editPasswordHint" class="form-text">Заполняйте только при смене пароля — не менее 4 символов.</small>
+                                </div>
                             </div>
-                            
-                            <div class="form-group">
-                                <label for="editPassword"><i class="fas fa-lock"></i> Пароль</label>
-                                <input type="password" id="editPassword" class="form-control" 
-                                       placeholder="Оставьте пустым, если не меняете">
-                                <small class="form-text">Минимум 4 символа</small>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="editRole"><i class="fas fa-user-tag"></i> Роль</label>
-                                <select id="editRole" class="form-control" required>
-                                    <option value="">Выберите роль...</option>
-                                </select>
-                            </div>
-                            
                             <div class="modal-footer">
                                 <button type="button" class="btn-secondary" id="cancelEditBtn">Отмена</button>
                                 <button type="submit" class="btn-primary" id="saveEditBtn">
-                                    <i class="fas fa-save"></i> Сохранить изменения
+                                    <i class="fas fa-save"></i> Сохранить
                                 </button>
                             </div>
                         </form>
@@ -297,7 +300,7 @@ class AdminPanel {
                 console.log(`✅ Загружено ${result.users.length} пользователей`);
                 this.allUsers = result.users;
                 this.renderStats(result.users);
-                this.renderUsers(result.users);
+                this.filterUsers(this.currentFilter);
             } else {
                 console.error('❌ Ошибка в ответе сервера:', result);
                 this.showMessage(result.message || 'Ошибка загрузки пользователей', 'error');
@@ -425,6 +428,13 @@ class AdminPanel {
             this.showEmptyUsers();
             return;
         }
+
+        const ordered = [...users].sort((a, b) => {
+            const ab = Number(a.isBlocked) === 1 ? 1 : 0;
+            const bb = Number(b.isBlocked) === 1 ? 1 : 0;
+            if (ab !== bb) return ab - bb;
+            return (Number(a.idUsers) || 0) - (Number(b.idUsers) || 0);
+        });
         
         usersSection.innerHTML = `
             <div class="users-table">
@@ -432,15 +442,20 @@ class AdminPanel {
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Имя пользователя</th>
+                            <th>Логин</th>
                             <th>Роль</th>
+                            <th>Статус</th>
                             <th>Дата создания</th>
                             <th>Действия</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${users.map((user, index) => `
-                            <tr class="${index % 2 === 0 ? 'even' : 'odd'}" id="user-row-${user.idUsers}">
+                        ${ordered.map((user, index) => {
+                            const blocked = Number(user.isBlocked) === 1;
+                            const rowTone = index % 2 === 0 ? 'even' : 'odd';
+                            const rowClass = `${rowTone}${blocked ? ' user-row-blocked' : ''}`;
+                            return `
+                            <tr class="${rowClass}" id="user-row-${user.idUsers}">
                                 <td>${user.idUsers}</td>
                                 <td>
                                     <div class="user-cell">
@@ -457,31 +472,45 @@ class AdminPanel {
                                         ${this.escapeHtml(user.role || 'Без роли')}
                                     </span>
                                 </td>
+                                <td>
+                                    <span class="user-status-badge ${blocked ? 'user-status-badge--blocked' : 'user-status-badge--active'}">
+                                        ${blocked ? 'Заблокирован' : 'Активен'}
+                                    </span>
+                                </td>
                                 <td>${user.createdAt || 'Не указана'}</td>
                                 <td>
                                     <div class="action-buttons">
-                                        <button class="btn-action btn-action-edit edit-user-btn" 
+                                        <button type="button" class="btn-action btn-action-edit edit-user-btn" 
                                                 data-user-id="${user.idUsers}"
                                                 title="Редактировать">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn-action btn-action-danger delete-user-btn" 
+                                        ${blocked ? `
+                                        <button type="button" class="btn-action btn-action-unblock toggle-block-btn" 
                                                 data-user-id="${user.idUsers}"
                                                 data-user-name="${this.escapeHtml(user.name)}"
                                                 data-user-role="${this.escapeHtml(user.role)}"
-                                                title="Удалить">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                                data-blocked="1"
+                                                title="Разблокировать">
+                                            <i class="fas fa-unlock"></i>
+                                        </button>` : `
+                                        <button type="button" class="btn-action btn-action-block toggle-block-btn" 
+                                                data-user-id="${user.idUsers}"
+                                                data-user-name="${this.escapeHtml(user.name)}"
+                                                data-user-role="${this.escapeHtml(user.role)}"
+                                                data-blocked="0"
+                                                title="Заблокировать">
+                                            <i class="fas fa-ban"></i>
+                                        </button>`}
                                     </div>
                                 </td>
-                            </tr>
-                        `).join('')}
+                            </tr>`;
+                        }).join('')}
                     </tbody>
                 </table>
             </div>
         `;
 
-        // Добавляем обработчики для кнопок
         this.bindActionButtons();
     }
 
@@ -496,15 +525,15 @@ class AdminPanel {
             });
         });
 
-        // Обработчики для кнопок удаления
-        const deleteButtons = document.querySelectorAll('.delete-user-btn');
-        deleteButtons.forEach(button => {
+        const blockButtons = document.querySelectorAll('.toggle-block-btn');
+        blockButtons.forEach(button => {
             button.addEventListener('click', (e) => {
                 e.preventDefault();
                 const userId = button.getAttribute('data-user-id');
                 const userName = button.getAttribute('data-user-name');
                 const userRole = button.getAttribute('data-user-role');
-                this.handleDeleteUser(userId, userName, userRole);
+                const blocked = button.getAttribute('data-blocked') === '1';
+                this.handleToggleBlock(userId, userName, userRole, blocked);
             });
         });
     }
@@ -557,32 +586,15 @@ class AdminPanel {
         event.preventDefault();
         
         const userId = document.getElementById('editUserId').value;
-        const username = document.getElementById('editUsername').value.trim();
+        const login = document.getElementById('editUsername').value.trim();
         const password = document.getElementById('editPassword').value.trim();
         const roleId = document.getElementById('editRole').value;
         
-        if (!username || !roleId) {
+        if (!userId || !roleId) {
             this.showMessage('Заполните все обязательные поля', 'error');
             return;
         }
-        const existingUser = this.allUsers.find(user => 
-            user.idUsers != userId && 
-            user.name.toLowerCase() === username.toLowerCase()
-        );
         
-        if (existingUser) {
-            this.showMessage(`Пользователь с именем "${username}" уже существует`, 'error');
-            
-            const editUsernameInput = document.getElementById('editUsername');
-            editUsernameInput.classList.add('error-input');
-            editUsernameInput.focus();
-            
-            setTimeout(() => {
-                editUsernameInput.classList.remove('error-input');
-            }, 3000);
-            
-            return;
-        }
         const saveBtn = document.getElementById('saveEditBtn');
         const originalText = saveBtn.innerHTML;
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сохранение...';
@@ -595,7 +607,6 @@ class AdminPanel {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    username,
                     password: password || undefined,
                     roleId
                 })
@@ -604,7 +615,7 @@ class AdminPanel {
             const result = await response.json();
             
             if (result.success) {
-                this.showMessage(`Пользователь "${username}" успешно обновлен!`, 'success');
+                this.showMessage(`Пользователь "${login}" успешно обновлен!`, 'success');
                 this.hideEditModal();
                 this.loadUsers(); // Обновляем список пользователей
             } else {
@@ -620,29 +631,35 @@ class AdminPanel {
         }
     }
 
-    async handleDeleteUser(userId, userName, userRole) {
-        // Подтверждение удаления
-        if (!confirm(`Вы уверены, что хотите удалить пользователя "${userName}"?`)) {
-            return;
-        }
-
-        // Дополнительное подтверждение для администратора
-        if (userRole === 'Администратор') {
-            const confirmAdmin = confirm('Вы пытаетесь удалить администратора. Это действие может быть опасным. Продолжить?');
-            if (!confirmAdmin) {
+    async handleToggleBlock(userId, userName, userRole, currentlyBlocked) {
+        if (currentlyBlocked) {
+            if (!confirm(`Разблокировать пользователя «${userName}»?`)) {
                 return;
+            }
+        } else {
+            if (!confirm(`Заблокировать пользователя «${userName}»? Он не сможет войти в систему.`)) {
+                return;
+            }
+            if (userRole === 'Администратор') {
+                if (!confirm('Это администратор. Заблокировать всё равно?')) {
+                    return;
+                }
             }
         }
 
         const userRow = document.getElementById(`user-row-${userId}`);
-        const deleteBtn = userRow.querySelector('.delete-user-btn');
-        const originalHtml = deleteBtn.innerHTML;
-        deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        deleteBtn.disabled = true;
+        const blockBtn = userRow.querySelector('.toggle-block-btn');
+        const originalHtml = blockBtn.innerHTML;
+        blockBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        blockBtn.disabled = true;
+
+        const url = currentlyBlocked
+            ? `/api/admin/users/${userId}/unblock`
+            : `/api/admin/users/${userId}/block`;
 
         try {
-            const response = await fetch(`/api/admin/users/${userId}`, {
-                method: 'DELETE',
+            const response = await fetch(url, {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 }
@@ -651,25 +668,19 @@ class AdminPanel {
             const result = await response.json();
             
             if (result.success) {
-                this.showMessage(`Пользователь "${userName}" удален успешно!`, 'success');
-                
-                // Удаляем пользователя из массива
-                this.allUsers = this.allUsers.filter(u => u.idUsers != userId);
-                
-                // Обновляем статистику и список
-                this.renderStats(this.allUsers);
-                this.filterUsers(this.currentFilter);
+                this.showMessage(result.message || (currentlyBlocked ? 'Пользователь разблокирован' : 'Пользователь заблокирован'), 'success');
+                await this.loadUsers();
             } else {
-                this.showMessage(result.message || 'Ошибка удаления пользователя', 'error');
-                deleteBtn.innerHTML = originalHtml;
-                deleteBtn.disabled = false;
+                this.showMessage(result.message || 'Ошибка операции', 'error');
+                blockBtn.innerHTML = originalHtml;
+                blockBtn.disabled = false;
             }
             
         } catch (error) {
-            console.error('Ошибка удаления пользователя:', error);
+            console.error('Ошибка блокировки / разблокировки:', error);
             this.showMessage('Ошибка подключения к серверу', 'error');
-            deleteBtn.innerHTML = originalHtml;
-            deleteBtn.disabled = false;
+            blockBtn.innerHTML = originalHtml;
+            blockBtn.disabled = false;
         }
     }
 
@@ -690,13 +701,13 @@ class AdminPanel {
             return false;
         }
         
-        // Проверяем, существует ли пользователь с таким именем
+        // Проверяем, существует ли пользователь с таким логином
         const existingUser = this.allUsers.find(user => 
             user.name.toLowerCase() === username.toLowerCase()
         );
         
         if (existingUser) {
-            this.showMessage(`Пользователь с именем "${username}" уже существует`, 'error');
+            this.showMessage(`Пользователь с логином "${username}" уже существует`, 'error');
             
             // Подсвечиваем поле с ошибкой
             const usernameInput = document.getElementById('username');
@@ -742,7 +753,7 @@ class AdminPanel {
                     if (result.message.includes('уже существует') || 
                         result.message.includes('already exists') ||
                         result.message.includes('duplicate')) {
-                        errorMessage = `Пользователь с именем "${username}" уже существует в системе`;
+                        errorMessage = `Пользователь с логином "${username}" уже существует в системе`;
                         
                         // Подсвечиваем поле с ошибкой
                         const usernameInput = document.getElementById('username');

@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="editor.css">
+    <link rel="stylesheet" href="../user/user-nav.css">
 </head>
 <body>
     <div class="admin-container">
@@ -20,18 +21,23 @@
                         <p>Система контроля версий документов</p>
                     </div>
                 </div>
-                <a href="editor.html" class="header-nav-link">
-                    <i class="fas fa-book"></i> <span>Справочники</span>
-                </a>
-                <a href="incoming-journal.html" class="header-nav-link">
-                    <i class="fas fa-inbox"></i> <span>Входящая документация</span>
-                </a>
-                <a href="outgoing-journal.html" class="header-nav-link">
-                    <i class="fas fa-paper-plane"></i> <span>Исходящая документация</span>
-                </a>
-                <a href="statistics.html" class="header-nav-link">
-                    <i class="fas fa-chart-pie"></i> <span>Статистика</span>
-                </a>
+                <nav class="header-nav" aria-label="Разделы панели редактора">
+                    <a href="editor.html" class="header-nav-link" data-nav="editor">
+                        <i class="fas fa-book"></i> <span>Каталоги</span>
+                    </a>
+                    <a href="assignments.html" class="header-nav-link" data-nav="assignments">
+                        <i class="fas fa-user-shield"></i> <span>Права доступа</span>
+                    </a>
+                    <a href="incoming-journal.html" class="header-nav-link" data-nav="incoming">
+                        <i class="fas fa-inbox"></i> <span>Входящая документация</span>
+                    </a>
+                    <a href="outgoing-journal.html" class="header-nav-link" data-nav="outgoing">
+                        <i class="fas fa-paper-plane"></i> <span>Исходящая документация</span>
+                    </a>
+                    <a href="statistics.html" class="header-nav-link" data-nav="statistics">
+                        <i class="fas fa-chart-pie"></i> <span>Статистика</span>
+                    </a>
+                </nav>
             </div>
             <div class="user-profile" id="userProfile">
                 <div class="user-avatar" id="userAvatar">Р</div>
@@ -61,7 +67,7 @@
         <main class="main-content">
             <div class="page-header editor-intro-banner">
                 <h1><i class="fas fa-user-check"></i> Назначения прав доступа</h1>
-                <p class="page-subtitle">Распределение прав пользователей к справочникам</p>
+                <p class="page-subtitle">Распределение прав пользователей к каталогам</p>
             </div>
 
             <!-- Основная карточка -->
@@ -82,7 +88,7 @@
                 <div class="search-filters">
                     <div class="search-box">
                         <i class="fas fa-search"></i>
-                        <input type="text" id="searchAssignments" placeholder="Поиск по пользователю или справочнику...">
+                        <input type="text" id="searchAssignments" placeholder="Поиск по пользователю или каталогу...">
                     </div>
                     <div class="filter-group">
                         <select id="filterUser" class="form-control">
@@ -91,15 +97,7 @@
                     </div>
                     <div class="filter-group">
                         <select id="filterDirectory" class="form-control">
-                            <option value="">Все справочники</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <select id="filterPermission" class="form-control">
-                            <option value="">Все права</option>
-                            <option value="READ">Только чтение</option>
-                            <option value="WRITE">Чтение и запись</option>
-                            <option value="ADMIN">Полный доступ</option>
+                            <option value="">Все каталоги</option>
                         </select>
                     </div>
                 </div>
@@ -110,7 +108,7 @@
                         <thead>
                             <tr>
                                 <th>Пользователь</th>
-                                <th>Справочник</th>
+                                <th>Каталог</th>
                                 <th>Дата назначения</th>
                                 <th>Статус</th>
                                 <th class="col-actions-header" scope="col">Действия</th>
@@ -158,31 +156,12 @@
                             </div>
                             <div class="form-group directory-input-wrapper">
                                 <label for="assignDirectoryInput">
-                                    <i class="fas fa-folder"></i> Справочник *
+                                    <i class="fas fa-folder"></i> Каталог *
                                 </label>
                                 <input type="text" id="assignDirectoryInput" class="form-control"
-                                       placeholder="Начните вводить название справочника..."
+                                       placeholder="Начните вводить название каталога..."
                                        autocomplete="off" required>
                                 <div id="directory-search-results" class="search-results"></div>
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="assignPermission">
-                                    <i class="fas fa-key"></i> Права доступа *
-                                </label>
-                                <select id="assignPermission" class="form-control" required>
-                                    <option value="READ">Только чтение</option>
-                                    <option value="WRITE">Чтение и запись</option>
-                                    <option value="ADMIN">Полный доступ</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="assignExpiresAt">
-                                    <i class="fas fa-calendar-times"></i> Действует до
-                                </label>
-                                <input type="date" id="assignExpiresAt" class="form-control">
                             </div>
                         </div>
 
@@ -242,13 +221,10 @@
                     <button type="button" class="close-btn" id="closeReportExportModal" aria-label="Закрыть">&times;</button>
                 </div>
                 <div class="modal-body directory-form-body">
-                    <p class="report-export-text">Выберите отчет, который нужно сформировать в формате Word.</p>
+                    <p class="report-export-text">Сформируйте отчет в формате Word.</p>
                     <div class="report-export-actions">
                         <button type="button" class="btn-primary" id="exportAssignmentsReportBtn">
                             <i class="fas fa-folder-tree"></i> Закрепленность каталогов
-                        </button>
-                        <button type="button" class="btn-primary" id="exportIncomingJournalBtn">
-                            <i class="fas fa-inbox"></i> Журнал входящей документации
                         </button>
                     </div>
                 </div>
@@ -519,29 +495,29 @@
             
     async getDirectories() {
         try {
-            console.log('📡 Запрашиваем список справочников...');
+            console.log('📡 Запрашиваем список каталогов...');
             const response = await fetch('/api/editor/directories-list');
             if (!response.ok) {
-                throw new Error('Ошибка получения справочников');
+                throw new Error('Ошибка получения каталогов');
             }
             return await response.json();
         } catch (error) {
-            console.error('❌ Ошибка получения справочников:', error);
+            console.error('❌ Ошибка получения каталогов:', error);
             return {
                 success: false,
-                message: 'Ошибка загрузки справочников'
+                message: 'Ошибка загрузки каталогов'
             };
         }
     },
     
-    // Поиск справочников по названию (используем тот же эндпоинт с параметром query)
+    // Поиск каталогов по названию (используем тот же эндпоинт с параметром query)
     async searchDirectories(query) {
         try {
-            console.log('📡 Ищем справочники по запросу:', query);
+            console.log('📡 Ищем каталоги по запросу:', query);
             // Используем тот же эндпоинт, но фильтруем на клиенте
             const response = await fetch('/api/editor/directories-list');
             if (!response.ok) {
-                throw new Error('Ошибка получения справочников');
+                throw new Error('Ошибка получения каталогов');
             }
             
             const data = await response.json();
@@ -561,10 +537,10 @@
             };
             
         } catch (error) {
-            console.error('❌ Ошибка поиска справочников:', error);
+            console.error('❌ Ошибка поиска каталогов:', error);
             return {
                 success: false,
-                message: 'Ошибка поиска справочников'
+                message: 'Ошибка поиска каталогов'
             };
         }
     }
@@ -845,7 +821,7 @@
                     // Загружаем назначения
                     await this.loadAssignments();
                     
-                    // Загружаем пользователей и справочники
+                    // Загружаем пользователей и каталоги
                     await Promise.all([
                         this.loadUsers(),
                         this.loadDirectories()
@@ -941,16 +917,16 @@
         const response = await AssignmentsAPI.getDirectories();
         if (response && response.success) {
             this.allDirectories = response.data || [];
-            console.log('📁 Загружены справочники для поиска:', this.allDirectories.length);
+            console.log('📁 Загружены каталоги для поиска:', this.allDirectories.length);
             
             this.populateDirectorySelects();
             this.initDirectorySearch();
         } else {
-            throw new Error(response?.message || 'Не удалось загрузить справочники');
+            throw new Error(response?.message || 'Не удалось загрузить каталоги');
         }
     } catch (error) {
-        console.error('❌ Ошибка загрузки справочников:', error);
-        this.showNotification('Ошибка загрузки справочников', 'error');
+        console.error('❌ Ошибка загрузки каталогов:', error);
+        this.showNotification('Ошибка загрузки каталогов', 'error');
     }
 }
             
@@ -1028,12 +1004,12 @@ initDirectorySearch() {
                 } else {
                     const noResults = document.createElement('div');
                     noResults.className = 'search-result-item';
-                    noResults.innerHTML = '<div><em>Справочники не найдены</em></div>';
+                    noResults.innerHTML = '<div><em>Каталоги не найдены</em></div>';
                     searchResults.appendChild(noResults);
                     searchResults.classList.add('active');
                 }
             } catch (error) {
-                console.error('Ошибка поиска справочников:', error);
+                console.error('Ошибка поиска каталогов:', error);
             }
         }, 300);
     });
@@ -1041,10 +1017,10 @@ initDirectorySearch() {
     // Обработчик фокуса
     directoryInput.addEventListener('focus', () => {
         if (directoryInput.value.trim() === '' && this.allDirectories.length > 0) {
-            // Показываем все справочники при фокусе на пустом поле
+            // Показываем все каталоги при фокусе на пустом поле
             searchResults.innerHTML = '';
             
-            // Показываем первые 10 справочников
+            // Показываем первые 10 каталогов
             this.allDirectories.slice(0, 10).forEach(directory => {
                 const item = document.createElement('div');
                 item.className = 'search-result-item';
@@ -1085,7 +1061,7 @@ initDirectorySearch() {
                 moreItem.className = 'search-result-item';
                 moreItem.style.fontSize = '12px';
                 moreItem.style.color = '#718096';
-                moreItem.innerHTML = `<em>и еще ${this.allDirectories.length - 10} справочников...</em>`;
+                moreItem.innerHTML = `<em>и еще ${this.allDirectories.length - 10} каталогов...</em>`;
                 searchResults.appendChild(moreItem);
             }
             
@@ -1179,7 +1155,7 @@ initDirectorySearch() {
         // Используем userName из данных назначения, если он есть, иначе из списка
         const displayUserName = assignment.userName || userNameFromList || 'Неизвестный';
         
-        const directoryName = assignment.directoryName || 'Неизвестный справочник';
+        const directoryName = assignment.directoryName || 'Неизвестный каталог';
         const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString('ru-RU') : '—';
         
         // Определяем статус
@@ -1277,12 +1253,12 @@ populateUserSelects() {
                 
                 if (!filterSelect) return;
                 
-                console.log('📁 Заполняем выпадающий список справочников для фильтра');
+                console.log('📁 Заполняем выпадающий список каталогов для фильтра');
                 
                 // Очищаем опции кроме первой
                 while (filterSelect.options.length > 1) filterSelect.remove(1);
                 
-                // Фильтруем только активные справочники
+                // Фильтруем только активные каталоги
                 const activeDirectories = this.allDirectories.filter(dir => (dir.status || 'active') === 'active');
                 
                 activeDirectories.forEach(dir => {
@@ -1319,19 +1295,17 @@ isExpiringSoon(assignment) {
     return daysUntilExpiry <= 7 && daysUntilExpiry > 0;
 }
 
-// В методе handleSubmit уберите expiresAt из данных
 async handleSubmit(e) {
     e.preventDefault();
     
     const id = document.getElementById('assignmentId').value;
     const userId = document.getElementById('assignUser').value;
     const directoryId = document.getElementById('assignDirectoryId').value;
-    const permission = document.getElementById('assignPermission').value;
+    const permission = 'WRITE';
     const notes = document.getElementById('assignNotes').value.trim();
     const includeChildren = document.getElementById('includeChildren')?.checked || false;
     
-    // Проверка обязательных полей
-    if (!userId || !directoryId || !permission) {
+    if (!userId || !directoryId) {
         this.showNotification('Заполните обязательные поля', 'error');
         return;
     }
@@ -1368,7 +1342,6 @@ async handleSubmit(e) {
     }
 }
 
-// В методе loadAssignmentData уберите обработку expiresAt
 async loadAssignmentData(id) {
     try {
         const response = await AssignmentsAPI.getAssignment(id);
@@ -1377,18 +1350,14 @@ async loadAssignmentData(id) {
             document.getElementById('assignmentId').value = assignment.id;
             document.getElementById('assignUser').value = assignment.userId;
             
-            // Находим имя справочника для отображения
+            // Находим имя каталога для отображения
             const directory = this.allDirectories.find(d => d.id == assignment.directoryId);
             if (directory) {
                 document.getElementById('assignDirectoryInput').value = directory.name;
                 document.getElementById('assignDirectoryId').value = directory.id;
             }
             
-            document.getElementById('assignPermission').value = assignment.permission;
-            
-            // Убираем установку expiresAt, так как поля нет
-            // document.getElementById('assignExpiresAt').value = '';
-            
+            // Права всегда «чтение и запись» (WRITE), поле выбора убрано
             document.getElementById('assignNotes').value = assignment.notes || '';
         } else {
             this.showNotification(response.message || 'Ошибка загрузки данных', 'error');
@@ -1399,14 +1368,12 @@ async loadAssignmentData(id) {
     }
 }
 
-// Также обновите метод resetForm, чтобы не устанавливать дату истечения
 resetForm() {
     const form = document.getElementById('assignmentForm');
     if (form) {
         form.reset();
         document.getElementById('assignmentId').value = '';
         document.getElementById('assignDirectoryId').value = '';
-        document.getElementById('assignPermission').value = 'READ';
         const searchResults = document.getElementById('directory-search-results');
         if (searchResults) {
             searchResults.classList.remove('active');
@@ -1468,7 +1435,6 @@ resetForm() {
                 // Фильтры
                 const filterUser = document.getElementById('filterUser');
                 const filterDirectory = document.getElementById('filterDirectory');
-                const filterPermission = document.getElementById('filterPermission');
                 
                 if (filterUser) {
                     filterUser.addEventListener('change', () => this.filterAssignments());
@@ -1476,10 +1442,6 @@ resetForm() {
                 
                 if (filterDirectory) {
                     filterDirectory.addEventListener('change', () => this.filterAssignments());
-                }
-                
-                if (filterPermission) {
-                    filterPermission.addEventListener('change', () => this.filterAssignments());
                 }
                 
                 // Пагинация
@@ -1517,11 +1479,6 @@ resetForm() {
                     exportAssignmentsReportBtn.addEventListener('click', () => this.downloadWordReport('/api/editor/reports/assignments-word', 'Отчет по закрепленности каталогов сформирован'));
                 }
 
-                const exportIncomingJournalBtn = document.getElementById('exportIncomingJournalBtn');
-                if (exportIncomingJournalBtn) {
-                    exportIncomingJournalBtn.addEventListener('click', () => this.downloadWordReport('/api/editor/reports/incoming-journal-word', 'Отчет по входящей документации сформирован'));
-                }
-                
                 // Модальное окно удаления
                 const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
                 const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
@@ -1546,10 +1503,9 @@ resetForm() {
                 const searchTerm = document.getElementById('searchAssignments').value.toLowerCase();
                 const userFilter = document.getElementById('filterUser').value;
                 const directoryFilter = document.getElementById('filterDirectory').value;
-                const permissionFilter = document.getElementById('filterPermission').value;
                 
                 this.filteredAssignments = this.assignments.filter(assignment => {
-                    // Поиск по пользователю и справочнику
+                    // Поиск по пользователю и каталогу
                     const user = this.users.find(u => u.id == assignment.userId);
                     const userName = user ? user.username.toLowerCase() : '';
                     const directoryName = assignment.directoryName ? assignment.directoryName.toLowerCase() : '';
@@ -1563,13 +1519,10 @@ resetForm() {
                     // Фильтр по пользователю
                     const matchesUser = !userFilter || assignment.userId == userFilter;
                     
-                    // Фильтр по справочнику
+                    // Фильтр по каталогу
                     const matchesDirectory = !directoryFilter || assignment.directoryId == directoryFilter;
                     
-                    // Фильтр по правам
-                    const matchesPermission = !permissionFilter || assignment.permission === permissionFilter;
-                    
-                    return matchesSearch && matchesUser && matchesDirectory && matchesPermission;
+                    return matchesSearch && matchesUser && matchesDirectory;
                 });
                 
                 this.currentPage = 1;
@@ -1859,5 +1812,6 @@ resetForm() {
             }
         });
     </script>
+    <script src="editor-nav.js"></script>
 </body>
 </html>

@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS Users (
   name VARCHAR(45) NOT NULL,
   password VARCHAR(60) NOT NULL,
   idRoles INT NOT NULL,
+  isBlocked TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 — учётная запись заблокирована',
   createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (idUsers),
   UNIQUE INDEX name_UNIQUE (name ASC),

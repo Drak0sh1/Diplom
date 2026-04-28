@@ -66,17 +66,17 @@ const EditorAPI = {
         });
     },
     
-    // Получение справочников
+    // Получение каталогов
     async getDirectories() {
         return await this.request('/editor/directories');
     },
     
-    // Получение одного справочника
+    // Получение одного каталога
     async getDirectory(id) {
         return await this.request(`/editor/directories/${id}`);
     },
     
-    // Создание справочника
+    // Создание каталога
     async createDirectory(data) {
         return await this.request('/editor/directories', {
             method: 'POST',
@@ -84,7 +84,7 @@ const EditorAPI = {
         });
     },
     
-    // Обновление справочника
+    // Обновление каталога
     async updateDirectory(id, data) {
         return await this.request(`/editor/directories/${id}`, {
             method: 'PUT',
@@ -92,7 +92,7 @@ const EditorAPI = {
         });
     },
     
-    // Удаление справочника
+    // Удаление каталога
     async deleteDirectory(id) {
         return await this.request(`/editor/directories/${id}`, {
             method: 'DELETE'
@@ -102,50 +102,6 @@ const EditorAPI = {
     // Получение пользователей
     async getUsers() {
         return await this.request('/editor/users');
-    },
-    
-    // Получение назначений
-    async getAssignments(userId = null, directoryId = null) {
-        let endpoint = '/editor/assignments';
-        const params = new URLSearchParams();
-        
-        if (userId) params.append('userId', userId);
-        if (directoryId) params.append('directoryId', directoryId);
-        
-        const queryString = params.toString();
-        if (queryString) {
-            endpoint += `?${queryString}`;
-        }
-        
-        return await this.request(endpoint);
-    },
-    
-    // Получение одного назначения
-    async getAssignment(id) {
-        return await this.request(`/editor/assignments/${id}`);
-    },
-    
-    // Назначение доступа
-    async assignDirectory(userId, directoryId, permission) {
-        return await this.request('/editor/assignments', {
-            method: 'POST',
-            body: JSON.stringify({ userId, directoryId, permission })
-        });
-    },
-    
-    // Обновление назначения
-    async updateAssignment(id, permission) {
-        return await this.request(`/editor/assignments/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify({ permission })
-        });
-    },
-    
-    // Отзыв доступа
-    async revokeAssignment(id) {
-        return await this.request(`/editor/assignments/${id}`, {
-            method: 'DELETE'
-        });
     },
     
     // Получение журнала контрагентов

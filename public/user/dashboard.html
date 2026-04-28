@@ -6,6 +6,7 @@
     <title>Личный кабинет</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/user/user-nav.css">
     <style>
         * {
             margin: 0;
@@ -27,8 +28,11 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            position: sticky;
+            position: fixed;
             top: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
             z-index: 1000;
             box-shadow: 0 2px 15px rgba(0,0,0,.12);
         }
@@ -156,7 +160,7 @@
         /* Content Area */
         .content-area {
             max-width: 1400px;
-            margin: 0 auto;
+            margin: 68px auto 0;
             padding: 32px;
         }
 
@@ -312,16 +316,17 @@
         }
 
         @media (max-width: 768px) {
-            .header-nav {
+            .header-nav-link span {
                 display: none;
             }
-            
+
             .header {
                 padding: 0 20px;
                 height: 70px;
             }
             
             .content-area {
+                margin-top: 70px;
                 padding: 20px;
             }
             
@@ -365,12 +370,17 @@
                     <p>Система управления</p>
                 </div>
             </div>
-            <a href="/journals/incoming" class="header-nav-link">
-                <i class="fas fa-inbox"></i> <span>Входящие</span>
-            </a>
-            <a href="/journals/outgoing" class="header-nav-link">
-                <i class="fas fa-paper-plane"></i> <span>Исходящие</span>
-            </a>
+            <nav class="header-nav" aria-label="Основная навигация">
+                <a href="/dashboard" class="header-nav-link" data-nav="home">
+                    <i class="fas fa-home"></i> <span>Главная</span>
+                </a>
+                <a href="/journals/incoming" class="header-nav-link" data-nav="incoming">
+                    <i class="fas fa-inbox"></i> <span>Входящие</span>
+                </a>
+                <a href="/journals/outgoing" class="header-nav-link" data-nav="outgoing">
+                    <i class="fas fa-paper-plane"></i> <span>Исходящие</span>
+                </a>
+            </nav>
         </div>
         <div class="user-profile" id="userProfile">
             <div class="user-avatar" id="userAvatar">П</div>
@@ -410,22 +420,7 @@
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const path = window.location.pathname;
-            let activePage = 'dashboard';
-            if (path.includes('documents')) activePage = 'documents';
-            if (path.includes('catalogs')) activePage = 'catalogs';
-            const navLinks = document.querySelectorAll('.header-nav-link');
-            navLinks.forEach(link => {
-                link.classList.remove('active');
-                if (link.getAttribute('href') && link.getAttribute('href').includes(activePage)) {
-                    link.classList.add('active');
-                }
-            });
-        });
-    </script>
-    
+    <script src="/user/user-nav.js" defer></script>
     <script src="/user/dash.js"></script>
 </body>
 </html>

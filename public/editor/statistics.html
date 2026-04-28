@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="editor.css">
+    <link rel="stylesheet" href="../user/user-nav.css">
 </head>
 <body>
     <div class="admin-container">
@@ -19,21 +20,23 @@
                         <p>Система контроля версий документов</p>
                     </div>
                 </div>
-                <a href="editor.html" class="header-nav-link">
-                    <i class="fas fa-book"></i> <span>Справочники</span>
-                </a>
-                <a href="assignments.html" class="header-nav-link">
-                    <i class="fas fa-user-shield"></i> <span>Права доступа</span>
-                </a>
-                <a href="incoming-journal.html" class="header-nav-link">
-                    <i class="fas fa-inbox"></i> <span>Входящая документация</span>
-                </a>
-                <a href="outgoing-journal.html" class="header-nav-link">
-                    <i class="fas fa-paper-plane"></i> <span>Исходящая документация</span>
-                </a>
-                <a href="statistics.html" class="header-nav-link active">
-                    <i class="fas fa-chart-pie"></i> <span>Статистика</span>
-                </a>
+                <nav class="header-nav" aria-label="Разделы панели редактора">
+                    <a href="editor.html" class="header-nav-link" data-nav="editor">
+                        <i class="fas fa-book"></i> <span>Каталоги</span>
+                    </a>
+                    <a href="assignments.html" class="header-nav-link" data-nav="assignments">
+                        <i class="fas fa-user-shield"></i> <span>Права доступа</span>
+                    </a>
+                    <a href="incoming-journal.html" class="header-nav-link" data-nav="incoming">
+                        <i class="fas fa-inbox"></i> <span>Входящая документация</span>
+                    </a>
+                    <a href="outgoing-journal.html" class="header-nav-link" data-nav="outgoing">
+                        <i class="fas fa-paper-plane"></i> <span>Исходящая документация</span>
+                    </a>
+                    <a href="statistics.html" class="header-nav-link" data-nav="statistics">
+                        <i class="fas fa-chart-pie"></i> <span>Статистика</span>
+                    </a>
+                </nav>
             </div>
             <div class="user-profile" id="userProfile">
                 <div class="user-avatar" id="userAvatar">Р</div>
@@ -62,7 +65,7 @@
         <main class="main-content">
             <div class="page-header editor-intro-banner">
                 <h1><i class="fas fa-chart-pie"></i> Информационная панель редактора</h1>
-                <p class="page-subtitle">Статистика по действиям пользователей с ролью "Пользователь", а также по документам, версиям и каталогам</p>
+                <p class="page-subtitle">Статистика по действиям пользователей с ролью "Пользователь", а также по документам и каталогам</p>
             </div>
 
             <div class="card stats-dashboard-card">
@@ -126,15 +129,6 @@
                     <div class="stat-content">
                         <div class="stat-value" id="summaryDocuments">0</div>
                         <div class="stat-label">Документов</div>
-                    </div>
-                </article>
-                <article class="stat-card-small stats-summary-card">
-                    <div class="stat-icon stats-gradient-orange">
-                        <i class="fas fa-code-branch"></i>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-value" id="summaryVersions">0</div>
-                        <div class="stat-label">Версий</div>
                     </div>
                 </article>
             </section>
@@ -343,7 +337,11 @@
                     this.renderSummary(data.summary);
                     this.renderActivityChart(data.activity || []);
                     this.renderPieChart('statusChart', data.documentsByStatus || [], ['#1d4ed8', '#3b82f6', '#10b981', '#f59e0b', '#ef4444']);
-                    this.renderPieChart('typeChart', data.documentsByType || [], ['#2563eb', '#06b6d4', '#0ea5e9', '#64748b']);
+                    this.renderPieChart(
+                        'typeChart',
+                        data.documentsByType || [],
+                        this.colorsForDocumentTypesChart(data.documentsByType || [])
+                    );
                     this.renderBarChart('catalogChart', data.documentsByCatalog || [], '#2563eb');
                     this.renderTopUsers(data.topUsers || []);
                 } catch (error) {
@@ -356,7 +354,6 @@
                 document.getElementById('summaryActions').textContent = summary.totalActions || 0;
                 document.getElementById('summaryUsers').textContent = summary.activeUsers || 0;
                 document.getElementById('summaryDocuments').textContent = summary.totalDocuments || 0;
-                document.getElementById('summaryVersions').textContent = summary.totalVersions || 0;
             }
 
             destroyChart(id) {
@@ -405,6 +402,20 @@
                 });
             }
 
+            colorsForDocumentTypesChart(items) {
+                if (!items.length) {
+                    return ['#cbd5e1'];
+                }
+                const byLabel = {
+                    Входящие: '#1d4ed8',
+                    Исходящие: '#ea580c',
+                    'Прочие документы': '#6d28d9',
+                    Документы: '#6d28d9'
+                };
+                const fallback = ['#059669', '#0e7490', '#be185d', '#a16207'];
+                return items.map((item, i) => byLabel[item.label] ?? fallback[i % fallback.length]);
+            }
+
             renderPieChart(canvasId, items, colors) {
                 this.destroyChart(canvasId);
                 const canvas = document.getElementById(canvasId);
@@ -420,7 +431,9 @@
                         datasets: [{
                             data: values,
                             backgroundColor: colors,
-                            borderWidth: 0
+                            borderWidth: 2,
+                            borderColor: '#ffffff',
+                            hoverBorderColor: '#ffffff'
                         }]
                     },
                     options: {
@@ -653,5 +666,6 @@
             window.editorStatisticsPage = new EditorStatisticsPage();
         });
     </script>
+    <script src="editor-nav.js"></script>
 </body>
 </html>

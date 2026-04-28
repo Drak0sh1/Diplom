@@ -135,60 +135,63 @@ async function checkCatalogAccess(userId, catalogId, requiredPermission = 'READ'
             [userId, ...catalogIds]
         );
         
-        console.log(`📊 Найдено назначений: ${userAssignments.length}`);
+        console.log(`📊 Найдено назначений (по цепочке родителей): ${userAssignments.length}`);
         userAssignments.forEach(a => {
             console.log(`  ✅ Назначение: ${a.catalogName} (ID: ${a.catalogId}) - права: ${a.permission}`);
         });
-        
-        if (userAssignments.length === 0) {
-            console.log(`❌ У пользователя нет назначений ни к одному каталогу в иерархии`);
+
+        let upwardPermission = null;
+        if (userAssignments.length > 0) {
+            const sortedAssignments = userAssignments.map(a => {
+                const catalog = catalogHierarchy.find(c => c.id === a.catalogId);
+                return {
+                    ...a,
+                    depth: catalog ? catalog.depth : 1000
+                };
+            }).sort((a, b) => b.depth - a.depth);
+
+            const closestAssignment = sortedAssignments[0];
+            upwardPermission = closestAssignment.permission;
+            console.log(`🎯 Ближайшее назначение по родителям: ${closestAssignment.catalogName} (ID: ${closestAssignment.catalogId}), права: ${upwardPermission}`);
+        }
+
+        const descAssignment = await getMaxUserPermissionOnDescendantFolders(userId, catalogId);
+        const descendantPermission = descAssignment ? descAssignment.permission : null;
+        if (descAssignment) {
+            console.log(`📂 Права по дочернему каталогу "${descAssignment.catalogName}" (ID: ${descAssignment.catalogId}): ${descendantPermission}`);
+        }
+
+        const userPermission = strongerOfPermissions(upwardPermission, descendantPermission);
+        if (!userPermission) {
+            console.log(`❌ Нет назначений ни по цепочке родителей, ни по дочерним каталогам`);
             return false;
         }
-        
-        // 4. Находим ближайшее назначение в иерархии (от корня к листьям)
-        // Сортируем назначения по глубине в иерархии (от корня к целевому каталогу)
-        const sortedAssignments = userAssignments.map(a => {
-            const catalog = catalogHierarchy.find(c => c.id === a.catalogId);
-            return {
-                ...a,
-                depth: catalog ? catalog.depth : 1000 // Чем меньше depth, тем ближе к корню
-            };
-        }).sort((a, b) => b.depth - a.depth); // Сортируем по убыванию глубины (ближайший к целевому первый)
-        
-        const closestAssignment = sortedAssignments[0];
-        console.log(`🎯 Ближайшее назначение: ${closestAssignment.catalogName} (ID: ${closestAssignment.catalogId}) на глубине ${closestAssignment.depth}, права: ${closestAssignment.permission}`);
-        
-        // 5. Проверяем уровень прав
-        const userPermission = closestAssignment.permission;
+
         let hasAccess = false;
-        
         switch (requiredPermission) {
             case 'READ':
                 hasAccess = userPermission === 'READ' || userPermission === 'WRITE' || userPermission === 'ADMIN';
-                console.log(`🔐 Проверка READ: пользователь имеет ${userPermission} -> ${hasAccess ? '✅ РАЗРЕШЕНО' : '❌ ЗАПРЕЩЕНО'}`);
+                console.log(`🔐 Проверка READ: эффективные права ${userPermission} -> ${hasAccess ? '✅' : '❌'}`);
                 break;
-                
             case 'WRITE':
                 hasAccess = userPermission === 'WRITE' || userPermission === 'ADMIN';
-                console.log(`🔐 Проверка WRITE: пользователь имеет ${userPermission} -> ${hasAccess ? '✅ РАЗРЕШЕНО' : '❌ ЗАПРЕЩЕНО'}`);
+                console.log(`🔐 Проверка WRITE: эффективные права ${userPermission} -> ${hasAccess ? '✅' : '❌'}`);
                 break;
-                
             case 'ADMIN':
                 hasAccess = userPermission === 'ADMIN';
-                console.log(`🔐 Проверка ADMIN: пользователь имеет ${userPermission} -> ${hasAccess ? '✅ РАЗРЕШЕНО' : '❌ ЗАПРЕЩЕНО'}`);
+                console.log(`🔐 Проверка ADMIN: эффективные права ${userPermission} -> ${hasAccess ? '✅' : '❌'}`);
                 break;
-                
             default:
                 console.log(`⚠️ Неизвестный тип прав: ${requiredPermission}`);
                 hasAccess = false;
         }
-        
+
         if (!hasAccess) {
-            console.log(`❌ ОТКАЗ В ДОСТУПЕ: пользователь имеет права "${userPermission}", но требуется "${requiredPermission}"`);
+            console.log(`❌ ОТКАЗ В ДОСТУПЕ: эффективные права "${userPermission}", требуется "${requiredPermission}"`);
         } else {
-            console.log(`✅ ДОСТУП РАЗРЕШЕН: наследовано от каталога "${closestAssignment.catalogName}"`);
+            console.log(`✅ ДОСТУП РАЗРЕШЕН (родители и/или дочерние каталоги)`);
         }
-        
+
         return hasAccess;
         
     } catch (error) {
@@ -239,6 +242,69 @@ async function getCatalogChain(catalogId) {
         return [];
     }
 }
+
+function permissionRank(p) {
+    if (p === 'ADMIN') return 3;
+    if (p === 'WRITE') return 2;
+    if (p === 'READ') return 1;
+    return 0;
+}
+
+function strongerOfPermissions(a, b) {
+    if (!a) return b || null;
+    if (!b) return a;
+    return permissionRank(a) >= permissionRank(b) ? a : b;
+}
+
+/**
+ * Сильнейшие права пользователя на любом потомке каталога ancestorId (обход дерева без RECURSIVE — совместимость с MySQL 5.7).
+ */
+async function getMaxUserPermissionOnDescendantFolders(userId, ancestorFolderId) {
+    try {
+        const rootId = parseInt(String(ancestorFolderId), 10);
+        const uid = parseInt(String(userId), 10);
+        if (Number.isNaN(rootId) || Number.isNaN(uid)) return null;
+
+        const descendantIds = [];
+        let frontier = [rootId];
+        const safety = 5000;
+        let steps = 0;
+
+        while (frontier.length > 0 && steps < safety) {
+            steps += 1;
+            const ph = frontier.map(() => '?').join(', ');
+            const [childRows] = await pool.execute(
+                `SELECT idFolder FROM Folder WHERE parentId IN (${ph}) AND status = 'active'`,
+                frontier
+            );
+            if (!childRows.length) break;
+            frontier = [];
+            for (const row of childRows) {
+                const id = row.idFolder;
+                descendantIds.push(id);
+                frontier.push(id);
+            }
+        }
+
+        if (descendantIds.length === 0) return null;
+
+        const ph = descendantIds.map(() => '?').join(', ');
+        const [assignRows] = await pool.query(
+            `SELECT uf.permission, uf.idFolders AS catalogId, f.Name AS catalogName
+             FROM UsersFolders uf
+             JOIN Folder f ON uf.idFolders = f.idFolder AND f.status = 'active'
+             WHERE uf.idUsers = ? AND uf.idFolders IN (${ph})`,
+            [uid, ...descendantIds]
+        );
+        if (!assignRows || assignRows.length === 0) return null;
+        return assignRows.reduce((best, r) =>
+            (permissionRank(r.permission) > permissionRank(best.permission) ? r : best));
+    } catch (error) {
+        console.error('❌ Ошибка поиска прав на потомках каталога:', error);
+        return null;
+    }
+}
+
 /**
  * Получает тип доступа пользователя к каталогу
  * @param {number} userId - ID пользователя
@@ -294,32 +360,62 @@ async function getCatalogAccessInfo(userId, catalogId) {
             [userId, ...catalogIds, ...catalogIdsReversed]
         );
         
+        const descAssignment = await getMaxUserPermissionOnDescendantFolders(userId, catalogId);
+
         if (userAccess.length === 0) {
+            if (!descAssignment) {
+                return {
+                    hasAccess: false,
+                    permission: null,
+                    accessType: 'none',
+                    message: 'Нет доступа к каталогу, его родителям или дочерним каталогам',
+                    catalogChain: catalogChain
+                };
+            }
             return {
-                hasAccess: false,
-                permission: null,
-                accessType: 'none',
-                message: 'Нет доступа к каталогу или его родителям',
-                catalogChain: catalogChain
+                hasAccess: true,
+                permission: descAssignment.permission,
+                accessType: 'from_descendant',
+                inheritedFrom: {
+                    id: descAssignment.catalogId,
+                    name: descAssignment.catalogName
+                },
+                catalogChain: catalogChain,
+                message: `Доступ через дочерний каталог «${descAssignment.catalogName}»`
             };
         }
-        
-        // Находим ближайший доступ в цепочке (самый глубокий в иерархии)
+
         const nearestAccess = userAccess[0];
         const accessCatalog = catalogChain.find(c => c.id === nearestAccess.idFolders);
-        
+        const effectivePermission = strongerOfPermissions(
+            nearestAccess.permission,
+            descAssignment ? descAssignment.permission : null
+        );
+        const descBoosted = descAssignment
+            && permissionRank(descAssignment.permission) > permissionRank(nearestAccess.permission);
+
+        let message = accessCatalog.id == catalogId
+            ? `Прямой доступ к каталогу "${accessCatalog.name}"`
+            : `Доступ наследован от родительского каталога "${accessCatalog.name}"`;
+        if (descBoosted) {
+            message += ` (повышение прав по дочернему «${descAssignment.catalogName}»)`;
+        }
+
         return {
             hasAccess: true,
-            permission: nearestAccess.permission,
+            permission: effectivePermission,
             accessType: accessCatalog.id == catalogId ? 'direct' : 'inherited',
             inheritedFrom: accessCatalog.id != catalogId ? {
                 id: accessCatalog.id,
                 name: accessCatalog.name
             } : null,
+            descendantGrant: descAssignment ? {
+                id: descAssignment.catalogId,
+                name: descAssignment.catalogName,
+                permission: descAssignment.permission
+            } : null,
             catalogChain: catalogChain,
-            message: accessCatalog.id == catalogId 
-                ? `Прямой доступ к каталогу "${accessCatalog.name}"`
-                : `Доступ наследован от родительского каталога "${accessCatalog.name}"`
+            message
         };
         
     } catch (error) {
@@ -440,6 +536,19 @@ async function initDatabase() {
         
         const connection = await pool.getConnection();
         console.log('✅ Подключение к MySQL установлено');
+
+        const [blockedColCheck] = await connection.execute(`
+            SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Users' AND COLUMN_NAME = 'isBlocked'
+        `);
+        if (!blockedColCheck.length) {
+            await connection.execute(`
+                ALTER TABLE Users
+                ADD COLUMN isBlocked TINYINT(1) NOT NULL DEFAULT 0
+                COMMENT '1 — учётная запись заблокирована' AFTER idRoles
+            `);
+            console.log('✅ Добавлено поле Users.isBlocked');
+        }
         
         const [admins] = await connection.execute(`
             SELECT u.idUsers, u.name, u.password, r.name as role
@@ -629,6 +738,17 @@ function requireAuth(requiredRole = null) {
                 });
             }
 
+            const [blockedRows] = await pool.execute(
+                'SELECT COALESCE(isBlocked, 0) AS b FROM Users WHERE idUsers = ?',
+                [req.user.userId]
+            );
+            if (!blockedRows.length || Number(blockedRows[0].b) === 1) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Учётная запись заблокирована'
+                });
+            }
+
             next();
         } catch (err) {
             console.error('❌ requireAuth error:', err);
@@ -666,7 +786,8 @@ app.post('/api/login', async (req, res) => {
                     u.idUsers,
                     u.name,
                     u.password,
-                    r.name as role
+                    r.name as role,
+                    COALESCE(u.isBlocked, 0) AS isBlocked
                 FROM Users u
                 LEFT JOIN Roles r ON u.idRoles = r.idRoles
                 WHERE u.name = ?
@@ -742,6 +863,24 @@ app.post('/api/login', async (req, res) => {
         }
         
         console.log(`✅ Пароль верный`);
+
+        if (Number(user.isBlocked) === 1) {
+            await logAction(
+                user.idUsers,
+                'user_login',
+                `Вход отклонён: учётная запись ${username} заблокирована`,
+                'auth',
+                'user',
+                user.idUsers,
+                'failed',
+                ip,
+                userAgent
+            );
+            return res.json({
+                success: false,
+                message: 'Учётная запись заблокирована. Обратитесь к администратору.'
+            });
+        }
         
         // Проверяем, есть ли у пользователя роль
         if (!user.role) {
@@ -983,10 +1122,57 @@ app.get('/api/user/assigned-catalogs', requireAuth(), async (req, res) => {
             GROUP BY f.idFolder, f.Name, f.parentId, p.Name, f.createdAt, f.status, f.description, uf.permission
             ORDER BY f.parentId IS NULL DESC, f.Name
         `, [userId]);
-        
-        // Получаем все дочерние каталоги для каждого назначенного
-        const catalogsWithChildren = await Promise.all(assigned.map(async (catalog) => {
-            // Если это родительский каталог, получаем всех детей
+
+        const knownIds = new Set(assigned.map((c) => c.id));
+        const parentQueue = [];
+        const queuedParents = new Set();
+        for (const c of assigned) {
+            let pid = c.parentId;
+            while (pid && !knownIds.has(pid) && !queuedParents.has(pid)) {
+                parentQueue.push(pid);
+                queuedParents.add(pid);
+                const [one] = await pool.execute(
+                    'SELECT parentId FROM Folder WHERE idFolder = ? AND status = \'active\'',
+                    [pid]
+                );
+                pid = one.length ? one[0].parentId : null;
+            }
+        }
+
+        const extraParents = [];
+        for (const pid of parentQueue) {
+            if (knownIds.has(pid)) continue;
+            const accessInfo = await getCatalogAccessInfo(userId, pid);
+            if (!accessInfo.hasAccess) continue;
+
+            const [pRows] = await pool.execute(`
+                SELECT 
+                    f.idFolder as id,
+                    f.Name as name,
+                    f.parentId,
+                    gp.Name as parentName,
+                    f.createdAt,
+                    f.status,
+                    f.description,
+                    COUNT(DISTINCT fl.idFiles) as documentCount
+                FROM Folder f
+                LEFT JOIN Folder gp ON f.parentId = gp.idFolder
+                LEFT JOIN Files fl ON f.idFolder = fl.idFolders
+                WHERE f.idFolder = ? AND f.status = 'active'
+                GROUP BY f.idFolder, f.Name, f.parentId, gp.Name, f.createdAt, f.status, f.description
+            `, [pid]);
+            if (!pRows.length) continue;
+
+            extraParents.push({
+                ...pRows[0],
+                permission: accessInfo.permission
+            });
+            knownIds.add(pid);
+        }
+
+        const mergedCatalogs = [...extraParents, ...assigned];
+
+        const catalogsWithChildren = await Promise.all(mergedCatalogs.map(async (catalog) => {
             if (!catalog.parentId) {
                 const [children] = await pool.execute(`
                     SELECT 
@@ -1005,13 +1191,13 @@ app.get('/api/user/assigned-catalogs', requireAuth(), async (req, res) => {
                     GROUP BY f.idFolder, f.Name, f.parentId, f.createdAt, f.status, f.description, uf.permission
                     ORDER BY f.Name
                 `, [userId, catalog.id]);
-                
+
                 catalog.children = children;
             }
-            
+
             return catalog;
         }));
-        
+
         res.json({
             success: true,
             catalogs: catalogsWithChildren
@@ -1351,10 +1537,11 @@ app.get('/api/admin/users', requireAuth('Администратор'), async (re
                 u.idUsers,
                 u.name,
                 r.name as role,
-                DATE_FORMAT(u.createdAt, '%d.%m.%Y %H:%i') as createdAt
+                DATE_FORMAT(u.createdAt, '%d.%m.%Y %H:%i') as createdAt,
+                COALESCE(u.isBlocked, 0) AS isBlocked
             FROM Users u
             LEFT JOIN Roles r ON u.idRoles = r.idRoles
-            ORDER BY u.idUsers
+            ORDER BY COALESCE(u.isBlocked, 0) ASC, u.idUsers ASC
         `);
         
         res.json({
@@ -1396,7 +1583,8 @@ app.get('/api/admin/users/:id', requireAuth('Администратор'), async
                 u.name,
                 u.idRoles,
                 r.name as role,
-                DATE_FORMAT(u.createdAt, '%d.%m.%Y %H:%i') as createdAt
+                DATE_FORMAT(u.createdAt, '%d.%m.%Y %H:%i') as createdAt,
+                COALESCE(u.isBlocked, 0) AS isBlocked
             FROM Users u
             LEFT JOIN Roles r ON u.idRoles = r.idRoles
             WHERE u.idUsers = ?
@@ -1441,7 +1629,7 @@ app.post('/api/admin/users', requireAuth('Администратор'), async (r
             await logAction(
                 req.user.userId,
                 'user_create',
-                `Неудачная попытка создания пользователя: ${username} (пользователь уже существует)`,
+                `Неудачная попытка создания пользователя: ${username} (логин уже занят)`,
                 'users',
                 'user',
                 null,
@@ -1452,7 +1640,7 @@ app.post('/api/admin/users', requireAuth('Администратор'), async (r
             
             return res.json({
                 success: false,
-                message: 'Пользователь с таким именем уже существует'
+                message: 'Пользователь с таким логином уже существует'
             });
         }
         
@@ -1533,7 +1721,7 @@ app.post('/api/admin/users', requireAuth('Администратор'), async (r
 app.put('/api/admin/users/:id', requireAuth('Администратор'), async (req, res) => {
     try {
         const userId = req.params.id;
-        const { username, password, roleId } = req.body;
+        const { password, roleId } = req.body;
         const ip = getClientIp(req);
         const userAgent = req.headers['user-agent'] || '';
         
@@ -1567,37 +1755,8 @@ app.put('/api/admin/users/:id', requireAuth('Администратор'), async
         const oldUsername = userData[0].name;
         let updateFields = [];
         let params = [];
-        
-        // Обновляем имя пользователя, если оно изменилось
-        if (username && username !== oldUsername) {
-            // Проверяем уникальность нового имени
-            const [existingUsers] = await pool.execute(
-                'SELECT idUsers FROM Users WHERE name = ? AND idUsers != ?',
-                [username, userId]
-            );
-            
-            if (existingUsers.length > 0) {
-                await logAction(
-                    req.user.userId,
-                    'user_update',
-                    `Попытка изменения имени пользователя ${oldUsername} на уже существующее: ${username}`,
-                    'users',
-                    'user',
-                    userId,
-                    'failed',
-                    ip,
-                    userAgent
-                );
-                
-                return res.json({
-                    success: false,
-                    message: 'Пользователь с таким именем уже существует'
-                });
-            }
-            
-            updateFields.push('name = ?');
-            params.push(username);
-        }
+
+        // Логин (поле name) задаётся только при создании и не меняется через админку
         
         // Обновляем пароль, если он предоставлен
         if (password && password.trim() !== '') {
@@ -1646,7 +1805,7 @@ app.put('/api/admin/users/:id', requireAuth('Администратор'), async
         await logAction(
             req.user.userId,
             'user_update',
-            `Администратор ${req.user.username} обновил пользователя ${oldUsername} -> ${username || oldUsername}`,
+            `Администратор ${req.user.username} обновил пользователя ${oldUsername}`,
             'users',
             'user',
             userId,
@@ -1684,124 +1843,92 @@ app.put('/api/admin/users/:id', requireAuth('Администратор'), async
     }
 });
 
-// УДАЛЕНИЕ ПОЛЬЗОВАТЕЛЯ (только для админа)
-app.delete('/api/admin/users/:id', requireAuth('Администратор'), async (req, res) => {
+// ЗАБЛОКИРОВАТЬ ПОЛЬЗОВАТЕЛЯ (только для админа)
+app.post('/api/admin/users/:id/block', requireAuth('Администратор'), async (req, res) => {
     try {
         const userId = req.params.id;
         const adminId = req.user.userId;
         const adminUsername = req.user.username;
-        
-        console.log(`🗑️ Запрос на удаление пользователя ID: ${userId} от администратора: ${adminUsername}`);
-        
-        // Сначала получим информацию о пользователе для лога
+        const ip = getClientIp(req);
+        const userAgent = req.headers['user-agent'] || '';
+
         const [userData] = await pool.execute(
-            'SELECT u.idUsers, u.name, r.name as role FROM Users u LEFT JOIN Roles r ON u.idRoles = r.idRoles WHERE u.idUsers = ?',
+            `SELECT u.idUsers, u.name, r.name AS role, COALESCE(u.isBlocked, 0) AS isBlocked
+             FROM Users u LEFT JOIN Roles r ON u.idRoles = r.idRoles WHERE u.idUsers = ?`,
             [userId]
         );
-        
+
         if (userData.length === 0) {
-            // Логируем попытку удаления несуществующего пользователя
             await logAction(
                 adminId,
-                'user_delete',
-                `Попытка удаления несуществующего пользователя (ID: ${userId})`,
+                'user_block',
+                `Попытка блокировки несуществующего пользователя (ID: ${userId})`,
                 'users',
                 'user',
                 userId,
                 'failed',
-                getClientIp(req),
-                req.headers['user-agent'] || ''
+                ip,
+                userAgent
             );
-            
-            return res.json({ 
-                success: false, 
-                message: 'Пользователь не найден' 
+            return res.json({
+                success: false,
+                message: 'Пользователь не найден'
             });
         }
-        
-        const userName = userData[0].name;
-        const userRole = userData[0].role || 'Неизвестная роль';
-        
-        // Проверка: нельзя удалить самого себя
-        if (parseInt(userId) === parseInt(adminId)) {
-            // Логируем попытку самозачистки
+
+        if (parseInt(userId, 10) === parseInt(adminId, 10)) {
             await logAction(
                 adminId,
-                'user_delete',
-                `Попытка самозачистки: администратор ${adminUsername} пытался удалить себя`,
+                'user_block',
+                `Попытка самоблокировки: администратор ${adminUsername}`,
                 'users',
                 'user',
                 userId,
                 'warning',
-                getClientIp(req),
-                req.headers['user-agent'] || ''
+                ip,
+                userAgent
             );
-            
-            return res.json({ 
-                success: false, 
-                message: 'Вы не можете удалить себя' 
+            return res.json({
+                success: false,
+                message: 'Вы не можете заблокировать себя'
             });
         }
-        
-        // Удаляем пользователя
-        const [result] = await pool.execute(
-            'DELETE FROM Users WHERE idUsers = ?',
-            [userId]
+
+        const userName = userData[0].name;
+        const userRole = userData[0].role || 'Неизвестная роль';
+
+        if (Number(userData[0].isBlocked) === 1) {
+            return res.json({
+                success: true,
+                message: 'Пользователь уже заблокирован'
+            });
+        }
+
+        await pool.execute('UPDATE Users SET isBlocked = 1 WHERE idUsers = ?', [userId]);
+        console.log(`✅ Заблокирован пользователь: ${userName} (ID: ${userId})`);
+
+        await logAction(
+            adminId,
+            'user_block',
+            `Администратор ${adminUsername} заблокировал пользователя ${userName} (ID: ${userId}, роль: ${userRole})`,
+            'users',
+            'user',
+            userId,
+            'success',
+            ip,
+            userAgent
         );
-        
-        if (result.affectedRows > 0) {
-            console.log(`✅ Пользователь удален: ${userName} (ID: ${userId})`);
-            
-            // Логируем успешное удаление
-            await logAction(
-                adminId,
-                'user_delete',
-                `Удален пользователь: ${userName} (ID: ${userId}, Роль: ${userRole})`,
-                'users',
-                'user',
-                userId,
-                'success',
-                getClientIp(req),
-                req.headers['user-agent'] || ''
-            );
-            
-            res.json({ 
-                success: true, 
-                message: 'Пользователь удален',
-                deletedUser: { 
-                    id: userId, 
-                    name: userName, 
-                    role: userRole 
-                }
-            });
-        } else {
-            // Логируем ошибку удаления
-            await logAction(
-                adminId,
-                'user_delete',
-                `Ошибка при удалении пользователя ${userName} (ID: ${userId})`,
-                'users',
-                'user',
-                userId,
-                'failed',
-                getClientIp(req),
-                req.headers['user-agent'] || ''
-            );
-            
-            res.json({ 
-                success: false, 
-                message: 'Ошибка при удалении пользователя' 
-            });
-        }
-        
+
+        res.json({
+            success: true,
+            message: 'Пользователь заблокирован'
+        });
     } catch (error) {
-        console.error('❌ Ошибка удаления пользователя:', error);
-        
-        // Логируем ошибку
+        console.error('❌ Ошибка блокировки пользователя:', error);
         await logAction(
             req.user.userId,
-            'user_delete',
-            `Ошибка сервера при удалении пользователя: ${error.message}`,
+            'user_block',
+            `Ошибка сервера при блокировке пользователя: ${error.message}`,
             'users',
             'user',
             req.params.id,
@@ -1809,10 +1936,91 @@ app.delete('/api/admin/users/:id', requireAuth('Администратор'), as
             getClientIp(req),
             req.headers['user-agent'] || ''
         );
-        
-        res.status(500).json({ 
-            success: false, 
-            message: 'Ошибка сервера при удалении пользователя' 
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера при блокировке пользователя'
+        });
+    }
+});
+
+// РАЗБЛОКИРОВАТЬ ПОЛЬЗОВАТЕЛЯ (только для админа)
+app.post('/api/admin/users/:id/unblock', requireAuth('Администратор'), async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const adminId = req.user.userId;
+        const adminUsername = req.user.username;
+        const ip = getClientIp(req);
+        const userAgent = req.headers['user-agent'] || '';
+
+        const [userData] = await pool.execute(
+            `SELECT u.idUsers, u.name, r.name AS role, COALESCE(u.isBlocked, 0) AS isBlocked
+             FROM Users u LEFT JOIN Roles r ON u.idRoles = r.idRoles WHERE u.idUsers = ?`,
+            [userId]
+        );
+
+        if (userData.length === 0) {
+            await logAction(
+                adminId,
+                'user_unblock',
+                `Попытка разблокировки несуществующего пользователя (ID: ${userId})`,
+                'users',
+                'user',
+                userId,
+                'failed',
+                ip,
+                userAgent
+            );
+            return res.json({
+                success: false,
+                message: 'Пользователь не найден'
+            });
+        }
+
+        const userName = userData[0].name;
+        const userRole = userData[0].role || 'Неизвестная роль';
+
+        if (Number(userData[0].isBlocked) !== 1) {
+            return res.json({
+                success: true,
+                message: 'Пользователь не был заблокирован'
+            });
+        }
+
+        await pool.execute('UPDATE Users SET isBlocked = 0 WHERE idUsers = ?', [userId]);
+        console.log(`✅ Разблокирован пользователь: ${userName} (ID: ${userId})`);
+
+        await logAction(
+            adminId,
+            'user_unblock',
+            `Администратор ${adminUsername} разблокировал пользователя ${userName} (ID: ${userId}, роль: ${userRole})`,
+            'users',
+            'user',
+            userId,
+            'success',
+            ip,
+            userAgent
+        );
+
+        res.json({
+            success: true,
+            message: 'Пользователь разблокирован'
+        });
+    } catch (error) {
+        console.error('❌ Ошибка разблокировки пользователя:', error);
+        await logAction(
+            req.user.userId,
+            'user_unblock',
+            `Ошибка сервера при разблокировке пользователя: ${error.message}`,
+            'users',
+            'user',
+            req.params.id,
+            'failed',
+            getClientIp(req),
+            req.headers['user-agent'] || ''
+        );
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера при разблокировке пользователя'
         });
     }
 });
@@ -1901,7 +2109,7 @@ app.get('/api/editor/current-user', requireAuth('Редактор'), async (req,
     }
 });
 
-// ПОЛУЧИТЬ ВСЕ СПРАВОЧНИКИ (каталоги)
+// ПОЛУЧИТЬ ВСЕ КАТАЛОГИ (каталоги)
 app.get('/api/editor/directories', requireEditorRole, async (req, res) => {
     try {
         const connection = await pool.getConnection();
@@ -1930,7 +2138,7 @@ app.get('/api/editor/directories', requireEditorRole, async (req, res) => {
         await logAction(
             req.user.userId,
             'get_directories',
-            `Редактор ${req.user.username} запросил список справочников`,
+            `Редактор ${req.user.username} запросил список каталогов`,
             'editor',
             'folder',
             null,
@@ -1945,12 +2153,12 @@ app.get('/api/editor/directories', requireEditorRole, async (req, res) => {
         });
         
     } catch (error) {
-        console.error('❌ Ошибка получения справочников:', error);
+        console.error('❌ Ошибка получения каталогов:', error);
         
         await logAction(
             req.user?.userId || null,
             'get_directories',
-            `Ошибка получения справочников: ${error.message}`,
+            `Ошибка получения каталогов: ${error.message}`,
             'editor',
             'folder',
             null,
@@ -1961,12 +2169,12 @@ app.get('/api/editor/directories', requireEditorRole, async (req, res) => {
         
         res.status(500).json({ 
             success: false, 
-            message: 'Ошибка сервера при получении справочников' 
+            message: 'Ошибка сервера при получении каталогов' 
         });
     }
 });
 
-// ПОЛУЧИТЬ ОДИН СПРАВОЧНИК
+// ПОЛУЧИТЬ ОДИН КАТАЛОГ
 app.get('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
     try {
         const directoryId = req.params.id;
@@ -1992,7 +2200,7 @@ app.get('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
         if (directories.length === 0) {
             return res.json({
                 success: false,
-                message: 'Справочник не найден'
+                message: 'Каталог не найден'
             });
         }
         
@@ -2002,7 +2210,7 @@ app.get('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
         });
         
     } catch (error) {
-        console.error('❌ Ошибка получения справочника:', error);
+        console.error('❌ Ошибка получения каталога:', error);
         res.status(500).json({ 
             success: false, 
             message: 'Ошибка сервера' 
@@ -2010,7 +2218,7 @@ app.get('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
     }
 });
 
-// СОЗДАТЬ СПРАВОЧНИК
+// СОЗДАТЬ КАТАЛОГ
 app.post('/api/editor/directories', requireEditorRole, async (req, res) => {
     try {
         const { name, parentId = null, description = '', status = 'active' } = req.body;
@@ -2020,7 +2228,7 @@ app.post('/api/editor/directories', requireEditorRole, async (req, res) => {
         if (!name || name.trim() === '') {
             return res.json({
                 success: false,
-                message: 'Название справочника не может быть пустым'
+                message: 'Название каталога не может быть пустым'
             });
         }
         
@@ -2042,7 +2250,7 @@ app.post('/api/editor/directories', requireEditorRole, async (req, res) => {
             }
         }
         
-        // Создаем справочник с статусом и описанием
+        // Создаем каталог с статусом и описанием
         const [result] = await connection.execute(
             'INSERT INTO Folder (Name, parentId, status, description) VALUES (?, ?, ?, ?)',
             [name.trim(), parentId, status, description.trim()]
@@ -2052,11 +2260,11 @@ app.post('/api/editor/directories', requireEditorRole, async (req, res) => {
         
         connection.release();
         
-        // Логируем создание справочника
+        // Логируем создание каталога
         await logAction(
             editorId,
             'directory_create',
-            `Редактор ${editorName} создал справочник "${name}" (ID: ${directoryId}, Статус: ${status})`,
+            `Редактор ${editorName} создал каталог "${name}" (ID: ${directoryId}, Статус: ${status})`,
             'editor',
             'folder',
             directoryId,
@@ -2067,7 +2275,7 @@ app.post('/api/editor/directories', requireEditorRole, async (req, res) => {
         
         res.json({
             success: true,
-            message: 'Справочник создан успешно',
+            message: 'Каталог создан успешно',
             data: {
                 id: directoryId,
                 name: name.trim(),
@@ -2079,12 +2287,12 @@ app.post('/api/editor/directories', requireEditorRole, async (req, res) => {
         });
         
     } catch (error) {
-        console.error('❌ Ошибка создания справочника:', error);
+        console.error('❌ Ошибка создания каталога:', error);
         
         await logAction(
             req.user?.userId || null,
             'directory_create',
-            `Ошибка создания справочника: ${error.message}`,
+            `Ошибка создания каталога: ${error.message}`,
             'editor',
             'folder',
             null,
@@ -2095,12 +2303,12 @@ app.post('/api/editor/directories', requireEditorRole, async (req, res) => {
         
         res.status(500).json({
             success: false,
-            message: 'Ошибка сервера при создании справочника'
+            message: 'Ошибка сервера при создании каталога'
         });
     }
 });
 
-// ОБНОВИТЬ СПРАВОЧНИК
+// ОБНОВИТЬ КАТАЛОГ
 app.put('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
     try {
         const directoryId = req.params.id;
@@ -2111,13 +2319,13 @@ app.put('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
         if (!name || name.trim() === '') {
             return res.json({
                 success: false,
-                message: 'Название справочника не может быть пустым'
+                message: 'Название каталога не может быть пустым'
             });
         }
         
         const connection = await pool.getConnection();
         
-        // Проверяем существование справочника
+        // Проверяем существование каталога
         const [directoryExists] = await connection.execute(
             'SELECT idFolder, Name, status FROM Folder WHERE idFolder = ?',
             [directoryId]
@@ -2127,7 +2335,7 @@ app.put('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
             connection.release();
             return res.json({
                 success: false,
-                message: 'Справочник не найден'
+                message: 'Каталог не найден'
             });
         }
         
@@ -2154,12 +2362,12 @@ app.put('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
                 connection.release();
                 return res.json({
                     success: false,
-                    message: 'Нельзя сделать справочник родителем самого себя'
+                    message: 'Нельзя сделать каталог родителем самого себя'
                 });
             }
         }
         
-        // Обновляем справочник
+        // Обновляем каталог
         await connection.execute(
             'UPDATE Folder SET Name = ?, parentId = ?, status = ?, description = ? WHERE idFolder = ?',
             [name.trim(), parentId, status, description.trim(), directoryId]
@@ -2167,8 +2375,8 @@ app.put('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
         
         connection.release();
         
-        // Логируем обновление справочника
-        let logMessage = `Редактор ${editorName} обновил справочник "${oldName}" -> "${name}"`;
+        // Логируем обновление каталога
+        let logMessage = `Редактор ${editorName} обновил каталог "${oldName}" -> "${name}"`;
         if (oldStatus !== status) {
             logMessage += ` (Статус изменен: ${oldStatus} -> ${status})`;
         }
@@ -2188,16 +2396,16 @@ app.put('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
         
         res.json({
             success: true,
-            message: 'Справочник обновлен успешно'
+            message: 'Каталог обновлен успешно'
         });
         
     } catch (error) {
-        console.error('❌ Ошибка обновления справочника:', error);
+        console.error('❌ Ошибка обновления каталога:', error);
         
         await logAction(
             req.user?.userId || null,
             'directory_update',
-            `Ошибка обновления справочника: ${error.message}`,
+            `Ошибка обновления каталога: ${error.message}`,
             'editor',
             'folder',
             req.params.id,
@@ -2208,12 +2416,12 @@ app.put('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
         
         res.status(500).json({
             success: false,
-            message: 'Ошибка сервера при обновлении справочника'
+            message: 'Ошибка сервера при обновлении каталога'
         });
     }
 });
 
-// УДАЛИТЬ СПРАВОЧНИК
+// УДАЛИТЬ КАТАЛОГ
 app.delete('/api/editor/directories/:id', requireEditorRole, async (req, res) => {
     try {
         const directoryId = req.params.id;
@@ -2222,7 +2430,7 @@ app.delete('/api/editor/directories/:id', requireEditorRole, async (req, res) =>
         
         const connection = await pool.getConnection();
         
-        // Получаем информацию о справочнике для лога
+        // Получаем информацию о каталоге для лога
         const [directoryInfo] = await connection.execute(
             'SELECT Name FROM Folder WHERE idFolder = ?',
             [directoryId]
@@ -2232,13 +2440,13 @@ app.delete('/api/editor/directories/:id', requireEditorRole, async (req, res) =>
             connection.release();
             return res.json({
                 success: false,
-                message: 'Справочник не найден'
+                message: 'Каталог не найден'
             });
         }
         
         const directoryName = directoryInfo[0].Name;
         
-        // Проверяем, есть ли вложенные справочники
+        // Проверяем, есть ли вложенные каталоги
         const [childDirectories] = await connection.execute(
             'SELECT idFolder FROM Folder WHERE parentId = ?',
             [directoryId]
@@ -2248,11 +2456,11 @@ app.delete('/api/editor/directories/:id', requireEditorRole, async (req, res) =>
             connection.release();
             return res.json({
                 success: false,
-                message: 'Нельзя удалить справочник с вложенными каталогами'
+                message: 'Нельзя удалить каталог с вложенными каталогами'
             });
         }
         
-        // Удаляем справочник (каскадное удаление настроено в БД)
+        // Удаляем каталог (каскадное удаление настроено в БД)
         await connection.execute(
             'DELETE FROM Folder WHERE idFolder = ?',
             [directoryId]
@@ -2260,11 +2468,11 @@ app.delete('/api/editor/directories/:id', requireEditorRole, async (req, res) =>
         
         connection.release();
         
-        // Логируем удаление справочника
+        // Логируем удаление каталога
         await logAction(
             editorId,
             'directory_delete',
-            `Редактор ${editorName} удалил справочник "${directoryName}" (ID: ${directoryId})`,
+            `Редактор ${editorName} удалил каталог "${directoryName}" (ID: ${directoryId})`,
             'editor',
             'folder',
             directoryId,
@@ -2275,16 +2483,16 @@ app.delete('/api/editor/directories/:id', requireEditorRole, async (req, res) =>
         
         res.json({
             success: true,
-            message: 'Справочник удален успешно'
+            message: 'Каталог удален успешно'
         });
         
     } catch (error) {
-        console.error('❌ Ошибка удаления справочника:', error);
+        console.error('❌ Ошибка удаления каталога:', error);
         
         await logAction(
             req.user?.userId || null,
             'directory_delete',
-            `Ошибка удаления справочника: ${error.message}`,
+            `Ошибка удаления каталога: ${error.message}`,
             'editor',
             'folder',
             req.params.id,
@@ -2295,7 +2503,7 @@ app.delete('/api/editor/directories/:id', requireEditorRole, async (req, res) =>
         
         res.status(500).json({
             success: false,
-            message: 'Ошибка сервера при удалении справочника'
+            message: 'Ошибка сервера при удалении каталога'
         });
     }
 });
@@ -2315,6 +2523,7 @@ app.get('/api/editor/users', requireEditorRole, async (req, res) => {
             FROM Users u
             LEFT JOIN Roles r ON u.idRoles = r.idRoles
             WHERE r.name = 'Пользователь'
+              AND COALESCE(u.isBlocked, 0) = 0
             ORDER BY u.name
         `);
         
@@ -2356,7 +2565,7 @@ app.get('/api/editor/directories-list', requireEditorRole, async (req, res) => {
         });
         
     } catch (error) {
-        console.error('❌ Ошибка получения списка справочников:', error);
+        console.error('❌ Ошибка получения списка каталогов:', error);
         res.status(500).json({ 
             success: false, 
             message: 'Ошибка сервера' 
@@ -2417,13 +2626,14 @@ app.get('/api/editor/assignments', requireEditorRole, async (req, res) => {
     }
 });
 
-// 2. В методе НАЗНАЧИТЬ ДОСТУП К СПРАВОЧНИКУ (строка ~1875)
+// 2. В методе НАЗНАЧИТЬ ДОСТУП К КАТАЛОГУ (строка ~1875)
 // СОЗДАТЬ НАЗНАЧЕНИЕ С НАСЛЕДОВАНИЕМ ПРАВ НА ДОЧЕРНИЕ КАТАЛОГИ
 app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
     let connection;
     
     try {
-        const { userId, directoryId, permission = 'READ', includeChildren = true, notes = '' } = req.body;
+        const { userId, directoryId, includeChildren = true, notes = '' } = req.body;
+        const permission = 'WRITE';
         const editorId = req.user.userId;
         const editorName = req.user.username;
         
@@ -2435,7 +2645,7 @@ app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
         if (!userId || !directoryId) {
             return res.json({
                 success: false,
-                message: 'Не указан пользователь или справочник'
+                message: 'Не указан пользователь или каталог'
             });
         }
         
@@ -2486,7 +2696,7 @@ app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
             connection.release();
             return res.json({
                 success: false,
-                message: 'Справочник не найден или неактивен'
+                message: 'Каталог не найден или неактивен'
             });
         }
         
@@ -2630,7 +2840,7 @@ app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
         connection.release();
         
         // 8. Логируем создание назначения
-        let logMessage = `Редактор ${editorName} назначил доступ ${permission} пользователю "${userName}" к справочнику "${directoryName}"`;
+        let logMessage = `Редактор ${editorName} назначил доступ ${permission} пользователю "${userName}" к каталогу "${directoryName}"`;
         
         if (includeChildren && totalChildrenCreated > 0) {
             logMessage += ` и ${totalChildrenCreated} дочерним каталогам`;
@@ -2745,14 +2955,15 @@ app.get('/api/editor/directories/:id/all-children', requireEditorRole, async (re
 // НАЗНАЧЕНИЕ С НАСЛЕДОВАНИЕМ ПРАВ (обновленный эндпоинт)
 app.post('/api/editor/assignments-with-children', requireEditorRole, async (req, res) => {
     try {
-        const { userId, directoryId, permission = 'READ', includeChildren = true } = req.body;
+        const { userId, directoryId, includeChildren = true } = req.body;
+        const permission = 'WRITE';
         const editorId = req.user.userId;
         const editorName = req.user.username;
         
         if (!userId || !directoryId) {
             return res.json({
                 success: false,
-                message: 'Не указан пользователь или справочник'
+                message: 'Не указан пользователь или каталог'
             });
         }
         
@@ -2799,7 +3010,7 @@ app.post('/api/editor/assignments-with-children', requireEditorRole, async (req,
                 connection.release();
                 return res.json({
                     success: false,
-                    message: 'Справочник не найден'
+                    message: 'Каталог не найден'
                 });
             }
             
@@ -2896,7 +3107,7 @@ app.post('/api/editor/assignments-with-children', requireEditorRole, async (req,
             connection.release();
             
             // Логируем действие
-            let logDetails = `Редактор ${editorName} назначил доступ ${permission} пользователю "${userName}" к справочнику "${directoryName}"`;
+            let logDetails = `Редактор ${editorName} назначил доступ ${permission} пользователю "${userName}" к каталогу "${directoryName}"`;
             
             if (includeChildren && childAssignments.length > 0) {
                 logDetails += ` и ${childAssignments.length} дочерним каталогам`;
@@ -2958,16 +3169,10 @@ app.post('/api/editor/assignments-with-children', requireEditorRole, async (req,
 app.put('/api/editor/assignments/:id/with-children', requireEditorRole, async (req, res) => {
     try {
         const assignmentId = req.params.id;
-        const { permission, updateChildren = true, notes = null } = req.body;
+        const { updateChildren = true, notes = null } = req.body;
+        const permission = 'WRITE';
         const editorId = req.user.userId;
         const editorName = req.user.username;
-        
-        if (!permission) {
-            return res.json({
-                success: false,
-                message: 'Не указано разрешение'
-            });
-        }
         
         const connection = await pool.getConnection();
         
@@ -3081,7 +3286,7 @@ app.put('/api/editor/assignments/:id/with-children', requireEditorRole, async (r
             connection.release();
             
             // Логируем действие
-            let logDetails = `Редактор ${editorName} обновил доступ пользователя "${userName}" к справочнику "${directoryName}" на "${permission}"`;
+            let logDetails = `Редактор ${editorName} обновил доступ пользователя "${userName}" к каталогу "${directoryName}" на "${permission}"`;
             
             if (updateChildren && updatedChildren > 0) {
                 logDetails += ` и ${updatedChildren} дочерним каталогам`;
@@ -3222,7 +3427,7 @@ app.delete('/api/editor/assignments/:id/with-children', requireEditorRole, async
             connection.release();
             
             // Логируем действие
-            let logDetails = `Редактор ${editorName} отозвал доступ пользователя "${userName}" к справочнику "${directoryName}"`;
+            let logDetails = `Редактор ${editorName} отозвал доступ пользователя "${userName}" к каталогу "${directoryName}"`;
             
             if (deleteChildren && deletedChildren > 0) {
                 logDetails += ` и ${deletedChildren} дочерним каталогам`;
@@ -3398,16 +3603,10 @@ app.get('/api/editor/assignments/:id', requireEditorRole, async (req, res) => {
 app.put('/api/editor/assignments/:id', requireEditorRole, async (req, res) => {
     try {
         const assignmentId = req.params.id;
-        const { permission, expiresAt = null, notes = null } = req.body;
+        const { expiresAt = null, notes = null } = req.body;
+        const permission = 'WRITE';
         const editorId = req.user.userId;
         const editorName = req.user.username;
-        
-        if (!permission) {
-            return res.json({
-                success: false,
-                message: 'Не указано разрешение'
-            });
-        }
         
         const connection = await pool.getConnection();
         
@@ -3479,7 +3678,7 @@ app.put('/api/editor/assignments/:id', requireEditorRole, async (req, res) => {
         await logAction(
             editorId,
             'assignment_update',
-            `Редактор ${editorName} обновил доступ пользователя ID:${userId} к справочнику ID:${directoryId} на "${permission}"`,
+            `Редактор ${editorName} обновил доступ пользователя ID:${userId} к каталогу ID:${directoryId} на "${permission}"`,
             'editor',
             'user_folder',
             userId,
@@ -3565,7 +3764,7 @@ app.delete('/api/editor/assignments/:id', requireEditorRole, async (req, res) =>
         await logAction(
             editorId,
             'assignment_delete',
-            `Редактор ${editorName} отозвал доступ пользователя "${userName}" к справочнику "${directoryName}"`,
+            `Редактор ${editorName} отозвал доступ пользователя "${userName}" к каталогу "${directoryName}"`,
             'editor',
             'user_folder',
             userId,
@@ -3680,6 +3879,18 @@ function validateOutgoingDocument(body, isCreate = true) {
     return errors;
 }
 
+/** Дата из БД / mysql2 → YYYY-MM-DD для input[type=date] */
+function journalDateToInputString(value) {
+    if (value == null || value === '') return null;
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+    const d = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(d.getTime())) return null;
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
 // ПОЛУЧИТЬ СПИСОК ВХОДЯЩИХ ДОКУМЕНТОВ
 app.get('/api/user/journals/incoming', requireAuth(), async (req, res) => {
     try {
@@ -3704,8 +3915,9 @@ app.get('/api/user/journals/incoming', requireAuth(), async (req, res) => {
         }
 
         if (sender.trim()) {
-            conditions.push('f.resolution LIKE ?');
-            params.push(`%${sender.trim()}%`);
+            const like = `%${sender.trim()}%`;
+            conditions.push('(f.correspondent LIKE ? OR f.resolution LIKE ?)');
+            params.push(like, like);
         }
 
         if (index.trim()) {
@@ -3764,9 +3976,28 @@ app.get('/api/user/journals/incoming', requireAuth(), async (req, res) => {
             params
         );
 
+        const scopeConditions = ["f.documentType = 'incoming'"];
+        const scopeParams = [];
+        if (!isUserEditor(req)) {
+            scopeConditions.push('f.idUsers = ?');
+            scopeParams.push(req.user.userId);
+        }
+        const scopeWhere = scopeConditions.join(' AND ');
+        const [rangeRows] = await pool.execute(
+            `SELECT DATE(MIN(f.receivedDate)) AS minDate, DATE(MAX(f.receivedDate)) AS maxDate
+             FROM Files f WHERE ${scopeWhere}`,
+            scopeParams
+        );
+        const dr = rangeRows[0] || {};
+        const dateRange = {
+            min: journalDateToInputString(dr.minDate),
+            max: journalDateToInputString(dr.maxDate)
+        };
+
         res.json({
             success: true,
             documents: rows,
+            dateRange,
             pagination: {
                 total,
                 page: parseInt(page),
@@ -4125,9 +4356,28 @@ app.get('/api/user/journals/outgoing', requireAuth(), async (req, res) => {
             params
         );
 
+        const scopeConditions = ["f.documentType = 'outgoing'"];
+        const scopeParams = [];
+        if (!isUserEditor(req)) {
+            scopeConditions.push('f.idUsers = ?');
+            scopeParams.push(req.user.userId);
+        }
+        const scopeWhere = scopeConditions.join(' AND ');
+        const [rangeRows] = await pool.execute(
+            `SELECT DATE(MIN(f.receivedDate)) AS minDate, DATE(MAX(f.receivedDate)) AS maxDate
+             FROM Files f WHERE ${scopeWhere}`,
+            scopeParams
+        );
+        const dr = rangeRows[0] || {};
+        const dateRange = {
+            min: journalDateToInputString(dr.minDate),
+            max: journalDateToInputString(dr.maxDate)
+        };
+
         res.json({
             success: true,
             documents: rows,
+            dateRange,
             pagination: {
                 total,
                 page: parseInt(page),
@@ -4783,8 +5033,9 @@ function getCatalogDocumentTypeLabel(type) {
             return 'Входящие';
         case 'outgoing':
             return 'Исходящие';
+        case 'document':
         default:
-            return 'Документы';
+            return 'Прочие документы';
     }
 }
 
@@ -5709,7 +5960,7 @@ function buildEditorAssignmentsWordDocument(assignments) {
     const rows = [
         new TableRow({
             tableHeader: true,
-            children: ['Пользователь', 'Справочник', 'Права', 'Дата назначения', 'Статус', 'Примечание']
+            children: ['Пользователь', 'Каталог', 'Права', 'Дата назначения', 'Статус', 'Примечание']
                 .map((title) => new TableCell({
                     children: [
                         new Paragraph({
@@ -6357,38 +6608,53 @@ app.get('/api/user/catalogs/:id', requireAuth(), async (req, res) => {
     try {
         const catalogId = req.params.id;
         const userId = req.user.userId;
-        
-        // Проверяем доступ пользователя к каталогу
-        const [catalogAccess] = await pool.execute(`
+
+        const [rows] = await pool.execute(`
             SELECT 
                 f.idFolder as id,
                 f.Name as name,
                 f.parentId,
                 f.createdAt,
                 f.status,
-                f.description,
-                uf.permission
+                f.description
             FROM Folder f
-            LEFT JOIN UsersFolders uf ON f.idFolder = uf.idFolders AND uf.idUsers = ?
             WHERE f.idFolder = ? AND f.status = 'active'
-        `, [userId, catalogId]);
-        
-        if (catalogAccess.length === 0) {
-            return res.status(403).json({
+        `, [catalogId]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({
                 success: false,
-                message: 'Доступ к каталогу запрещен или каталог не существует'
+                message: 'Каталог не найден или неактивен'
             });
         }
-        
-        const catalog = catalogAccess[0];
-        
-        // Получаем количество документов в каталоге
+
+        const accessInfo = await getCatalogAccessInfo(userId, catalogId);
+        if (!accessInfo.hasAccess) {
+            return res.status(403).json({
+                success: false,
+                message: accessInfo.message || 'Доступ к каталогу запрещен'
+            });
+        }
+
+        const catalog = rows[0];
+        catalog.permission = accessInfo.permission;
+
+        if (catalog.parentId) {
+            const [parentRows] = await pool.execute(`
+                SELECT idFolder AS id, Name AS name FROM Folder
+                WHERE idFolder = ? AND status = 'active'
+            `, [catalog.parentId]);
+            if (parentRows.length > 0) {
+                catalog.parentFolder = parentRows[0];
+            }
+        }
+
         const [docCount] = await pool.execute(`
             SELECT COUNT(*) as count FROM Files WHERE idFolders = ?
         `, [catalogId]);
-        
+
         catalog.documentCount = docCount[0].count;
-        
+
         res.json({
             success: true,
             catalog: catalog
@@ -6408,35 +6674,17 @@ app.get('/api/user/catalogs/:id/documents', requireAuth(), async (req, res) => {
     try {
         const catalogId = req.params.id;
         const userId = req.user.userId;
-        
-        // Сначала проверяем доступ к каталогу через UsersFolders
-        const [access] = await pool.execute(`
-            SELECT permission FROM UsersFolders 
-            WHERE idUsers = ? AND idFolders = ?
-        `, [userId, catalogId]);
-        
-        if (access.length === 0) {
-            // Проверяем, может быть пользователь администратор?
-            const [userRole] = await pool.execute(`
-                SELECT r.name as role 
-                FROM Users u
-                LEFT JOIN Roles r ON u.idRoles = r.idRoles
-                WHERE u.idUsers = ?
-            `, [userId]);
-            
-            // Если пользователь администратор, разрешаем доступ
-            if (userRole[0]?.role === 'Администратор') {
-                console.log(`Администратор ${req.user.username} получает доступ к каталогу ${catalogId}`);
-            } else {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Доступ к каталогу запрещен. Каталог не назначен вашему пользователю.',
-                    code: 'ACCESS_DENIED'
-                });
-            }
+
+        const accessInfo = await getCatalogAccessInfo(userId, catalogId);
+        if (!accessInfo.hasAccess) {
+            return res.status(403).json({
+                success: false,
+                message: accessInfo.message || 'Доступ к каталогу запрещен',
+                code: 'ACCESS_DENIED'
+            });
         }
-        
-        const permission = access[0]?.permission || 'ADMIN'; // Для администратора
+
+        const permission = accessInfo.permission;
         
         // Получаем информацию о каталоге
         const [catalogInfo] = await pool.execute(`
@@ -6528,21 +6776,16 @@ app.post('/api/user/catalogs/:id/documents', requireAuth(), async (req, res) => 
         const ip = getClientIp(req);
         const userAgent = req.headers['user-agent'] || '';
         
-        // Администратор имеет право на запись без явной записи в UsersFolders
         if (!isUserAdmin(req)) {
-            const [access] = await pool.execute(`
-                SELECT permission FROM UsersFolders 
-                WHERE idUsers = ? AND idFolders = ? AND permission IN ('WRITE', 'ADMIN')
-            `, [userId, catalogId]);
-            
-            if (access.length === 0) {
+            const canWrite = await checkCatalogAccess(userId, catalogId, 'WRITE');
+            if (!canWrite) {
                 return res.status(403).json({
                     success: false,
                     message: 'Недостаточно прав для добавления документов'
                 });
             }
         }
-        
+
         const { name, description = '', version = '1.0.0' } = req.body;
         
         if (!name || name.trim() === '') {

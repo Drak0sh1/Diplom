@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="editor.css">
+    <link rel="stylesheet" href="../user/user-nav.css">
 </head>
 <body>
     <div class="admin-container">
@@ -19,18 +20,23 @@
                         <p>Система контроля версий документов</p>
                     </div>
                 </div>
-                <a href="editor.html" class="header-nav-link">
-                    <i class="fas fa-book"></i> <span>Справочники</span>
-                </a>
-                <a href="assignments.html" class="header-nav-link">
-                    <i class="fas fa-user-shield"></i> <span>Права доступа</span>
-                </a>
-                <a href="incoming-journal.html" class="header-nav-link">
-                    <i class="fas fa-inbox"></i> <span>Входящая документация</span>
-                </a>
-                <a href="statistics.html" class="header-nav-link">
-                    <i class="fas fa-chart-pie"></i> <span>Статистика</span>
-                </a>
+                <nav class="header-nav" aria-label="Разделы панели редактора">
+                    <a href="editor.html" class="header-nav-link" data-nav="editor">
+                        <i class="fas fa-book"></i> <span>Каталоги</span>
+                    </a>
+                    <a href="assignments.html" class="header-nav-link" data-nav="assignments">
+                        <i class="fas fa-user-shield"></i> <span>Права доступа</span>
+                    </a>
+                    <a href="incoming-journal.html" class="header-nav-link" data-nav="incoming">
+                        <i class="fas fa-inbox"></i> <span>Входящая документация</span>
+                    </a>
+                    <a href="outgoing-journal.html" class="header-nav-link" data-nav="outgoing">
+                        <i class="fas fa-paper-plane"></i> <span>Исходящая документация</span>
+                    </a>
+                    <a href="statistics.html" class="header-nav-link" data-nav="statistics">
+                        <i class="fas fa-chart-pie"></i> <span>Статистика</span>
+                    </a>
+                </nav>
             </div>
             <div class="user-profile" id="userProfile">
                 <div class="user-avatar" id="userAvatar">Р</div>
@@ -464,5 +470,6 @@
             window.outgoingJournalPage = new OutgoingJournalPage();
         });
     </script>
+    <script src="editor-nav.js"></script>
 </body>
 </html>

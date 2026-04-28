@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/user/user-nav.css">
     <link rel="stylesheet" href="/user/style.css">
     <style>
         /* Общие сбросы */
@@ -805,16 +806,16 @@
                 <h1><i class="fas fa-folder-open"></i> Каталог документов</h1>
                 <p class="header-subtitle">Система контроля версий документов</p>
             </div>
-            <nav class="header-nav">
-                <a href="/dashboard" class="header-nav-link">
+            <nav class="header-nav" aria-label="Основная навигация">
+                <a href="/dashboard" class="header-nav-link" data-nav="home">
                     <i class="fas fa-home"></i>
                     <span>Главная</span>
                 </a>
-                <a href="/journals/incoming" class="header-nav-link">
+                <a href="/journals/incoming" class="header-nav-link" data-nav="incoming">
                     <i class="fas fa-inbox"></i>
                     <span>Входящие</span>
                 </a>
-                <a href="/journals/outgoing" class="header-nav-link">
+                <a href="/journals/outgoing" class="header-nav-link" data-nav="outgoing">
                     <i class="fas fa-paper-plane"></i>
                     <span>Исходящие</span>
                 </a>
@@ -850,6 +851,7 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/user/user-nav.js" defer></script>
 
     <script>
         // Исправленный основной скрипт
@@ -1169,11 +1171,21 @@
                                 <p id="catalogDescription" class="text-muted mt-2">
                                     ${catalog.description || 'Без описания'}
                                 </p>
+                                ${catalog.parentFolder ? `
+                                <p class="mb-0 mt-2">
+                                    <a class="text-decoration-none" href="/catalogs?id=${catalog.parentFolder.id}">
+                                        <i class="fas fa-level-up-alt me-1"></i>Родительский каталог: ${escapeHtml(catalog.parentFolder.name)}
+                                    </a>
+                                </p>` : ''}
                             </div>
                             <div class="catalog-actions" id="catalogActions">
                                 <button class="btn btn-outline-primary" onclick="refreshCatalog()" title="Обновить">
                                     <i class="fas fa-sync-alt"></i>
                                 </button>
+                                ${catalog.parentFolder && (accessData.permission === 'WRITE' || accessData.permission === 'ADMIN') ? `
+                                <button type="button" class="btn btn-outline-secondary" onclick="showAddDocumentModal('${catalog.parentFolder.id}')" title="Добавить документы в родительский каталог">
+                                    <i class="fas fa-upload me-1"></i>В родительский
+                                </button>` : ''}
                             </div>
                         </div>
                         
@@ -1645,6 +1657,11 @@
                     config.badgeClass = 'inherited';
                     config.icon = 'fas fa-project-diagram';
                     config.text = 'Наследуемый доступ';
+                    break;
+                case 'from_descendant':
+                    config.badgeClass = 'inherited';
+                    config.icon = 'fas fa-sitemap';
+                    config.text = 'Доступ через дочерний каталог';
                     break;
                 case 'admin':
                     config.badgeClass = 'admin';
@@ -2245,7 +2262,7 @@
                                         <input type="file" class="form-control" id="fileInput" name="file" required multiple
                                                onchange="previewFile(this)">
                                         <div class="form-text">
-                                            Можно выбрать несколько файлов.
+                                            Можно выбрать несколько файлов. Лишние можно убрать из списка перед отправкой.
                                         </div>
                                     </div>
                                 </div>
@@ -2371,14 +2388,34 @@
         }
         
         /**
+         * Удаляет файл из списка выбранных (по индексу) перед загрузкой
+         */
+        function removeSelectedFile(index) {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) return;
+
+            const files = Array.from(fileInput.files);
+            if (index < 0 || index >= files.length) return;
+
+            files.splice(index, 1);
+            const dt = new DataTransfer();
+            files.forEach(f => dt.items.add(f));
+            fileInput.files = dt.files;
+            if (files.length === 0) {
+                fileInput.value = '';
+            }
+            previewFile(fileInput);
+        }
+
+        /**
          * Предпросмотр файла перед загрузкой
          */
         function previewFile(input) {
-            console.log(input.files)
             const preview = document.getElementById('filePreview');
             
             if (!input.files || input.files.length === 0) {
                 preview.style.display = 'none';
+                preview.innerHTML = '';
                 return;
             }
 
@@ -2393,17 +2430,28 @@
                             <span class="text-muted small">Общий размер: ${formatFileSize(totalSize)}</span>
                         </div>
                         <div class="text-muted small">
-                            ${files.map(file => {
+                            ${files.map((file, idx) => {
                                 const fileType = getFileIconClass(file.name);
+                                const safeName = String(file.name)
+                                    .replace(/&/g, '&amp;')
+                                    .replace(/</g, '&lt;')
+                                    .replace(/>/g, '&gt;')
+                                    .replace(/"/g, '&quot;');
                                 return `
-                                    <div class="d-flex align-items-center mb-2">
-                                        <div class="me-2">
-                                            <i class="${fileType.icon} ${fileType.color}"></i>
+                                    <div class="d-flex align-items-center justify-content-between gap-2 mb-2 flex-wrap">
+                                        <div class="d-flex align-items-center flex-grow-1 min-w-0">
+                                            <div class="me-2 flex-shrink-0">
+                                                <i class="${fileType.icon} ${fileType.color}"></i>
+                                            </div>
+                                            <div class="min-w-0">
+                                                <div class="text-break">${safeName}</div>
+                                                <div class="text-muted">Размер: ${formatFileSize(file.size)} | Тип: ${file.type || 'Неизвестно'}</div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <div>${file.name}</div>
-                                            <div class="text-muted">Размер: ${formatFileSize(file.size)} | Тип: ${file.type || 'Неизвестно'}</div>
-                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-danger flex-shrink-0"
+                                                onclick="removeSelectedFile(${idx})" title="Убрать из списка">
+                                            <i class="fas fa-times"></i> Удалить
+                                        </button>
                                     </div>
                                 `;
                             }).join('')}

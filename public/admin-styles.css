@@ -223,6 +223,47 @@ body {
     background: #feb2b2;
 }
 
+.btn-action-block {
+    background: #feebc8;
+    color: #9a3412;
+}
+
+.btn-action-block:hover {
+    background: #fbd38d;
+}
+
+.btn-action-unblock {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.btn-action-unblock:hover {
+    background: #a7f3d0;
+}
+
+.user-row-blocked {
+    opacity: 0.92;
+    background: rgba(254, 242, 242, 0.55) !important;
+}
+
+.user-status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.user-status-badge--active {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.user-status-badge--blocked {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
 /* Сводка пользователей */
 .users-summary {
     display: grid;
@@ -300,6 +341,25 @@ body {
     outline: none;
     border-color: #4299e1;
     box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+.form-control[readonly] {
+    background-color: #f1f5f9;
+    cursor: not-allowed;
+    color: #475569;
+}
+
+.form-control[readonly]:focus {
+    border-color: #e2e8f0;
+    box-shadow: none;
+}
+
+.form-text {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.4;
 }
 
 /* Кнопки */
@@ -810,6 +870,28 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+.modal-body {
+    padding: 22px 30px 4px;
+}
+
+.modal-body .form-group {
+    margin-bottom: 18px;
+}
+
+.modal-body .form-group:last-child {
+    margin-bottom: 0;
+}
+
+.modal-content--edit-user {
+    max-width: 440px;
+}
+
+.field-required {
+    color: #c53030;
+    font-weight: 600;
+    margin-left: 2px;
 }
 
 .close-btn {

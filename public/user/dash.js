@@ -851,11 +851,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             container.querySelectorAll('.catalog-item-content[data-has-children="true"]').forEach(content => {
-                content.addEventListener('click', async (e) => {
-                    if (!e.target.closest('.catalog-toggle')) {
-                        const catalogId = content.dataset.id;
-                        await this.toggleCatalog(catalogId);
-                    }
+                content.addEventListener('click', (e) => {
+                    if (e.target.closest('.catalog-toggle')) return;
+                    const catalogId = content.dataset.id;
+                    this.openCatalogPage(catalogId);
                 });
             });
             
@@ -924,7 +923,10 @@ document.addEventListener('DOMContentLoaded', function() {
             let html = `
                 <div class="catalogs-tree">
                     <div class="catalogs-header">
-                        <h3><i class="fas fa-folder-tree"></i> Мои каталоги</h3>
+                        <div>
+                            <h3><i class="fas fa-folder-tree"></i> Мои каталоги</h3>
+                            <p class="catalogs-open-hint">Клик по строке открывает каталог. Стрелка <i class="fas fa-chevron-right"></i> слева — только развернуть или свернуть вложенные.</p>
+                        </div>
                         <div class="catalogs-actions">
                             <button class="btn-secondary" id="expandAllBtn">
                                 <i class="fas fa-expand-alt"></i> Развернуть все
@@ -992,7 +994,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let html = `
                 <div class="catalog-item ${permissionClass} ${directlyAssignedClass}" data-id="${catalog.id}" data-level="${level}">
                     <div class="catalog-item-header ${hasChildren ? 'has-children' : ''}">
-                        <div class="catalog-item-content ${!hasChildren ? 'catalog-item-content-link' : ''}" data-id="${catalog.id}" data-has-children="${hasChildren}">
+                        <div class="catalog-item-content catalog-item-content-link" data-id="${catalog.id}" data-has-children="${hasChildren}">
             `;
             
             if (hasChildren) {
@@ -1080,13 +1082,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
             
-            // Обработчики для кликов по заголовкам каталогов (только для тех, у кого есть дети)
             document.querySelectorAll('.catalog-item-content[data-has-children="true"]').forEach(content => {
-                content.addEventListener('click', async (e) => {
-                    if (!e.target.closest('.catalog-toggle')) {
-                        const catalogId = content.dataset.id;
-                        await this.toggleCatalog(catalogId);
-                    }
+                content.addEventListener('click', (e) => {
+                    if (e.target.closest('.catalog-toggle')) return;
+                    const catalogId = content.dataset.id;
+                    this.openCatalogPage(catalogId);
                 });
             });
             
@@ -1509,10 +1509,25 @@ document.addEventListener('DOMContentLoaded', function() {
         .catalogs-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
+            gap: 16px;
             padding: 20px 25px;
             color: white;
             background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+        }
+
+        .catalogs-open-hint {
+            margin: 8px 0 0 0;
+            font-size: 12.5px;
+            font-weight: 400;
+            line-height: 1.45;
+            opacity: 0.92;
+            max-width: 520px;
+        }
+
+        .catalogs-open-hint i {
+            font-size: 11px;
+            opacity: 0.95;
         }
         
         .catalogs-header h3 {

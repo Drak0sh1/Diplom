@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Справочники - Панель редактора</title>
+    <title>Каталоги - Панель редактора</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="editor.css">
-    
+    <link rel="stylesheet" href="../user/user-nav.css">
 </head>
 <body>
     <div class="admin-container">
@@ -21,18 +21,23 @@
                         <p>Система контроля версий документов</p>
                     </div>
                 </div>
-                <a href="assignments.html" class="header-nav-link">
-                    <i class="fas fa-user-shield"></i> <span>Права доступа</span>
-                </a>
-                <a href="incoming-journal.html" class="header-nav-link">
-                    <i class="fas fa-inbox"></i> <span>Входящая документация</span>
-                </a>
-                <a href="outgoing-journal.html" class="header-nav-link">
-                    <i class="fas fa-paper-plane"></i> <span>Исходящая документация</span>
-                </a>
-                <a href="statistics.html" class="header-nav-link">
-                    <i class="fas fa-chart-pie"></i> <span>Статистика</span>
-                </a>
+                <nav class="header-nav" aria-label="Разделы панели редактора">
+                    <a href="editor.html" class="header-nav-link" data-nav="editor">
+                        <i class="fas fa-book"></i> <span>Каталоги</span>
+                    </a>
+                    <a href="assignments.html" class="header-nav-link" data-nav="assignments">
+                        <i class="fas fa-user-shield"></i> <span>Права доступа</span>
+                    </a>
+                    <a href="incoming-journal.html" class="header-nav-link" data-nav="incoming">
+                        <i class="fas fa-inbox"></i> <span>Входящая документация</span>
+                    </a>
+                    <a href="outgoing-journal.html" class="header-nav-link" data-nav="outgoing">
+                        <i class="fas fa-paper-plane"></i> <span>Исходящая документация</span>
+                    </a>
+                    <a href="statistics.html" class="header-nav-link" data-nav="statistics">
+                        <i class="fas fa-chart-pie"></i> <span>Статистика</span>
+                    </a>
+                </nav>
             </div>
             <div class="user-profile" id="userProfile">
                 <div class="user-avatar" id="userAvatar">Р</div>
@@ -61,32 +66,32 @@
         <!-- Основной контент -->
         <main class="main-content">
             <div class="page-header editor-intro-banner">
-                <h1><i class="fas fa-book"></i> Справочники каталогов документов</h1>
-                <p class="page-subtitle">Управление иерархией каталогов и справочников</p>
+                <h1><i class="fas fa-book"></i> Каталоги документов</h1>
+                <p class="page-subtitle">Управление иерархией каталогов</p>
             </div>
 
             <div class="card">
                 <div class="card-header">
-                    <h2><i class="fas fa-list"></i> Список справочников</h2>
+                    <h2><i class="fas fa-list"></i> Список каталогов</h2>
                     <div class="header-actions">
                         <div class="btn-group">
                             <div class="view-toggle">
-                                <button class="view-toggle-btn active" id="tableViewBtn" data-view="table">
+                                <button class="view-toggle-btn" id="tableViewBtn" data-view="table">
                                     <i class="fas fa-table"></i> Таблица
                                 </button>
-                                <button class="view-toggle-btn" id="treeViewBtn" data-view="tree">
+                                <button class="view-toggle-btn active" id="treeViewBtn" data-view="tree">
                                     <i class="fas fa-sitemap"></i> Дерево
                                 </button>
                             </div>
                             <button class="btn-sm btn-primary" id="addDirectoryBtn">
-                                <i class="fas fa-plus"></i> Добавить справочник
+                                <i class="fas fa-plus"></i> Добавить каталог
                             </button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Представление в виде таблицы -->
-                <div id="tableView" class="table-view">
+                <div id="tableView" class="table-view" style="display: none;">
                     <!-- Обновленные фильтры - перенесены наверх -->
                     <div class="search-filters">
                         <div class="search-box">
@@ -112,9 +117,9 @@
                         </div>
                     </div>
 
-                    <!-- Таблица справочников -->
+                    <!-- Таблица каталогов -->
                     <div class="table-container table-container--directories">
-                        <table class="directories-table directories-table--modern" aria-label="Список справочников каталогов">
+                        <table class="directories-table directories-table--modern" aria-label="Список каталогов">
                             <thead>
                                 <tr>
                                     <th scope="col" class="col-id">ID</th>
@@ -150,7 +155,7 @@
                 </div>
 
                 <!-- Представление в виде дерева -->
-                <div id="treeView" class="tree-view-container">
+                <div id="treeView" class="tree-view-container directories-tree-panel" style="display: block;">
                     <!-- Хлебные крошки для навигации по дереву -->
                     <div id="treePath" class="tree-path" style="display: none;">
                         <div class="tree-breadcrumb">
@@ -186,11 +191,11 @@
             </div>
         </main>
 
-        <!-- Диалог: добавление / редактирование справочника -->
+        <!-- Диалог: добавление / редактирование каталога -->
         <div class="modal-overlay" id="directoryFormModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="directoryFormTitle">
             <div class="modal-content modal-content--directory-form">
                 <div class="modal-header">
-                    <h3 id="directoryFormTitle"><i class="fas fa-edit"></i> <span id="formTitle">Добавить справочник</span></h3>
+                    <h3 id="directoryFormTitle"><i class="fas fa-edit"></i> <span id="formTitle">Добавить каталог</span></h3>
                     <button type="button" class="close-btn" id="closeFormBtn" aria-label="Закрыть">&times;</button>
                 </div>
                 <form id="directoryForm">
@@ -200,7 +205,7 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="directoryName">
-                                    <i class="fas fa-heading"></i> Название справочника *
+                                    <i class="fas fa-heading"></i> Название каталога *
                                 </label>
                                 <input type="text" id="directoryName" class="form-control" required>
                             </div>
@@ -251,7 +256,7 @@
                     <button type="button" class="close-btn" id="closeConfirmModal" aria-label="Закрыть">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p>Вы уверены, что хотите удалить этот справочник? Все вложенные справочники и записи также будут удалены.</p>
+                    <p>Вы уверены, что хотите удалить этот каталог? Все вложенные каталоги и записи также будут удалены.</p>
                 </div>
                 <div class="modal-footer">
                     <button class="btn-danger" id="confirmDeleteBtn">Удалить</button>
@@ -764,7 +769,8 @@
                 this.filteredDirectories = [];
                 this.currentDirectoryId = null;
                 this.activeStatusFilter = 'all';
-                this.currentView = 'table'; // 'table' или 'tree'
+                this.currentView = 'tree'; // 'table' или 'tree'
+                this.selectedTreeNodeId = null;
                 this.expandedNodes = new Set();
                 this.currentNodeId = null; // Текущий узел в дереве (для навигации)
                 this.nodeHistory = []; // История навигации по узлам
@@ -1016,8 +1022,8 @@
                         treeContainer.innerHTML = `
                             <div class="empty-tree">
                                 <i class="fas fa-folder-open"></i>
-                                <h3>Нет вложенных справочников</h3>
-                                <p>В этом каталоге нет дочерних справочников</p>
+                                <h3>Нет вложенных каталогов</h3>
+                                <p>В этом каталоге нет дочерних каталогов</p>
                             </div>
                         `;
                     } else {
@@ -1050,22 +1056,25 @@
             renderDrilldownNode(dir) {
                 // Получаем количество дочерних элементов
                 const childCount = this.directories.filter(d => d.parentId == dir.id && (d.status || 'active') === 'active').length;
+                const selected = this.selectedTreeNodeId === dir.id;
                 
                 return `
                     <div class="tree-node" data-id="${dir.id}">
-                        <div class="tree-node-header" onclick="directoriesPage.navigateToNode(${dir.id})">
-                            <span class="tree-toggle">
+                        <div class="tree-node-header${selected ? ' is-selected' : ''}">
+                            <span class="tree-toggle" onclick="event.stopPropagation(); directoriesPage.navigateToNode(${dir.id})">
                                 <i class="fas fa-chevron-right"></i>
                             </span>
-                            <span class="tree-icon">
-                                <i class="fas fa-folder${childCount > 0 ? '-open' : ''}"></i>
-                            </span>
-                            <div style="flex-grow: 1;">
-                                <div class="tree-node-name">
-                                    ${dir.name || 'Без названия'}
-                                    ${childCount > 0 ? `<span class="tree-node-children-count">(${childCount})</span>` : ''}
+                            <div class="tree-node-main" role="button" tabindex="0" onclick="directoriesPage.selectTreeNode(${dir.id})">
+                                <span class="tree-icon">
+                                    <i class="fas fa-folder${childCount > 0 ? '-open' : ''}"></i>
+                                </span>
+                                <div class="tree-node-text-wrap">
+                                    <div class="tree-node-name">
+                                        ${dir.name || 'Без названия'}
+                                        ${childCount > 0 ? `<span class="tree-node-children-count">(${childCount})</span>` : ''}
+                                    </div>
+                                    ${dir.description ? `<div class="tree-node-description">${dir.description}</div>` : ''}
                                 </div>
-                                ${dir.description ? `<div class="tree-node-description">${dir.description}</div>` : ''}
                             </div>
                             <div class="tree-node-info">
                                 <span class="tree-node-badge">
@@ -1121,24 +1130,27 @@
                 const hasChildren = node.children && node.children.length > 0;
                 const isExpanded = this.expandedNodes.has(node.id);
                 const indent = level * 30;
+                const selected = this.selectedTreeNodeId === node.id;
                 
                 let html = `
                     <div class="tree-node" data-id="${node.id}" style="margin-left: ${indent}px;">
-                        <div class="tree-node-header" onclick="directoriesPage.toggleTreeNode(${node.id})">
+                        <div class="tree-node-header${selected ? ' is-selected' : ''}">
                             ${hasChildren ? `
-                                <span class="tree-toggle">
+                                <span class="tree-toggle" onclick="event.stopPropagation(); directoriesPage.toggleTreeNode(${node.id})">
                                     <i class="fas fa-chevron-${isExpanded ? 'down' : 'right'}"></i>
                                 </span>
-                            ` : '<span class="tree-toggle" style="visibility: hidden;"><i class="fas fa-chevron-right"></i></span>'}
-                            <span class="tree-icon">
-                                <i class="fas fa-${hasChildren ? 'folder-open' : 'folder'}"></i>
-                            </span>
-                            <div style="flex-grow: 1;">
-                                <div class="tree-node-name">
-                                    ${node.name || 'Без названия'}
-                                    ${hasChildren ? `<span class="tree-node-children-count">(${node.children.length})</span>` : ''}
+                            ` : '<span class="tree-toggle tree-toggle--placeholder" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>'}
+                            <div class="tree-node-main" role="button" tabindex="0" onclick="directoriesPage.selectTreeNode(${node.id})">
+                                <span class="tree-icon">
+                                    <i class="fas fa-${hasChildren ? 'folder-open' : 'folder'}"></i>
+                                </span>
+                                <div class="tree-node-text-wrap">
+                                    <div class="tree-node-name">
+                                        ${node.name || 'Без названия'}
+                                        ${hasChildren ? `<span class="tree-node-children-count">(${node.children.length})</span>` : ''}
+                                    </div>
+                                    ${node.description ? `<div class="tree-node-description">${node.description}</div>` : ''}
                                 </div>
-                                ${node.description ? `<div class="tree-node-description">${node.description}</div>` : ''}
                             </div>
                             <div class="tree-node-info">
                                 <span class="tree-node-badge">
@@ -1185,6 +1197,15 @@
                     this.expandedNodes.add(nodeId);
                 }
                 this.renderTree();
+            }
+            
+            selectTreeNode(nodeId) {
+                this.selectedTreeNodeId = nodeId;
+                if (this.treeMode === 'full') {
+                    this.renderTree();
+                } else {
+                    this.renderDrilldownTree(this.currentNodeId);
+                }
             }
             
             expandAllNodes() {
@@ -1316,6 +1337,9 @@
             
             switchView(view) {
                 this.currentView = view;
+                if (view === 'table') {
+                    this.selectedTreeNodeId = null;
+                }
                 
                 const tableView = document.getElementById('tableView');
                 const treeView = document.getElementById('treeView');
@@ -1815,5 +1839,6 @@
             }
         });
     </script>
+    <script src="editor-nav.js"></script>
 </body>
 </html>

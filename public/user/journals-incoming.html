@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/user/user-nav.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -240,9 +241,17 @@
         <div class="header-text">
             <h1><i class="fas fa-inbox"></i> Журнал входящих документов</h1>
         </div>
-        <a href="/dashboard" class="header-nav-link">
-            <i class="fas fa-home"></i><span>Главная</span>
-        </a>
+        <nav class="header-nav" aria-label="Основная навигация">
+            <a href="/dashboard" class="header-nav-link" data-nav="home">
+                <i class="fas fa-home"></i><span>Главная</span>
+            </a>
+            <a href="/journals/incoming" class="header-nav-link" data-nav="incoming">
+                <i class="fas fa-inbox"></i><span>Входящие</span>
+            </a>
+            <a href="/journals/outgoing" class="header-nav-link" data-nav="outgoing">
+                <i class="fas fa-paper-plane"></i><span>Исходящие</span>
+            </a>
+        </nav>
     </div>
     <div class="user-profile" id="userProfile">
         <div class="user-avatar" id="userAvatar">?</div>
@@ -284,10 +293,10 @@
                 </select>
             </div>
             <div class="filter-field">
-                <div class="filter-label">Отправитель</div>
+                <div class="filter-label">Корреспондент</div>
                 <div class="cp-input-group" style="width:200px">
                     <span class="cp-icon"><i class="fas fa-user"></i></span>
-                    <input type="text" id="searchSender" placeholder="Имя отправителя">
+                    <input type="text" id="searchSender" placeholder="ФИО или организация">
                 </div>
             </div>
             <div class="filter-field">
@@ -340,9 +349,10 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/user/user-nav.js" defer></script>
 <script>
 // ── Состояние ──
-const state = { page: 1, limit: 20, totalPages: 1 };
+const state = { page: 1, limit: 20, totalPages: 1, dateDefaultsApplied: false };
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', async () => {
@@ -371,7 +381,19 @@ function handleDateRangeChange() {
     const dateFromInput = document.getElementById('searchDateFrom');
     const dateToInput = document.getElementById('searchDateTo');
     normalizeDateRange(dateFromInput, dateToInput);
+    state.dateDefaultsApplied = true;
     loadDocuments();
+}
+
+function applyDefaultJournalDateInputs(dateRange) {
+    if (!dateRange || !dateRange.min || !dateRange.max) return;
+    const df = document.getElementById('searchDateFrom');
+    const dt = document.getElementById('searchDateTo');
+    if (!state.dateDefaultsApplied && !df.value && !dt.value) {
+        df.value = dateRange.min;
+        dt.value = dateRange.max;
+        state.dateDefaultsApplied = true;
+    }
 }
 
 // ── Пользователь ──
@@ -441,6 +463,8 @@ async function loadDocuments() {
         const data = await res.json();
         if (!data.success) throw new Error(data.message);
 
+        applyDefaultJournalDateInputs(data.dateRange);
+
         state.totalPages = data.pagination.pages || 1;
         document.getElementById('totalCount').textContent = data.pagination.total;
 
@@ -461,8 +485,8 @@ function renderTable(docs) {
                     <th>Индекс</th>
                     <th>Дата поступления</th>
                     <th>Название документа</th>
-                    <th>Кто прислал</th>
-                    <th>Кому направлен</th>
+                    <th>Корреспондент</th>
+                    <th>Резолюция / кому направлен</th>
                     <th>Срок исполнения</th>
                     <th>Статус</th>
                 </tr>
@@ -474,8 +498,8 @@ function renderTable(docs) {
                         <td><code style="font-size:12px">${esc(d.documentIndex)}</code></td>
                         <td style="white-space:nowrap">${formatDateTime(d.receivedDate)}</td>
                         <td class="truncate" title="${esc(d.documentName)}">${esc(d.documentName)}</td>
-                        <td class="truncate" title="${esc(d.resolution)}">${esc(d.resolution) || '<span class="text-muted">—</span>'}</td>
                         <td class="truncate" title="${esc(d.correspondent)}">${esc(d.correspondent) || '<span class="text-muted">—</span>'}</td>
+                        <td class="truncate" title="${esc(d.resolution)}">${esc(d.resolution) || '<span class="text-muted">—</span>'}</td>
                         <td style="white-space:nowrap">${deadlineCell(d.dueDate)}</td>
                         <td>${statusCell(d.id, d.status)}</td>
                     </tr>
@@ -565,8 +589,12 @@ function openEditModal(id) {
                                     <input type="text" class="form-control" id="editName" readonly disabled>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label fw-semibold">Кому направлен</label>
-                                    <input type="text" class="form-control" id="editResolution" placeholder="Имя сотрудника или отдела">
+                                    <label class="form-label fw-semibold">Корреспондент</label>
+                                    <input type="text" class="form-control" id="editCorrespondent" placeholder="От кого поступил документ">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Резолюция / кому направлен</label>
+                                    <input type="text" class="form-control" id="editResolution" placeholder="Исполнитель, отдел или текст резолюции">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label fw-semibold">
@@ -589,24 +617,26 @@ function openEditModal(id) {
             document.getElementById('editId').value          = d.id;
             document.getElementById('editIndex').value       = d.documentIndex || '';
             document.getElementById('editName').value        = d.documentName  || '';
-            document.getElementById('editResolution').value  = d.correspondent || '';
-            document.getElementById('editDeadline').value    = d.dueDate ? d.dueDate.slice(0, 10) : '';
+            document.getElementById('editCorrespondent').value = d.correspondent || '';
+            document.getElementById('editResolution').value    = d.resolution || '';
+            document.getElementById('editDeadline').value      = d.dueDate ? d.dueDate.slice(0, 10) : '';
 
             modal.style.display = 'flex';
         });
 }
 
 async function saveEdit() {
-    const id           = document.getElementById('editId').value;
-    const correspondent = document.getElementById('editResolution').value.trim() || null;
-    const dueDate      = document.getElementById('editDeadline').value || null;
+    const id            = document.getElementById('editId').value;
+    const correspondent = document.getElementById('editCorrespondent').value.trim();
+    const resolution    = document.getElementById('editResolution').value.trim();
+    const dueDate       = document.getElementById('editDeadline').value || null;
 
     try {
         const res  = await fetch(`/api/user/journals/incoming/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ correspondent, dueDate })
+            body: JSON.stringify({ correspondent, resolution, dueDate })
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.message);
@@ -626,6 +656,7 @@ function clearFilters() {
     document.getElementById('searchIndex').value    = '';
     document.getElementById('executionFilter').value = '';
     state.page = 1;
+    state.dateDefaultsApplied = false;
     loadDocuments();
 }
 

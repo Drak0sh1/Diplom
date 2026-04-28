@@ -38,7 +38,7 @@ function loadRecentActivity() {
     const activities = [
         {
             icon: 'book',
-            title: 'Добавлен новый справочник "Договоры 2024"',
+            title: 'Добавлен новый каталог "Договоры 2024"',
             meta: '10 минут назад • Редактор',
             color: '#4299e1'
         },
