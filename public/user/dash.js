@@ -547,6 +547,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.loadedChildren = new Set(); // Храним ID каталогов, чьи дети уже загружены
             this.allChildrenLoaded = new Set(); // Храним ID каталогов, у которых загружены ВСЕ дети (включая вложенные)
             this.catalogHierarchy = new Map(); // Храним иерархию каталогов для быстрого поиска
+            this.catalogSearchQuery = '';
         }
         
         async init() {
@@ -618,6 +619,50 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             console.log('✅ Построена иерархия каталогов:', this.catalogHierarchy.size);
+        }
+        
+        /**
+         * Список каталогов с учётом поиска по названию (цепочка родителей для совпадений сохраняется).
+         */
+        getCatalogsForView() {
+            const full = this.assignedCatalogs;
+            const q = (this.catalogSearchQuery || '').trim().toLowerCase();
+            if (!q) {
+                return full;
+            }
+            const byId = new Map(full.map((c) => [String(c.id), c]));
+            const keep = new Set();
+            for (const c of full) {
+                const name = (c.name || '').toLowerCase();
+                if (!name.includes(q)) {
+                    continue;
+                }
+                keep.add(String(c.id));
+                let pid = c.parentId;
+                while (pid) {
+                    keep.add(String(pid));
+                    const p = byId.get(String(pid));
+                    pid = p ? p.parentId : null;
+                }
+            }
+            return full.filter((c) => keep.has(String(c.id)));
+        }
+        
+        catalogCreatedTs(catalog) {
+            const t = new Date(catalog && catalog.createdAt ? catalog.createdAt : 0).getTime();
+            return Number.isNaN(t) ? 0 : t;
+        }
+        
+        checkIfHasChildren(catalogId) {
+            const view = this.getCatalogsForView();
+            return view.some((catalog) => catalog.parentId == catalogId);
+        }
+        
+        findImmediateChildren(parentId) {
+            const view = this.getCatalogsForView();
+            return view
+                .filter((catalog) => catalog.parentId == parentId)
+                .sort((a, b) => this.catalogCreatedTs(b) - this.catalogCreatedTs(a));
         }
         
         async loadAllChildrenForAssignedCatalogs() {
@@ -739,23 +784,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         getCatalogById(id) {
             return this.assignedCatalogs.find(catalog => catalog.id == id);
-        }
-        
-        checkIfHasChildren(catalogId) {
-            // Проверяем, есть ли у каталога дети в загруженном списке
-            return this.assignedCatalogs.some(catalog => catalog.parentId == catalogId);
-        }
-        
-        findImmediateChildren(parentId) {
-            // Находим непосредственных детей каталога
-            return this.assignedCatalogs
-                .filter(catalog => catalog.parentId == parentId)
-                .sort((a, b) => {
-                    // Сначала сортируем по имени
-                    const nameA = (a.name || '').toLowerCase();
-                    const nameB = (b.name || '').toLowerCase();
-                    return nameA.localeCompare(nameB);
-                });
         }
         
         async toggleCatalog(catalogId) {
@@ -920,6 +948,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            const view = this.getCatalogsForView();
+            
             let html = `
                 <div class="catalogs-tree">
                     <div class="catalogs-header">
@@ -940,6 +970,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                     
+                    <div class="catalogs-search-row">
+                        <i class="fas fa-search catalogs-search-icon" aria-hidden="true"></i>
+                        <input type="search" id="catalogSearchInput" class="catalogs-search-input" placeholder="Поиск по названию каталога…" autocomplete="off" />
+                    </div>
+                    
                     <div class="catalogs-info">
                         <p><i class="fas fa-info-circle"></i> Нажмите на строку каталога для перехода к управлению документами</p>
                     </div>
@@ -947,23 +982,38 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="catalogs-list">
             `;
             
-            // Находим корневые каталоги (без parentId или чьи родители не в списке назначенных)
-            const rootCatalogs = this.assignedCatalogs.filter(catalog => {
-                if (!catalog.parentId) return true;
-                // Проверяем, есть ли родитель в списке назначенных
-                const parentExists = this.assignedCatalogs.some(c => c.id == catalog.parentId);
-                return !parentExists;
-            });
-            
-            if (rootCatalogs.length > 0) {
-                rootCatalogs.forEach(catalog => {
-                    html += this.renderCatalogItem(catalog, 0);
-                });
+            if (view.length === 0) {
+                const rawQ = (this.catalogSearchQuery || '').trim();
+                const safeQ = rawQ
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+                const label = safeQ || '…';
+                html += `
+                        <div class="catalogs-empty-search">
+                            <p><i class="fas fa-search"></i> Ничего не найдено по запросу «${label}»</p>
+                        </div>
+                `;
             } else {
-                // Если не нашли корневые, показываем все
-                this.assignedCatalogs.forEach(catalog => {
-                    html += this.renderCatalogItem(catalog, 0);
-                });
+                const rootCatalogs = view
+                    .filter((catalog) => {
+                        if (!catalog.parentId) return true;
+                        return !view.some((c) => c.id == catalog.parentId);
+                    })
+                    .sort((a, b) => this.catalogCreatedTs(b) - this.catalogCreatedTs(a));
+                
+                if (rootCatalogs.length > 0) {
+                    rootCatalogs.forEach((catalog) => {
+                        html += this.renderCatalogItem(catalog, 0);
+                    });
+                } else {
+                    [...view]
+                        .sort((a, b) => this.catalogCreatedTs(b) - this.catalogCreatedTs(a))
+                        .forEach((catalog) => {
+                            html += this.renderCatalogItem(catalog, 0);
+                        });
+                }
             }
             
             html += `
@@ -973,7 +1023,28 @@ document.addEventListener('DOMContentLoaded', function() {
             
             catalogsContainer.innerHTML = html;
             
-            // Добавляем обработчики событий
+            const searchInput = document.getElementById('catalogSearchInput');
+            if (searchInput) {
+                searchInput.value = this.catalogSearchQuery;
+                searchInput.addEventListener('input', (e) => {
+                    const t = e.target;
+                    const start = t.selectionStart;
+                    const end = t.selectionEnd;
+                    this.catalogSearchQuery = t.value;
+                    this.renderCatalogs();
+                    const next = document.getElementById('catalogSearchInput');
+                    if (next) {
+                        next.focus();
+                        const len = this.catalogSearchQuery.length;
+                        if (typeof start === 'number' && typeof end === 'number') {
+                            try {
+                                next.setSelectionRange(Math.min(start, len), Math.min(end, len));
+                            } catch (_) { /* ignore */ }
+                        }
+                    }
+                });
+            }
+            
             this.setupCatalogEventListeners();
             this.setupControlButtons();
         }
@@ -1141,8 +1212,8 @@ document.addEventListener('DOMContentLoaded', function() {
         async expandAllCatalogs() {
             console.log('🌳 Разворачиваем все каталоги...');
             
-            // Собираем все ID каталогов, у которых есть дети
-            const catalogsWithChildren = this.assignedCatalogs.filter(catalog => 
+            const view = this.getCatalogsForView();
+            const catalogsWithChildren = view.filter((catalog) =>
                 this.checkIfHasChildren(catalog.id)
             );
             
@@ -1582,6 +1653,62 @@ document.addEventListener('DOMContentLoaded', function() {
         
         .catalogs-info i {
             color: #3b82f6;
+        }
+        
+        .catalogs-search-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 25px;
+            background: #fff;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .catalogs-search-icon {
+            color: #94a3b8;
+            font-size: 14px;
+        }
+        
+        .catalogs-search-input {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 14px;
+            color: #1e293b;
+            background: #f8fafc;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        .catalogs-search-input:focus {
+            outline: none;
+            border-color: #5b86e5;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(91, 134, 229, 0.2);
+        }
+        
+        .catalogs-search-input::placeholder {
+            color: #94a3b8;
+        }
+        
+        .catalogs-empty-search {
+            padding: 28px 25px;
+            text-align: center;
+            color: #64748b;
+            font-size: 15px;
+        }
+        
+        .catalogs-empty-search p {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .catalogs-empty-search i {
+            color: #94a3b8;
         }
         
         .catalogs-list {

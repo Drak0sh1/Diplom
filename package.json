@@ -23,6 +23,7 @@
     "express-mysql-session": "^3.0.3",
     "express-session": "^1.18.2",
     "jsonwebtoken": "^9.0.2",
+    "jszip": "^3.10.1",
     "multer": "^2.0.2",
     "mysql2": "^3.15.3",
     "uuid": "^13.0.0"

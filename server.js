@@ -19,6 +19,8 @@ const {
 } = require('docx');
 const UserPasswordManager = require('./user-password-manager.js');
 const fileManager = require('./file-manager.js');
+const { isDocxBuffer, extractPlainTextFromDocxBuffer } = require('./docx-extract.js');
+const { diffLines } = require('diff');
 
 const {
     initTokenConfig,
@@ -42,7 +44,8 @@ const dbConfig = {
     database: 'Project',
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    charset: 'utf8mb4'
 };
 
 let pool;
@@ -1120,7 +1123,7 @@ app.get('/api/user/assigned-catalogs', requireAuth(), async (req, res) => {
             LEFT JOIN Files fl ON f.idFolder = fl.idFolders
             WHERE uf.idUsers = ? AND f.status = 'active'
             GROUP BY f.idFolder, f.Name, f.parentId, p.Name, f.createdAt, f.status, f.description, uf.permission
-            ORDER BY f.parentId IS NULL DESC, f.Name
+            ORDER BY f.createdAt DESC
         `, [userId]);
 
         const knownIds = new Set(assigned.map((c) => c.id));
@@ -1171,6 +1174,11 @@ app.get('/api/user/assigned-catalogs', requireAuth(), async (req, res) => {
         }
 
         const mergedCatalogs = [...extraParents, ...assigned];
+        mergedCatalogs.sort((a, b) => {
+            const ta = new Date(a.createdAt || 0).getTime();
+            const tb = new Date(b.createdAt || 0).getTime();
+            return tb - ta;
+        });
 
         const catalogsWithChildren = await Promise.all(mergedCatalogs.map(async (catalog) => {
             if (!catalog.parentId) {
@@ -1189,7 +1197,7 @@ app.get('/api/user/assigned-catalogs', requireAuth(), async (req, res) => {
                     LEFT JOIN Files fl ON f.idFolder = fl.idFolders
                     WHERE f.parentId = ? AND f.status = 'active'
                     GROUP BY f.idFolder, f.Name, f.parentId, f.createdAt, f.status, f.description, uf.permission
-                    ORDER BY f.Name
+                    ORDER BY f.createdAt DESC
                 `, [userId, catalog.id]);
 
                 catalog.children = children;
@@ -1245,7 +1253,7 @@ app.get('/api/user/catalogs/:parentId/children', requireAuth(), async (req, res)
             LEFT JOIN Files fl ON f.idFolder = fl.idFolders
             WHERE f.parentId = ? AND f.status = 'active'
             GROUP BY f.idFolder, f.Name, f.parentId, f.createdAt, f.status, f.description, uf.permission
-            ORDER BY f.Name
+            ORDER BY f.createdAt DESC
         `, [userId, parentId]);
         
         res.json({
@@ -1261,12 +1269,6 @@ app.get('/api/user/catalogs/:parentId/children', requireAuth(), async (req, res)
         });
     }
 });
-
-
-
-
-
-
 
 
 // СБРОС ПАРОЛЯ АДМИНИСТРАТОРА
@@ -4345,6 +4347,7 @@ app.get('/api/user/journals/outgoing', requireAuth(), async (req, res) => {
                 f.documentIndex,
                 f.correspondent,
                 f.description    AS summary,
+                f.deadline       AS dueDate,
                 f.executionMark,
                 f.documentStatus AS status,
                 f.createdAt,
@@ -4919,7 +4922,8 @@ app.get('/api/editor/reports/assignments-word', requireEditorRole, async (req, r
 app.get('/api/editor/reports/incoming-journal-word', requireEditorRole, async (req, res) => {
     try {
         const documents = await fetchEditorIncomingJournalReportData(req.query);
-        const doc = buildIncomingJournalWordDocument(documents);
+        const filterLines = buildJournalWordFilterSummaryLines(req.query, 'incoming');
+        const doc = buildIncomingJournalWordDocument(documents, filterLines);
         const buffer = await Packer.toBuffer(doc);
         const dateStamp = new Date().toISOString().slice(0, 10);
 
@@ -4944,7 +4948,8 @@ app.get('/api/editor/reports/incoming-journal-word', requireEditorRole, async (r
 app.get('/api/editor/reports/outgoing-journal-word', requireEditorRole, async (req, res) => {
     try {
         const documents = await fetchEditorOutgoingJournalReportData(req.query);
-        const doc = buildOutgoingJournalWordDocument(documents);
+        const filterLines = buildJournalWordFilterSummaryLines(req.query, 'outgoing');
+        const doc = buildOutgoingJournalWordDocument(documents, filterLines);
         const buffer = await Packer.toBuffer(doc);
         const dateStamp = new Date().toISOString().slice(0, 10);
 
@@ -5848,6 +5853,95 @@ async function fetchEditorAssignmentsReportData() {
     return rows;
 }
 
+function isJournalExportQueryTruthy(value) {
+    return value === '1' || value === 'true' || value === 1 || value === true;
+}
+
+/**
+ * Флаги категорий для экспорта журнала (все пять ключей приходят с клиента как 0/1).
+ * Если ключей нет — null (режим только search/dates и при необходимости legacy status).
+ */
+function parseJournalExportIncludeFlags(query) {
+    const keys = ['includeDraft', 'includeInProcess', 'includeOverdue', 'includeExecuted', 'includeArchived'];
+    const present = keys.some((k) => query[k] !== undefined && String(query[k]).length > 0);
+    if (!present) {
+        return null;
+    }
+    return {
+        draft: isJournalExportQueryTruthy(query.includeDraft),
+        inProcess: isJournalExportQueryTruthy(query.includeInProcess),
+        overdue: isJournalExportQueryTruthy(query.includeOverdue),
+        executed: isJournalExportQueryTruthy(query.includeExecuted),
+        archived: isJournalExportQueryTruthy(query.includeArchived)
+    };
+}
+
+function buildJournalExportStatusOrCondition(includes) {
+    const parts = [];
+    if (includes.draft) {
+        parts.push(`(f.documentStatus = 'draft')`);
+    }
+    if (includes.inProcess) {
+        parts.push(`(f.documentStatus = 'registered' AND (f.deadline IS NULL OR DATE(f.deadline) >= CURDATE()))`);
+    }
+    if (includes.overdue) {
+        parts.push(`(f.documentStatus = 'registered' AND f.deadline IS NOT NULL AND DATE(f.deadline) < CURDATE())`);
+    }
+    if (includes.executed) {
+        parts.push(`(f.documentStatus = 'executed')`);
+    }
+    if (includes.archived) {
+        parts.push(`(f.documentStatus = 'archived')`);
+    }
+    if (!parts.length) {
+        return '(1 = 0)';
+    }
+    return `(${parts.join(' OR ')})`;
+}
+
+/**
+ * Строки описания фильтров экспорта журнала (каждая — отдельный абзац в Word).
+ */
+function buildJournalWordFilterSummaryLines(query, journalKind) {
+    const search = String(query.search || '').trim();
+    const dateFrom = String(query.dateFrom || '').trim();
+    const dateTo = String(query.dateTo || '').trim();
+    const status = String(query.status || '').trim();
+    const lines = [];
+
+    lines.push(search ? `Поиск: «${search.replace(/\s+/g, ' ')}»` : 'Поиск: не задан');
+
+    if (dateFrom && dateTo) {
+        lines.push(`Период: с ${dateFrom} по ${dateTo}`);
+    } else if (dateFrom) {
+        lines.push(`Период: дата поступления/документа с ${dateFrom}`);
+    } else if (dateTo) {
+        lines.push(`Период: дата поступления/документа по ${dateTo}`);
+    } else {
+        lines.push('Период: не ограничен');
+    }
+
+    const includes = parseJournalExportIncludeFlags(query);
+    if (includes) {
+        const cats = [];
+        if (includes.draft) cats.push('черновики');
+        if (includes.inProcess) cats.push('в процессе (без просрочки)');
+        if (includes.overdue) cats.push('просроченные (в процессе)');
+        if (includes.executed) cats.push('исполненные');
+        if (includes.archived) cats.push('архив');
+        lines.push(cats.length ? `Категории: ${cats.join(', ')}` : 'Категории: не выбраны');
+    } else if (status && CATALOG_DOCUMENT_STATUSES.includes(status)) {
+        const label = journalKind === 'incoming'
+            ? getIncomingDocumentStatusText(status)
+            : getOutgoingDocumentStatusText(status);
+        lines.push(`Статус: ${label}`);
+    } else {
+        lines.push('Статус: все типы');
+    }
+
+    return lines;
+}
+
 async function fetchEditorIncomingJournalReportData(filters = {}) {
     const {
         search = '',
@@ -5879,7 +5973,10 @@ async function fetchEditorIncomingJournalReportData(filters = {}) {
         params.push(dateTo.trim());
     }
 
-    if (status && CATALOG_DOCUMENT_STATUSES.includes(status)) {
+    const includeFlags = parseJournalExportIncludeFlags(filters);
+    if (includeFlags) {
+        conditions.push(buildJournalExportStatusOrCondition(includeFlags));
+    } else if (status && CATALOG_DOCUMENT_STATUSES.includes(status)) {
         conditions.push(`f.documentStatus = ?`);
         params.push(status);
     }
@@ -5934,7 +6031,10 @@ async function fetchEditorOutgoingJournalReportData(filters = {}) {
         params.push(dateTo.trim());
     }
 
-    if (status && CATALOG_DOCUMENT_STATUSES.includes(status)) {
+    const includeFlags = parseJournalExportIncludeFlags(filters);
+    if (includeFlags) {
+        conditions.push(buildJournalExportStatusOrCondition(includeFlags));
+    } else if (status && CATALOG_DOCUMENT_STATUSES.includes(status)) {
         conditions.push(`f.documentStatus = ?`);
         params.push(status);
     }
@@ -5945,6 +6045,7 @@ async function fetchEditorOutgoingJournalReportData(filters = {}) {
             f.documentIndex,
             f.correspondent,
             f.description AS summary,
+            f.deadline AS dueDate,
             f.documentStatus AS status
         FROM Files f
         WHERE ${conditions.join(' AND ')}
@@ -6010,7 +6111,7 @@ function buildEditorAssignmentsWordDocument(assignments) {
     });
 }
 
-function buildIncomingJournalWordDocument(documents) {
+function buildIncomingJournalWordDocument(documents, filterLines = []) {
     const titleRow = new TableRow({
         children: [
             { text: 'Дата поступления и индекс документа', width: 14 },
@@ -6100,6 +6201,17 @@ function buildIncomingJournalWordDocument(documents) {
                     ]
                 }),
                 new Paragraph({ text: '' }),
+                ...(Array.isArray(filterLines) && filterLines.length
+                    ? [
+                        new Paragraph({
+                            children: [new TextRun({ text: 'Фильтры', bold: true, size: 22 })]
+                        }),
+                        ...filterLines.map((line) => new Paragraph({
+                            children: [new TextRun({ text: line, italics: true, size: 22 })]
+                        })),
+                        new Paragraph({ text: '' })
+                    ]
+                    : []),
                 new Table({
                     width: { size: 100, type: WidthType.PERCENTAGE },
                     rows: [titleRow],
@@ -6129,7 +6241,7 @@ function buildIncomingJournalWordDocument(documents) {
     });
 }
 
-function buildOutgoingJournalWordDocument(documents) {
+function buildOutgoingJournalWordDocument(documents, filterLines = []) {
     const titleRow = new TableRow({
         children: [
             { text: 'Дата документа и индекс', width: 20 },
@@ -6197,6 +6309,17 @@ function buildOutgoingJournalWordDocument(documents) {
                     ]
                 }),
                 new Paragraph({ text: '' }),
+                ...(Array.isArray(filterLines) && filterLines.length
+                    ? [
+                        new Paragraph({
+                            children: [new TextRun({ text: 'Фильтры', bold: true, size: 22 })]
+                        }),
+                        ...filterLines.map((line) => new Paragraph({
+                            children: [new TextRun({ text: line, italics: true, size: 22 })]
+                        })),
+                        new Paragraph({ text: '' })
+                    ]
+                    : []),
                 new Table({
                     width: { size: 100, type: WidthType.PERCENTAGE },
                     rows: [titleRow],
@@ -6655,6 +6778,12 @@ app.get('/api/user/catalogs/:id', requireAuth(), async (req, res) => {
 
         catalog.documentCount = docCount[0].count;
 
+        const [assigneeRows] = await pool.execute(`
+            SELECT COUNT(*) as cnt FROM UsersFolders WHERE idFolders = ?
+        `, [catalogId]);
+
+        catalog.assigneeCount = Number(assigneeRows[0]?.cnt ?? assigneeRows[0]?.CNT ?? 0);
+
         res.json({
             success: true,
             catalog: catalog
@@ -6722,26 +6851,36 @@ app.get('/api/user/catalogs/:id/documents', requireAuth(), async (req, res) => {
         
         // Форматируем данные для клиента
         const formattedDocs = documents.map(doc => {
+            const docName = fileManager.fixUtf8FilenameIfNeeded(doc.name) || doc.name;
             const sizeInKB = doc.fileSize ? Math.round(doc.fileSize / 1024) : 0;
             const sizeText = sizeInKB > 1024 
                 ? (sizeInKB / 1024).toFixed(1) + ' MB' 
                 : sizeInKB + ' KB';
             
-            const fileExtension = doc.name.split('.').pop().toLowerCase();
+            const fileExtension = docName.includes('.') ? docName.split('.').pop().toLowerCase() : '';
             const uploadedDate = new Date(doc.uploadedAt).toLocaleDateString('ru-RU');
+            const summaryText = doc.summary != null && doc.summary !== ''
+                ? (fileManager.fixUtf8FilenameIfNeeded(String(doc.summary)) || String(doc.summary))
+                : '';
+            const activityMs = Math.max(
+                doc.updatedAt ? new Date(doc.updatedAt).getTime() : 0,
+                doc.versionDate ? new Date(doc.versionDate).getTime() : 0,
+                doc.uploadedAt ? new Date(doc.uploadedAt).getTime() : 0
+            );
+            const lastActivity = activityMs > 0 ? new Date(activityMs) : (doc.updatedAt || doc.uploadedAt || null);
             
             return {
                 id: doc.id,
-                name: doc.name,
-                description: doc.summary || `Загружен: ${uploadedDate}`,
-                summary: doc.summary || '',
+                name: docName,
+                description: summaryText || `Загружен: ${uploadedDate}`,
+                summary: summaryText,
                 version: doc.currentVersion ? `v${doc.currentVersion}` : 'v1.0',
                 size: sizeText,
-                uploadedBy: doc.uploadedBy || 'Неизвестно',
+                uploadedBy: fileManager.fixUtf8FilenameIfNeeded(doc.uploadedBy) || doc.uploadedBy || 'Неизвестно',
                 uploadedAt: doc.uploadedAt,
                 fileType: fileExtension,
                 status: doc.status || 'new',
-                lastModified: doc.updatedAt,
+                lastModified: lastActivity,
                 documentType: doc.documentType || 'document',
                 documentIndex: doc.documentIndex || null
             };
@@ -6752,8 +6891,8 @@ app.get('/api/user/catalogs/:id/documents', requireAuth(), async (req, res) => {
             documents: formattedDocs,
             permission: permission,
             catalog: {
-                name: catalogInfo[0].Name,
-                description: catalogInfo[0].description,
+                name: fileManager.fixUtf8FilenameIfNeeded(catalogInfo[0].Name) || catalogInfo[0].Name,
+                description: fileManager.fixUtf8FilenameIfNeeded(catalogInfo[0].description) || catalogInfo[0].description,
                 documentCount: documents.length
             }
         });
@@ -7600,7 +7739,10 @@ app.get('/api/documents/:id/versions/:versionNumber/download', requireAuth(), as
         
         // Отправляем файл
         sendFileResponse(res, fileInfo, {
-            downloadName: `v${versionNumber}_${fileInfo.name || 'document'}`
+            downloadName: buildVersionDownloadFilename(
+                fileManager.fixUtf8FilenameIfNeeded(versionInfo[0].originalFileName) || fileInfo.name,
+                versionNumber
+            )
         });
         
     } catch (error) {
@@ -7609,6 +7751,162 @@ app.get('/api/documents/:id/versions/:versionNumber/download', requireAuth(), as
         res.status(500).json({
             success: false,
             message: 'Ошибка при скачивании версии'
+        });
+    }
+});
+
+const MAX_VERSION_DIFF_BYTES = 2 * 1024 * 1024;
+
+function looksLikeBinaryBuffer(buf) {
+    if (!buf || buf.length === 0) {
+        return false;
+    }
+    if (buf.includes(0)) {
+        return true;
+    }
+    const sampleLen = Math.min(buf.length, 8000);
+    const text = buf.subarray(0, sampleLen).toString('utf8');
+    const replacement = (text.match(/\uFFFD/g) || []).length;
+    return replacement > Math.max(2, text.length * 0.002);
+}
+
+function splitTextIntoLinesForDiff(text) {
+    if (text === '') {
+        return [];
+    }
+    return text.replace(/\r\n/g, '\n').split('\n');
+}
+
+function buildTextLineDiffRows(oldText, newText) {
+    const rows = [];
+    const hunks = diffLines(oldText, newText);
+    for (const part of hunks) {
+        const value = part.value ?? '';
+        const lines = splitTextIntoLinesForDiff(value);
+        if (lines.length === 0 && value === '') {
+            continue;
+        }
+        const type = part.added ? 'added' : part.removed ? 'removed' : 'unchanged';
+        for (const line of lines) {
+            rows.push({ type, text: line });
+        }
+    }
+    return rows;
+}
+
+// СРАВНЕНИЕ ДВУХ ВЕРСИЙ ДОКУМЕНТА (построчно, для текстовых файлов)
+app.get('/api/documents/:id/versions/compare', requireAuth(), async (req, res) => {
+    try {
+        const documentId = req.params.id;
+        const fromVersion = parseInt(req.query.from, 10);
+        const toVersion = parseInt(req.query.to, 10);
+        const userId = req.user.userId;
+
+        if (!Number.isFinite(fromVersion) || !Number.isFinite(toVersion)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Укажите параметры from и to (номера версий)'
+            });
+        }
+
+        if (fromVersion === toVersion) {
+            return res.status(400).json({
+                success: false,
+                message: 'Выберите две разные версии'
+            });
+        }
+
+        const [access] = await pool.execute(`
+            SELECT 1 FROM Files f
+            LEFT JOIN UsersFolders uf ON f.idFolders = uf.idFolders AND uf.idUsers = ?
+            WHERE f.idFiles = ?
+        `, [userId, documentId]);
+
+        if (access.length === 0) {
+            return res.status(403).json({
+                success: false,
+                message: 'Доступ к документу запрещен'
+            });
+        }
+
+        const [verRows] = await pool.execute(`
+            SELECT versionNumber FROM FileVersions
+            WHERE idFiles = ? AND versionNumber IN (?, ?)
+        `, [documentId, fromVersion, toVersion]);
+
+        if (verRows.length < 2) {
+            return res.status(404).json({
+                success: false,
+                message: 'Одна или обе версии не найдены'
+            });
+        }
+
+        const fileA = await fileManager.getDocumentVersion(documentId, fromVersion, pool);
+        const fileB = await fileManager.getDocumentVersion(documentId, toVersion, pool);
+
+        if (!fileA?.buffer || !fileB?.buffer) {
+            return res.status(404).json({
+                success: false,
+                message: 'Не удалось загрузить содержимое версий для сравнения'
+            });
+        }
+
+        if (fileA.buffer.length > MAX_VERSION_DIFF_BYTES || fileB.buffer.length > MAX_VERSION_DIFF_BYTES) {
+            return res.status(413).json({
+                success: false,
+                message: `Сравнение доступно для файлов до ${Math.round(MAX_VERSION_DIFF_BYTES / (1024 * 1024))} МБ`
+            });
+        }
+
+        const aDocx = await isDocxBuffer(fileA.buffer);
+        const bDocx = await isDocxBuffer(fileB.buffer);
+
+        let oldText;
+        let newText;
+        let compareMode = 'text';
+
+        if (aDocx && bDocx) {
+            compareMode = 'docx';
+            try {
+                oldText = await extractPlainTextFromDocxBuffer(fileA.buffer);
+                newText = await extractPlainTextFromDocxBuffer(fileB.buffer);
+            } catch (e) {
+                console.error('DOCX extract:', e);
+                return res.status(400).json({
+                    success: false,
+                    message: 'Не удалось извлечь текст из одного из DOCX. Возможно, файл повреждён.'
+                });
+            }
+        } else if (aDocx !== bDocx) {
+            return res.status(400).json({
+                success: false,
+                message: 'Сравнение: оба файла должны быть в формате DOCX или оба — обычным текстом (не смешивайте форматы).'
+            });
+        } else {
+            if (looksLikeBinaryBuffer(fileA.buffer) || looksLikeBinaryBuffer(fileB.buffer)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Сравнение по строкам для этого типа файла не поддерживается (например PDF, старый .doc). Для Word используйте .docx.'
+                });
+            }
+            oldText = fileA.buffer.toString('utf8');
+            newText = fileB.buffer.toString('utf8');
+        }
+
+        const lines = buildTextLineDiffRows(oldText, newText);
+
+        res.json({
+            success: true,
+            fromVersion,
+            toVersion,
+            compareMode,
+            lines
+        });
+    } catch (error) {
+        console.error('❌ Ошибка сравнения версий:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка при сравнении версий'
         });
     }
 });
@@ -7636,16 +7934,16 @@ app.get('/api/documents/:id/versions', requireAuth(), async (req, res) => {
         // Получаем все версии документа
         const [versions] = await pool.execute(`
             SELECT 
-                fv.idFileVersions as versionId,
-                fv.versionNumber,
-                fv.storageType,
-                fv.storagePath,
-                fv.baseVersionId,
-                fv.createdAt as versionDate,
-                fv.checksum,
-                u.name as createdBy,
-                f.name as fileName,
-                COALESCE(fv.fileSize, f.fileSize) as fileSize
+                fv.idFileVersions as version_id,
+                fv.versionNumber as version_number,
+                fv.storageType as storage_type,
+                fv.storagePath as storage_path,
+                fv.baseVersionId as base_version_id,
+                fv.createdAt as version_date,
+                u.name as created_by,
+                f.name as file_name,
+                fv.originalFileName as original_file_name,
+                COALESCE(fv.fileSize, f.fileSize) as file_size
             FROM FileVersions fv
             JOIN Files f ON fv.idFiles = f.idFiles
             LEFT JOIN Users u ON f.idUsers = u.idUsers
@@ -7653,24 +7951,34 @@ app.get('/api/documents/:id/versions', requireAuth(), async (req, res) => {
             ORDER BY fv.versionNumber DESC
         `, [documentId]);
         
-        // Форматируем версии
-        const formattedVersions = versions.map(version => {
-            const versionDate = new Date(version.versionDate);
-            const fileSize = version.fileSize || 0;
-            
-            return {
-                id: version.versionId,
-                versionNumber: version.versionNumber,
-                versionName: `Версия ${version.versionNumber}`,
-                storageType: version.storageType,
-                size: formatFileSize(fileSize),
-                createdAt: versionDate.toLocaleString('ru-RU'),
-                createdBy: version.createdBy || 'Неизвестно',
-                checksum: version.checksum?.substring(0, 16) + '...',
-                isCurrent: version.versionNumber === versions[0]?.versionNumber,
-                downloadUrl: `/api/documents/${documentId}/versions/${version.versionNumber}/download`
-            };
-        });
+        // Форматируем версии (mysql2 отдаёт ключи как в SQL-алиасах — snake_case)
+        const formattedVersions = disambiguateVersionUploadedDisplayNames(
+            versions.map((version) => {
+                const versionDate = new Date(version.version_date);
+                const fileSize = version.file_size || 0;
+                const displayName = resolveVersionUploadedDisplayName(
+                    version.original_file_name,
+                    version.file_name,
+                    version.version_number
+                );
+                const downloadBase = String(fileManager.fixUtf8FilenameIfNeeded(version.original_file_name) || '').trim()
+                    || String(fileManager.fixUtf8FilenameIfNeeded(version.file_name) || 'document').trim();
+                
+                return {
+                    id: version.version_id,
+                    versionNumber: version.version_number,
+                    versionName: `Версия ${version.version_number}`,
+                    storageType: version.storage_type,
+                    size: formatFileSize(fileSize),
+                    createdAt: versionDate.toLocaleString('ru-RU'),
+                    createdBy: version.created_by || 'Неизвестно',
+                    uploadedFileName: displayName,
+                    downloadFileName: buildVersionDownloadFilename(downloadBase, version.version_number),
+                    isCurrent: version.version_number === versions[0]?.version_number,
+                    downloadUrl: `/api/documents/${documentId}/versions/${version.version_number}/download`
+                };
+            })
+        );
         
         res.json({
             success: true,
@@ -7678,8 +7986,8 @@ app.get('/api/documents/:id/versions', requireAuth(), async (req, res) => {
             totalVersions: versions.length,
             document: {
                 id: documentId,
-                name: versions[0]?.fileName,
-                currentVersion: versions[0]?.versionNumber
+                name: versions[0]?.file_name,
+                currentVersion: versions[0]?.version_number
             }
         });
         
@@ -8075,28 +8383,29 @@ app.get('/api/documents/search', requireAuth(), async (req, res) => {
         
         // Форматируем документы
         const formattedDocs = documents.map(doc => {
+            const docName = fileManager.fixUtf8FilenameIfNeeded(doc.name) || doc.name;
             const sizeInKB = doc.fileSize ? Math.round(doc.fileSize / 1024) : 0;
             const sizeText = sizeInKB > 1024 
                 ? (sizeInKB / 1024).toFixed(1) + ' MB' 
                 : sizeInKB + ' KB';
             
-            const fileExtension = doc.name.split('.').pop().toLowerCase();
+            const fileExtension = docName.includes('.') ? docName.split('.').pop().toLowerCase() : '';
             const uploadedDate = new Date(doc.uploadedAt).toLocaleDateString('ru-RU');
             
             return {
                 id: doc.id,
-                name: doc.name,
+                name: docName,
                 description: `Загружен: ${uploadedDate}`,
                 version: doc.currentVersion ? `v${doc.currentVersion}` : 'v1.0',
                 size: sizeText,
                 sizeBytes: doc.fileSize,
-                uploadedBy: doc.uploadedBy || 'Неизвестно',
+                uploadedBy: fileManager.fixUtf8FilenameIfNeeded(doc.uploadedBy) || doc.uploadedBy || 'Неизвестно',
                 uploadedAt: doc.uploadedAt,
                 updatedAt: doc.updatedAt,
                 fileType: fileExtension,
                 status: doc.status || 'new',
                 catalogId: doc.catalogId,
-                catalogName: doc.catalogName,
+                catalogName: fileManager.fixUtf8FilenameIfNeeded(doc.catalogName) || doc.catalogName,
                 downloadUrl: `/api/documents/${doc.id}/download`
             };
         });
@@ -8290,6 +8599,59 @@ async function updateDocumentCurrentVersion(connection, documentId, versionId, o
     );
 }
 
+function buildVersionDownloadFilename(originalFileName, versionNumber) {
+    const v = Math.max(1, parseInt(String(versionNumber), 10) || 1);
+    let base = String(fileManager.fixUtf8FilenameIfNeeded(originalFileName) ?? '').trim();
+    if (!base) {
+        base = 'document';
+    }
+    base = path.basename(base.replace(/\\/g, '/'));
+    if (!base || base === '.' || base === '..') {
+        base = 'document';
+    }
+    const lastDot = base.lastIndexOf('.');
+    if (lastDot > 0 && lastDot < base.length - 1) {
+        const stem = base.slice(0, lastDot);
+        const ext = base.slice(lastDot);
+        return `${stem}_v${v}${ext}`;
+    }
+    return `${base}_v${v}`;
+}
+
+/**
+ * Имя файла для списка версий: только то, с которым загружали эту версию.
+ * Если в БД пусто (старые записи) — уникальная подпись с номером версии, без общего имени для всех.
+ */
+function resolveVersionUploadedDisplayName(originalFileName, documentTitle, versionNumber) {
+    const stored = String(fileManager.fixUtf8FilenameIfNeeded(originalFileName) || '').trim();
+    if (stored) {
+        return path.basename(stored.replace(/\\/g, '/'));
+    }
+    const title = String(fileManager.fixUtf8FilenameIfNeeded(documentTitle) || 'документ').trim() || 'документ';
+    return `${title} (версия ${versionNumber})`;
+}
+
+/**
+ * Если у нескольких версий совпало имя загрузки — добавить суффикс, чтобы строки в списке различались.
+ */
+function disambiguateVersionUploadedDisplayNames(items) {
+    const counts = new Map();
+    for (const it of items) {
+        const key = String(it.uploadedFileName || '').trim().toLowerCase();
+        counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    return items.map((it) => {
+        const key = String(it.uploadedFileName || '').trim().toLowerCase();
+        if (!key || counts.get(key) < 2) {
+            return it;
+        }
+        return {
+            ...it,
+            uploadedFileName: `${it.uploadedFileName} · v${it.versionNumber}`
+        };
+    });
+}
+
 function sendFileResponse(res, fileInfo, options = {}) {
     const downloadName = options.downloadName || fileInfo.name || 'document';
     const encodedName = encodeURIComponent(downloadName).replace(/'/g, '%27');
@@ -8410,26 +8772,36 @@ app.get('/api/user/catalogs/:id/documents-with-inheritance', requireAuth(), asyn
         
         // 4. Форматируем ответ
         const formattedDocs = documents.map(doc => {
+            const docName = fileManager.fixUtf8FilenameIfNeeded(doc.name) || doc.name;
             const sizeInKB = doc.fileSize ? Math.round(doc.fileSize / 1024) : 0;
             const sizeText = sizeInKB > 1024 
                 ? (sizeInKB / 1024).toFixed(1) + ' MB' 
                 : sizeInKB + ' KB';
             
-            const fileExtension = doc.name.split('.').pop().toLowerCase();
+            const fileExtension = docName.includes('.') ? docName.split('.').pop().toLowerCase() : '';
             const uploadedDate = new Date(doc.uploadedAt).toLocaleDateString('ru-RU');
+            const summaryText = doc.summary != null && doc.summary !== ''
+                ? (fileManager.fixUtf8FilenameIfNeeded(String(doc.summary)) || String(doc.summary))
+                : '';
+            const activityMs = Math.max(
+                doc.updatedAt ? new Date(doc.updatedAt).getTime() : 0,
+                doc.versionDate ? new Date(doc.versionDate).getTime() : 0,
+                doc.uploadedAt ? new Date(doc.uploadedAt).getTime() : 0
+            );
+            const lastActivity = activityMs > 0 ? new Date(activityMs) : (doc.updatedAt || doc.uploadedAt || null);
             
             return {
                 id: doc.id,
-                name: doc.name,
-                description: doc.summary || `Загружен: ${uploadedDate}`,
-                summary: doc.summary || '',
+                name: docName,
+                description: summaryText || `Загружен: ${uploadedDate}`,
+                summary: summaryText,
                 version: doc.currentVersion ? `v${doc.currentVersion}` : 'v1.0',
                 size: sizeText,
-                uploadedBy: doc.uploadedBy || 'Неизвестно',
+                uploadedBy: fileManager.fixUtf8FilenameIfNeeded(doc.uploadedBy) || doc.uploadedBy || 'Неизвестно',
                 uploadedAt: doc.uploadedAt,
                 fileType: fileExtension,
                 status: doc.status || 'new',
-                lastModified: doc.updatedAt,
+                lastModified: lastActivity,
                 documentType: doc.documentType || 'document',
                 documentIndex: doc.documentIndex || null
             };
@@ -8441,8 +8813,8 @@ app.get('/api/user/catalogs/:id/documents-with-inheritance', requireAuth(), asyn
             permission: accessCheck.permission,
             accessType: accessCheck.accessType,
             catalog: {
-                name: catalogInfo[0].Name,
-                description: catalogInfo[0].description,
+                name: fileManager.fixUtf8FilenameIfNeeded(catalogInfo[0].Name) || catalogInfo[0].Name,
+                description: fileManager.fixUtf8FilenameIfNeeded(catalogInfo[0].description) || catalogInfo[0].description,
                 documentCount: documents.length
             }
         });
@@ -8529,24 +8901,22 @@ app.get('/api/user/catalogs/:id/export-inventory', requireAuth(), async (req, re
             { header: 'Регистрационный индекс', key: 'documentIndex', width: 22 },
             { header: 'Описание', key: 'summary', width: 42 },
             { header: 'Версия', key: 'version', width: 12 },
-            { header: 'Текущая версия', key: 'isCurrentVersion', width: 16 },
-            { header: 'Статус', key: 'status', width: 18 },
             { header: 'Размер', key: 'size', width: 14 },
             { header: 'Загрузил', key: 'uploadedBy', width: 24 },
             { header: 'Дата загрузки', key: 'uploadedAt', width: 18 },
             { header: 'Дата версии', key: 'versionDate', width: 18 }
         ];
 
-        worksheet.mergeCells('A1:L1');
+        worksheet.mergeCells('A1:J1');
         worksheet.getCell('A1').value = `Опись документов каталога: ${catalogName}`;
         worksheet.getCell('A1').font = { bold: true, size: 14 };
         worksheet.getCell('A1').alignment = { horizontal: 'center' };
 
-        worksheet.mergeCells('A2:L2');
+        worksheet.mergeCells('A2:J2');
         worksheet.getCell('A2').value = `Сформировано: ${formatExportDate(new Date())}`;
         worksheet.getCell('A2').alignment = { horizontal: 'right' };
 
-        worksheet.mergeCells('A3:L3');
+        worksheet.mergeCells('A3:J3');
         worksheet.getCell('A3').value = `Документов в каталоге: ${uniqueDocumentsCount}. Всего версий: ${documents.length}`;
 
         const headerRow = worksheet.getRow(5);
@@ -8575,7 +8945,7 @@ app.get('/api/user/catalogs/:id/export-inventory', requireAuth(), async (req, re
 
             const row = worksheet.addRow({
                 number: index + 1,
-                name: doc.originalFileName || doc.name || '',
+                name: fileManager.fixUtf8FilenameIfNeeded(String(doc.originalFileName || doc.name || '')) || '',
                 documentType: doc.documentType === 'incoming'
                     ? 'Входящий'
                     : doc.documentType === 'outgoing'
@@ -8584,8 +8954,6 @@ app.get('/api/user/catalogs/:id/export-inventory', requireAuth(), async (req, re
                 documentIndex: doc.documentIndex || '',
                 summary: doc.summary || '',
                 version: doc.versionNumber ? `v${doc.versionNumber}` : 'v1.0',
-                isCurrentVersion: doc.isCurrentVersion ? 'Да' : 'Нет',
-                status: doc.status || '',
                 size: sizeText,
                 uploadedBy: doc.uploadedBy || 'Неизвестно',
                 uploadedAt: formatExportDate(doc.uploadedAt),
@@ -8842,15 +9210,16 @@ app.get('/api/user/documents/:id/versions', requireAuth(), async (req, res) => {
         // Получаем все версии документа
         const [versions] = await pool.execute(`
             SELECT 
-                fv.idFileVersions as versionId,
-                fv.versionNumber,
-                fv.storageType,
-                fv.storagePath,
-                fv.baseVersionId,
-                fv.createdAt as versionDate,
-                fv.checksum,
-                COALESCE(fv.fileSize, f.fileSize, 0) as fileSize,
-                u.name as createdBy
+                fv.idFileVersions as version_id,
+                fv.versionNumber as version_number,
+                fv.storageType as storage_type,
+                fv.storagePath as storage_path,
+                fv.baseVersionId as base_version_id,
+                fv.createdAt as version_date,
+                COALESCE(fv.fileSize, f.fileSize, 0) as file_size,
+                u.name as created_by,
+                fv.originalFileName as original_file_name,
+                f.name as file_name
             FROM FileVersions fv
             LEFT JOIN Files f ON fv.idFiles = f.idFiles
             LEFT JOIN Users u ON f.idUsers = u.idUsers
@@ -8859,17 +9228,29 @@ app.get('/api/user/documents/:id/versions', requireAuth(), async (req, res) => {
         `, [documentId]);
         
         // Форматируем версии
-        const formattedVersions = versions.map(version => ({
-            id: version.versionId,
-            versionNumber: version.versionNumber,
-            versionName: `v${version.versionNumber}.0.0`,
-            storageType: version.storageType,
-            size: formatFileSize(version.fileSize || 0),
-            createdAt: version.versionDate,
-            createdBy: version.createdBy || 'Неизвестно',
-            checksum: version.checksum,
-            isCurrent: version.versionNumber === versions[0]?.versionNumber
-        }));
+        const formattedVersions = disambiguateVersionUploadedDisplayNames(
+            versions.map((version) => {
+                const displayName = resolveVersionUploadedDisplayName(
+                    version.original_file_name,
+                    version.file_name,
+                    version.version_number
+                );
+                const downloadBase = String(fileManager.fixUtf8FilenameIfNeeded(version.original_file_name) || '').trim()
+                    || String(fileManager.fixUtf8FilenameIfNeeded(version.file_name) || 'document').trim();
+                return {
+                    id: version.version_id,
+                    versionNumber: version.version_number,
+                    versionName: `v${version.version_number}.0.0`,
+                    storageType: version.storage_type,
+                    size: formatFileSize(version.file_size || 0),
+                    createdAt: version.version_date,
+                    createdBy: version.created_by || 'Неизвестно',
+                    uploadedFileName: displayName,
+                    downloadFileName: buildVersionDownloadFilename(downloadBase, version.version_number),
+                    isCurrent: version.version_number === versions[0]?.version_number
+                };
+            })
+        );
         
         res.json({
             success: true,

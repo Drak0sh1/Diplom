@@ -631,6 +631,157 @@
             gap: 10px;
         }
 
+        /* Модалка сравнения — шире, как просмотр файла на GitHub */
+        .version-diff-modal .modal-content {
+            max-width: min(96vw, 1180px);
+        }
+
+        .version-diff-panel {
+            max-height: min(65vh, 620px);
+            overflow: auto;
+            background: #ffffff;
+            border-radius: 6px;
+        }
+
+        /* Unified diff в стиле GitHub (Primer) */
+        .gh-diff-wrap {
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            overflow: hidden;
+            font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+            font-size: 12px;
+            line-height: 20px;
+            color: #24292f;
+        }
+
+        .gh-diff-col-old,
+        .gh-diff-col-new {
+            width: 52px;
+        }
+
+        .gh-diff-col-marker {
+            width: 22px;
+        }
+
+        .gh-diff-col-code {
+            width: auto;
+        }
+
+        .gh-diff-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .gh-diff-row td {
+            vertical-align: top;
+        }
+
+        .gh-diff-num {
+            width: 52px;
+            max-width: 52px;
+            padding: 0 8px;
+            text-align: right;
+            color: #656d76;
+            background: #f6f8fa;
+            border-right: 1px solid #d0d7de;
+            user-select: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .gh-diff-num-empty {
+            color: rgba(87, 96, 106, 0.35);
+        }
+
+        .gh-diff-marker {
+            width: 22px;
+            max-width: 22px;
+            padding: 0 2px;
+            text-align: center;
+            font-weight: 600;
+            user-select: none;
+            border-right: 1px solid #d0d7de;
+        }
+
+        .gh-diff-code {
+            padding: 0 10px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .gh-diff-row-context .gh-diff-num {
+            background: #f6f8fa;
+        }
+
+        .gh-diff-row-context .gh-diff-marker {
+            background: #ffffff;
+            color: #656d76;
+        }
+
+        .gh-diff-row-context .gh-diff-code {
+            background: #ffffff;
+        }
+
+        .gh-diff-row-context:hover .gh-diff-code {
+            background: #f6f8fa;
+        }
+
+        .gh-diff-row-deletion .gh-diff-num {
+            background: #ffd7d5;
+            color: #cf222e;
+            border-color: #ffb3ad;
+        }
+
+        .gh-diff-row-deletion .gh-diff-num-empty {
+            background: #ffd7d5;
+        }
+
+        .gh-diff-row-deletion .gh-diff-marker {
+            background: #ffeef0;
+            color: #cf222e;
+            border-color: #ffd7d5;
+        }
+
+        .gh-diff-row-deletion .gh-diff-code {
+            background: #ffeef0;
+        }
+
+        .gh-diff-row-deletion:hover .gh-diff-code {
+            background: #ffdbe0;
+        }
+
+        .gh-diff-row-addition .gh-diff-num {
+            background: #ccffd8;
+            color: #116329;
+            border-color: #aceebb;
+        }
+
+        .gh-diff-row-addition .gh-diff-num-empty {
+            background: #ccffd8;
+        }
+
+        .gh-diff-row-addition .gh-diff-marker {
+            background: #e6ffed;
+            color: #116329;
+            border-color: #ccffd8;
+        }
+
+        .gh-diff-row-addition .gh-diff-code {
+            background: #e6ffed;
+        }
+
+        .gh-diff-row-addition:hover .gh-diff-code {
+            background: #d1f4dd;
+        }
+
+        .gh-diff-empty-msg {
+            padding: 16px;
+            color: #656d76;
+            font-size: 13px;
+            margin: 0;
+        }
+
         .password-requirements {
             background: #f8f9fa;
             padding: 15px;
@@ -1206,16 +1357,16 @@
                                         <i class="fas fa-calendar"></i>
                                         <div>
                                             <span class="info-label">Обновлен</span>
-                                            <span class="info-value">${formatDate(catalog.updatedAt) || 'Неизвестно'}</span>
+                                            <span class="info-value" id="catalogLastUpdated">—</span>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="info-item">
-                                        <i class="fas fa-shield-alt"></i>
+                                        <i class="fas fa-user-friends"></i>
                                         <div>
-                                            <span class="info-label">Уровень доступа</span>
-                                            <span class="info-value">${getPermissionText(accessData.permission)}</span>
+                                            <span class="info-label" title="Сколько пользователей назначено этому каталогу">Назначено</span>
+                                            <span class="info-value" id="catalogAssigneeCount">${Number(catalog.assigneeCount) || 0}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1326,6 +1477,7 @@
                     
                     // Обновляем счетчик
                     updateDocumentCount(data.documents.length);
+                    updateCatalogLastUploadFromDocuments(data.documents);
                     
                     if (data.documents.length === 0) {
                         // Показываем пустое состояние
@@ -1688,14 +1840,45 @@
             });
         }
         
-        // Получает текст прав доступа
-        function getPermissionText(permission) {
-            switch(permission) {
-                case 'READ': return 'Чтение';
-                case 'WRITE': return 'Запись';
-                case 'ADMIN': return 'Администратор';
-                default: return 'Неизвестно';
+        /** Дата и время последней загрузки документа / версии (для блока «Обновлен»). */
+        function formatLastUploadDateTime(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            if (Number.isNaN(date.getTime())) {
+                return '';
             }
+            return date.toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        /**
+         * В блоке «Обновлен» — максимум по датам из списка документов (файл / версия).
+         */
+        function updateCatalogLastUploadFromDocuments(documents) {
+            const el = document.getElementById('catalogLastUpdated');
+            if (!el) {
+                return;
+            }
+            if (!documents || documents.length === 0) {
+                el.textContent = 'Пока нет загрузок';
+                return;
+            }
+            let maxMs = 0;
+            for (const d of documents) {
+                const candidates = [d.lastModified, d.updatedAt, d.uploadedAt].filter(Boolean);
+                for (const t of candidates) {
+                    const ms = new Date(t).getTime();
+                    if (!Number.isNaN(ms) && ms > maxMs) {
+                        maxMs = ms;
+                    }
+                }
+            }
+            el.textContent = maxMs > 0 ? formatLastUploadDateTime(new Date(maxMs).toISOString()) : '—';
         }
         
         // Получает иконку для типа файла
@@ -2711,34 +2894,69 @@
                     list.style.display = 'block';
                     uploadSection.style.display = 'block';
                     
+                    const compareBarHtml = data.versions.length >= 2 ? `
+                        <div class="card mb-3 border-0 shadow-sm" style="background: #f1f5f9;">
+                            <div class="card-body py-3">
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-md-4 col-sm-6">
+                                        <label class="form-label small mb-0 text-muted" for="compareVersionFrom">Старая версия</label>
+                                        <select class="form-select form-select-sm" id="compareVersionFrom"></select>
+                                    </div>
+                                    <div class="col-md-4 col-sm-6">
+                                        <label class="form-label small mb-0 text-muted" for="compareVersionTo">Новая версия</label>
+                                        <select class="form-select form-select-sm" id="compareVersionTo"></select>
+                                    </div>
+                                    <div class="col-md-4 col-12">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="compareDocumentVersions()">
+                                            <i class="fas fa-columns"></i> Сравнить построчно
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="small text-muted mb-0 mt-2">
+                                    Красным — удалённые строки, зелёным — добавленные. Поддерживаются текст и <strong>DOCX</strong> (только содержимое, без оформления).
+                                </p>
+                            </div>
+                        </div>
+                    ` : '';
+                    
                     // Рендерим список версий
-                    const versionsHtml = data.versions.map(version => `
+                    const versionsHtml = data.versions.map(version => {
+                        const fileLabel = (version.uploadedFileName || version.uploaded_file_name || '').trim();
+                        const fileHtml = fileLabel
+                            ? `<div class="small text-body mt-1"><i class="fas fa-file-alt me-1 text-muted"></i>${escapeHtmlForDiff(fileLabel)}</div>`
+                            : '';
+                        return `
                         <div class="card mb-2 ${version.isCurrent ? 'border-primary' : ''}">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
-                                        <h6 class="mb-1">
-                                            ${version.versionName}
+                                        <h6 class="mb-0">
+                                            ${escapeHtmlForDiff(version.versionName)}
                                             ${version.isCurrent ? '<span class="badge bg-primary ms-2">Текущая</span>' : ''}
                                         </h6>
-                                        <div class="text-muted small">
-                                            <div>Создано: ${version.createdAt} ${version.createdBy ? 'пользователем ' + version.createdBy : ''}</div>
+                                        ${fileHtml}
+                                        <div class="text-muted small mt-1">
+                                            <div>Создано: ${version.createdAt} ${version.createdBy ? 'пользователем ' + escapeHtmlForDiff(version.createdBy) : ''}</div>
                                             <div>Размер: ${version.size} | Тип: ${version.storageType === 'delta' ? 'Только изменения' : 'Полный файл'}</div>
-                                            <div>Контрольная сумма: <code>${version.checksum}</code></div>
                                         </div>
                                     </div>
                                     <div>
-                                        <button class="btn btn-sm btn-outline-primary" 
-                                                onclick="downloadVersion('${documentId}', ${version.versionNumber}, '${data.document.name}')">
+                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                                data-doc="${documentId}"
+                                                data-version="${version.versionNumber}"
+                                                data-dl="${encodeURIComponent(version.downloadFileName || '')}"
+                                                onclick="downloadVersionFromBtn(this)">
                                             <i class="fas fa-download"></i> Скачать
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    `).join('');
+                    `;
+                    }).join('');
                     
-                    list.innerHTML = versionsHtml;
+                    list.innerHTML = compareBarHtml + versionsHtml;
+                    fillVersionCompareSelects(data.versions);
                     
                 } else {
                     loading.innerHTML = `
@@ -2758,6 +2976,177 @@
                         Ошибка соединения с сервером
                     </div>
                 `;
+            }
+        }
+        
+        /**
+         * Заполняет списки версий для сравнения (старая / новая).
+         */
+        function fillVersionCompareSelects(versions) {
+            const fromSel = document.getElementById('compareVersionFrom');
+            const toSel = document.getElementById('compareVersionTo');
+            if (!fromSel || !toSel || !versions || versions.length < 2) {
+                return;
+            }
+            const opts = versions.map(v => {
+                const num = v.versionNumber;
+                const name = (v.uploadedFileName || v.uploaded_file_name || '').trim();
+                const fn = name ? ` — ${name}` : '';
+                const label = `${v.versionName || 'Версия ' + num}${fn} (№${num})`;
+                return `<option value="${num}">${escapeHtmlForDiff(label)}</option>`;
+            }).join('');
+            fromSel.innerHTML = opts;
+            toSel.innerHTML = opts;
+            fromSel.selectedIndex = 1;
+            toSel.selectedIndex = 0;
+        }
+        
+        function escapeHtmlForDiff(str) {
+            if (str == null) {
+                return '';
+            }
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+        
+        /**
+         * Номера строк для unified diff (как на GitHub): старая / новая колонка.
+         */
+        function annotateDiffLineNumbers(lines) {
+            let oldLine = 1;
+            let newLine = 1;
+            return lines.map((row) => {
+                if (row.type === 'unchanged') {
+                    return { ...row, oldNum: oldLine++, newNum: newLine++ };
+                }
+                if (row.type === 'removed') {
+                    return { ...row, oldNum: oldLine++, newNum: null };
+                }
+                return { ...row, oldNum: null, newNum: newLine++ };
+            });
+        }
+        
+        /**
+         * HTML unified diff в стиле GitHub (таблица, две колонки номеров, +/-).
+         */
+        function renderVersionDiffLines(lines) {
+            if (!lines || lines.length === 0) {
+                return `
+                    <div class="gh-diff-wrap">
+                        <p class="gh-diff-empty-msg mb-0">Выбранные версии совпадают по тексту.</p>
+                    </div>`;
+            }
+            const annotated = annotateDiffLineNumbers(lines);
+            const rowsHtml = annotated.map((row) => {
+                const rowClass = row.type === 'removed'
+                    ? 'gh-diff-row-deletion'
+                    : row.type === 'added'
+                        ? 'gh-diff-row-addition'
+                        : 'gh-diff-row-context';
+                const marker = row.type === 'removed' ? '-' : row.type === 'added' ? '+' : ' ';
+                const oldCell = row.oldNum != null
+                    ? `<td class="gh-diff-num">${row.oldNum}</td>`
+                    : `<td class="gh-diff-num gh-diff-num-empty">&nbsp;</td>`;
+                const newCell = row.newNum != null
+                    ? `<td class="gh-diff-num">${row.newNum}</td>`
+                    : `<td class="gh-diff-num gh-diff-num-empty">&nbsp;</td>`;
+                return `<tr class="gh-diff-row ${rowClass}">${oldCell}${newCell}<td class="gh-diff-marker">${marker}</td><td class="gh-diff-code">${escapeHtmlForDiff(row.text)}</td></tr>`;
+            }).join('');
+            return `
+                <div class="gh-diff-wrap">
+                    <table class="gh-diff-table" role="table" aria-label="Сравнение версий">
+                        <colgroup>
+                            <col class="gh-diff-col-old" />
+                            <col class="gh-diff-col-new" />
+                            <col class="gh-diff-col-marker" />
+                            <col class="gh-diff-col-code" />
+                        </colgroup>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                </div>`;
+        }
+        
+        function ensureVersionDiffModal() {
+            if (document.getElementById('versionDiffModal')) {
+                return;
+            }
+            document.body.insertAdjacentHTML('beforeend', `
+                <div class="modal-overlay version-diff-modal" id="versionDiffModal" style="display: none;">
+                    <div class="modal-content" style="max-width: 920px;">
+                        <div class="modal-header">
+                            <h3 id="versionDiffModalTitle"><i class="fas fa-code-branch"></i> Сравнение версий</h3>
+                            <button type="button" class="close-btn" onclick="closeModal('versionDiffModal')" aria-label="Закрыть">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="versionDiffLoading" class="text-center py-4" style="display: none;">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <p class="mt-2 mb-0 small text-muted">Построение сравнения…</p>
+                            </div>
+                            <div id="versionDiffError" class="alert alert-danger py-2" style="display: none;"></div>
+                            <div id="versionDiffBody" class="version-diff-panel"></div>
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+        
+        /**
+         * Запрашивает с сервера построчный diff двух версий и показывает результат.
+         */
+        async function compareDocumentVersions() {
+            const documentId = document.getElementById('versionsDocumentId')?.value;
+            const fromSel = document.getElementById('compareVersionFrom');
+            const toSel = document.getElementById('compareVersionTo');
+            if (!documentId || !fromSel || !toSel) {
+                return;
+            }
+            const fromV = fromSel.value;
+            const toV = toSel.value;
+            if (!fromV || !toV || fromV === toV) {
+                alert('Выберите две разные версии: старую и новую.');
+                return;
+            }
+            
+            ensureVersionDiffModal();
+            const modal = document.getElementById('versionDiffModal');
+            const loading = document.getElementById('versionDiffLoading');
+            const errBox = document.getElementById('versionDiffError');
+            const body = document.getElementById('versionDiffBody');
+            const title = document.getElementById('versionDiffModalTitle');
+            
+            title.innerHTML = `<i class="fas fa-code-branch"></i> Сравнение v${fromV} → v${toV}`;
+            errBox.style.display = 'none';
+            errBox.textContent = '';
+            body.innerHTML = '';
+            loading.style.display = 'block';
+            modal.style.display = 'flex';
+            
+            try {
+                const url = `/api/documents/${encodeURIComponent(documentId)}/versions/compare?from=${encodeURIComponent(fromV)}&to=${encodeURIComponent(toV)}`;
+                const response = await fetch(url, { credentials: 'include' });
+                const data = await response.json();
+                loading.style.display = 'none';
+                
+                if (!response.ok || !data.success) {
+                    errBox.textContent = data.message || 'Не удалось выполнить сравнение';
+                    errBox.style.display = 'block';
+                    return;
+                }
+                
+                const docxBadge = data.compareMode === 'docx'
+                    ? ' <span class="badge text-bg-secondary align-middle" style="font-size:0.72rem;">DOCX · текст</span>'
+                    : '';
+                title.innerHTML = `<i class="fas fa-code-branch"></i> Сравнение v${fromV} &rarr; v${toV}${docxBadge}`;
+                
+                body.innerHTML = renderVersionDiffLines(data.lines);
+            } catch (e) {
+                console.error(e);
+                loading.style.display = 'none';
+                errBox.textContent = 'Ошибка сети при сравнении версий';
+                errBox.style.display = 'block';
             }
         }
         
@@ -2821,13 +3210,25 @@
         }
         
         /**
-         * Скачивает конкретную версию документа
+         * Скачивает версию: имя файла как при загрузке + _vномер (совпадает с Content-Disposition на сервере).
          */
-        function downloadVersion(documentId, versionNumber, documentName) {
+        function downloadVersionFromBtn(btn) {
+            const documentId = btn.getAttribute('data-doc');
+            const versionNumber = btn.getAttribute('data-version');
+            const enc = btn.getAttribute('data-dl') || '';
+            let downloadFileName = '';
+            try {
+                downloadFileName = decodeURIComponent(enc);
+            } catch (e) {
+                downloadFileName = '';
+            }
             const url = `/api/documents/${documentId}/versions/${versionNumber}/download`;
             const link = document.createElement('a');
             link.href = url;
-            link.download = `v${versionNumber}_${documentName}`;
+            if (downloadFileName) {
+                link.setAttribute('download', downloadFileName);
+            }
+            link.rel = 'noopener';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);

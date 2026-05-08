@@ -113,17 +113,37 @@
     color: white;
 }
 
+.admin-container .search-filters .filter-group--reset {
+    min-width: auto;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}
+
+.admin-container .search-filters .filter-group--reset .btn-sm {
+    white-space: nowrap;
+}
+
 @media (max-width: 1024px) {
     .search-filters {
         flex-direction: column;
         align-items: stretch;
     }
-    
+
     .search-box,
     .filter-group {
         min-width: 100%;
     }
-    
+
+    .admin-container .search-filters .filter-group--reset {
+        width: 100%;
+    }
+
+    .admin-container .search-filters .filter-group--reset .btn-sm {
+        width: 100%;
+        justify-content: center;
+    }
+
     .status-filters {
         justify-content: center;
     }
@@ -2689,6 +2709,103 @@ body {
     background: #f8fafc !important;
 }
 
+/* Журналы входящей / исходящей документации (редактор): фон строки по статусу */
+.admin-container .incoming-journal-table tbody tr.journal-row--draft td,
+.admin-container .outgoing-journal-table tbody tr.journal-row--draft td {
+    background: rgba(254, 243, 199, 0.92) !important;
+}
+
+.admin-container .incoming-journal-table tbody tr.journal-row--draft:hover td,
+.admin-container .outgoing-journal-table tbody tr.journal-row--draft:hover td {
+    background: rgba(253, 230, 138, 0.98) !important;
+}
+
+.admin-container .incoming-journal-table tbody tr.journal-row--registered td,
+.admin-container .outgoing-journal-table tbody tr.journal-row--registered td {
+    background: rgba(219, 234, 254, 0.92) !important;
+}
+
+.admin-container .incoming-journal-table tbody tr.journal-row--registered:hover td,
+.admin-container .outgoing-journal-table tbody tr.journal-row--registered:hover td {
+    background: rgba(191, 219, 254, 0.98) !important;
+}
+
+/* В процессе + срок исполнения уже прошёл */
+.admin-container .incoming-journal-table tbody tr.journal-row--registered.journal-row--due-passed td,
+.admin-container .outgoing-journal-table tbody tr.journal-row--registered.journal-row--due-passed td {
+    background: rgba(254, 226, 226, 0.95) !important;
+}
+
+.admin-container .incoming-journal-table tbody tr.journal-row--registered.journal-row--due-passed:hover td,
+.admin-container .outgoing-journal-table tbody tr.journal-row--registered.journal-row--due-passed:hover td {
+    background: rgba(252, 165, 165, 0.55) !important;
+}
+
+.admin-container .incoming-journal-table tbody tr.journal-row--registered.journal-row--due-passed td:first-child,
+.admin-container .outgoing-journal-table tbody tr.journal-row--registered.journal-row--due-passed td:first-child {
+    box-shadow: inset 4px 0 0 0 #dc2626;
+}
+
+.admin-container .incoming-journal-table tbody tr.journal-row--executed td,
+.admin-container .outgoing-journal-table tbody tr.journal-row--executed td {
+    background: rgba(209, 250, 229, 0.92) !important;
+}
+
+.admin-container .incoming-journal-table tbody tr.journal-row--executed:hover td,
+.admin-container .outgoing-journal-table tbody tr.journal-row--executed:hover td {
+    background: rgba(167, 243, 208, 0.98) !important;
+}
+
+.admin-container .incoming-journal-table tbody tr.journal-row--archived td,
+.admin-container .outgoing-journal-table tbody tr.journal-row--archived td {
+    background: rgba(237, 233, 254, 0.88) !important;
+}
+
+.admin-container .incoming-journal-table tbody tr.journal-row--archived:hover td,
+.admin-container .outgoing-journal-table tbody tr.journal-row--archived:hover td {
+    background: rgba(221, 214, 254, 0.95) !important;
+}
+
+.admin-container .incoming-journal-table tbody tr.journal-row--unknown td,
+.admin-container .outgoing-journal-table tbody tr.journal-row--unknown td {
+    background: rgba(241, 245, 249, 0.92) !important;
+}
+
+.admin-container .incoming-journal-table tbody tr.journal-row--unknown:hover td,
+.admin-container .outgoing-journal-table tbody tr.journal-row--unknown:hover td {
+    background: rgba(226, 232, 240, 0.98) !important;
+}
+
+.admin-container .incoming-journal-table tbody tr.journal-row td:first-child,
+.admin-container .outgoing-journal-table tbody tr.journal-row td:first-child {
+    box-shadow: inset 4px 0 0 0 transparent;
+}
+
+.admin-container .incoming-journal-table tbody tr.journal-row--draft td:first-child,
+.admin-container .outgoing-journal-table tbody tr.journal-row--draft td:first-child {
+    box-shadow: inset 4px 0 0 0 #d97706;
+}
+
+.admin-container .incoming-journal-table tbody tr.journal-row--registered td:first-child,
+.admin-container .outgoing-journal-table tbody tr.journal-row--registered td:first-child {
+    box-shadow: inset 4px 0 0 0 #2563eb;
+}
+
+.admin-container .incoming-journal-table tbody tr.journal-row--executed td:first-child,
+.admin-container .outgoing-journal-table tbody tr.journal-row--executed td:first-child {
+    box-shadow: inset 4px 0 0 0 #059669;
+}
+
+.admin-container .incoming-journal-table tbody tr.journal-row--archived td:first-child,
+.admin-container .outgoing-journal-table tbody tr.journal-row--archived td:first-child {
+    box-shadow: inset 4px 0 0 0 #7c3aed;
+}
+
+.admin-container .incoming-journal-table tbody tr.journal-row--unknown td:first-child,
+.admin-container .outgoing-journal-table tbody tr.journal-row--unknown td:first-child {
+    box-shadow: inset 4px 0 0 0 #94a3b8;
+}
+
 .admin-container .directories-table--modern .dir-td-num,
 .admin-container .directories-table--modern .dir-td-muted,
 .admin-container .journal-secondary-text {
@@ -2843,4 +2960,95 @@ body {
 
 .admin-container .directories-table--modern .empty-state__retry {
     margin-top: 18px !important;
+}
+
+/* Модальное окно экспорта журналов (входящие / исходящие) */
+.journal-export-modal {
+    max-width: 520px;
+    width: 100%;
+}
+
+.journal-export-hint {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #4a5568;
+    margin: 0 0 14px 0;
+}
+
+.journal-export-dates {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+@media (max-width: 560px) {
+    .journal-export-dates {
+        grid-template-columns: 1fr;
+    }
+}
+
+.journal-export-fieldset {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 14px 14px;
+    margin: 16px 0 0 0;
+}
+
+.journal-export-fieldset legend {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2d3748;
+    padding: 0 6px;
+}
+
+.journal-export-checkboxes {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.journal-export-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #2d3748;
+    cursor: pointer;
+}
+
+.journal-export-label input {
+    margin-top: 4px;
+    flex-shrink: 0;
+}
+
+.journal-export-modal-footer {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 10px !important;
+    justify-content: flex-end !important;
+    align-items: center;
+    padding: 12px 16px 14px !important;
+}
+
+.journal-export-modal-footer .btn-primary,
+.journal-export-modal-footer .btn-secondary {
+    padding: 9px 18px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    min-height: 40px !important;
+    min-width: 120px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+@media (max-width: 480px) {
+    .journal-export-modal-footer .btn-primary,
+    .journal-export-modal-footer .btn-secondary {
+        width: 100%;
+        min-width: 0;
+    }
 }

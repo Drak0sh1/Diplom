@@ -3,6 +3,32 @@ const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
 
+/**
+ * Восстанавливает UTF-8 имя файла, если байты UTF-8 были прочитаны как latin-1
+ * (частая ситуация у Multer/Busboy). Строку с нормальной кириллицей не меняет.
+ */
+function fixUtf8FilenameIfNeeded(str) {
+    if (str == null) {
+        return str;
+    }
+    const s = String(str);
+    if (!s) {
+        return s;
+    }
+    if (/[\u0400-\u04FF]/.test(s)) {
+        return s;
+    }
+    try {
+        const repaired = Buffer.from(s, 'latin1').toString('utf8');
+        if (/[\u0400-\u04FF]/.test(repaired) && repaired !== s) {
+            return repaired;
+        }
+    } catch (_) {
+        /* ignore */
+    }
+    return s;
+}
+
 class FileManager {
     constructor() {
         this.upload = multer({
@@ -20,12 +46,11 @@ class FileManager {
         if (!originalName) {
             return 'file';
         }
-
-        try {
-            return Buffer.from(originalName, 'latin1').toString('utf8');
-        } catch (error) {
-            return originalName;
+        const trimmed = String(originalName).trim();
+        if (!trimmed) {
+            return 'file';
         }
+        return fixUtf8FilenameIfNeeded(trimmed);
     }
 
     getUploadMiddleware(options = {}) {
@@ -97,7 +122,7 @@ class FileManager {
         if (version.fileContent) {
             return {
                 buffer: version.fileContent,
-                name: version.originalFileName || `v${versionNumber}`,
+                name: fixUtf8FilenameIfNeeded(version.originalFileName) || `v${versionNumber}`,
                 mimeType: version.mimeType || this.getMimeType(version.originalFileName || ''),
                 size: version.fileSize || version.fileContent.length
             };
@@ -106,7 +131,7 @@ class FileManager {
         if (!version.storagePath) {
             return {
                 buffer: null,
-                name: version.originalFileName || `v${versionNumber}`,
+                name: fixUtf8FilenameIfNeeded(version.originalFileName) || `v${versionNumber}`,
                 mimeType: version.mimeType || this.getMimeType(version.originalFileName || ''),
                 size: version.fileSize || 0
             };
@@ -119,7 +144,7 @@ class FileManager {
 
         return {
             buffer,
-            name: version.originalFileName || path.basename(legacyPath),
+            name: fixUtf8FilenameIfNeeded(version.originalFileName) || path.basename(legacyPath),
             mimeType: version.mimeType || this.getMimeType(version.originalFileName || legacyPath),
             size: version.fileSize || buffer.length
         };
@@ -188,4 +213,6 @@ class FileManager {
     }
 }
 
-module.exports = new FileManager();
+const fileManager = new FileManager();
+fileManager.fixUtf8FilenameIfNeeded = fixUtf8FilenameIfNeeded;
+module.exports = fileManager;

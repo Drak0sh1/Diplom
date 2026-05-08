@@ -3,6 +3,7 @@ class AdminPanel {
         this.currentUser = null;
         this.allUsers = [];
         this.currentFilter = 'all';
+        this.blockedFilter = 'all';
         this.init();
     }
 
@@ -300,7 +301,7 @@ class AdminPanel {
                 console.log(`✅ Загружено ${result.users.length} пользователей`);
                 this.allUsers = result.users;
                 this.renderStats(result.users);
-                this.filterUsers(this.currentFilter);
+                this.applyUserFilters();
             } else {
                 console.error('❌ Ошибка в ответе сервера:', result);
                 this.showMessage(result.message || 'Ошибка загрузки пользователей', 'error');
@@ -344,13 +345,15 @@ class AdminPanel {
         const statsSection = document.getElementById('statsSection');
         
         const totalUsers = users.length;
+        const blockedCount = users.filter((u) => Number(u.isBlocked) === 1).length;
         const admins = users.filter(u => u.role === 'Администратор').length;
         const editors = users.filter(u => u.role === 'Редактор').length;
         const regularUsers = users.filter(u => u.role === 'Пользователь').length;
+        const roleActive = this.blockedFilter !== 'blocked';
         
         statsSection.innerHTML = `
             <div class="stats-grid">
-                <div class="stat-card ${this.currentFilter === 'all' ? 'active' : ''}" data-filter="all">
+                <div class="stat-card ${roleActive && this.currentFilter === 'all' ? 'active' : ''}" data-filter="all">
                     <div class="stat-icon">
                         <i class="fas fa-users"></i>
                     </div>
@@ -359,8 +362,17 @@ class AdminPanel {
                         <div class="stat-number">${totalUsers}</div>
                     </div>
                 </div>
+                <div class="stat-card admin-blocked-user-filter ${this.blockedFilter === 'blocked' ? 'active' : ''}" role="button" tabindex="0" aria-pressed="${this.blockedFilter === 'blocked' ? 'true' : 'false'}" aria-label="Показать только заблокированных пользователей. Повторное нажатие — показать всех.">
+                    <div class="stat-icon">
+                        <i class="fas fa-user-lock" aria-hidden="true"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Заблокированные</h3>
+                        <div class="stat-number">${blockedCount}</div>
+                    </div>
+                </div>
                 
-                <div class="stat-card ${this.currentFilter === 'Администратор' ? 'active' : ''}" data-filter="Администратор">
+                <div class="stat-card ${roleActive && this.currentFilter === 'Администратор' ? 'active' : ''}" data-filter="Администратор">
                     <div class="stat-icon">
                         <i class="fas fa-user-shield"></i>
                     </div>
@@ -370,7 +382,7 @@ class AdminPanel {
                     </div>
                 </div>
                 
-                <div class="stat-card ${this.currentFilter === 'Редактор' ? 'active' : ''}" data-filter="Редактор">
+                <div class="stat-card ${roleActive && this.currentFilter === 'Редактор' ? 'active' : ''}" data-filter="Редактор">
                     <div class="stat-icon">
                         <i class="fas fa-user-edit"></i>
                     </div>
@@ -380,7 +392,7 @@ class AdminPanel {
                     </div>
                 </div>
                 
-                <div class="stat-card ${this.currentFilter === 'Пользователь' ? 'active' : ''}" data-filter="Пользователь">
+                <div class="stat-card ${roleActive && this.currentFilter === 'Пользователь' ? 'active' : ''}" data-filter="Пользователь">
                     <div class="stat-icon">
                         <i class="fas fa-user"></i>
                     </div>
@@ -392,32 +404,50 @@ class AdminPanel {
             </div>
         `;
 
-        // Добавляем обработчики для фильтрации
-        const statCards = document.querySelectorAll('.stat-card');
-        statCards.forEach(card => {
+        const blockedCard = document.querySelector('.stat-card.admin-blocked-user-filter');
+        if (blockedCard) {
+            blockedCard.addEventListener('click', () => this.toggleBlockedUsersCard());
+            blockedCard.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.toggleBlockedUsersCard();
+                }
+            });
+        }
+
+        document.querySelectorAll('.stats-grid > .stat-card[data-filter]').forEach((card) => {
             card.addEventListener('click', () => {
                 const filter = card.getAttribute('data-filter');
-                this.filterUsers(filter);
+                if (filter) this.filterUsers(filter);
             });
         });
     }
 
+    toggleBlockedUsersCard() {
+        this.blockedFilter = this.blockedFilter === 'blocked' ? 'all' : 'blocked';
+        this.renderStats(this.allUsers);
+        this.applyUserFilters();
+    }
+
     filterUsers(filter) {
         this.currentFilter = filter;
-        
-        // Обновляем активный класс
-        document.querySelectorAll('.stat-card').forEach(card => {
-            card.classList.remove('active');
-        });
-        document.querySelector(`.stat-card[data-filter="${filter}"]`)?.classList.add('active');
-        
-        // Фильтруем пользователей
+        this.blockedFilter = 'all';
+
+        this.renderStats(this.allUsers);
+        this.applyUserFilters();
+    }
+
+    applyUserFilters() {
         let filteredUsers = this.allUsers;
-        
-        if (filter !== 'all') {
-            filteredUsers = this.allUsers.filter(user => user.role === filter);
+
+        if (this.currentFilter !== 'all') {
+            filteredUsers = filteredUsers.filter((user) => user.role === this.currentFilter);
         }
-        
+
+        if (this.blockedFilter === 'blocked') {
+            filteredUsers = filteredUsers.filter((u) => Number(u.isBlocked) === 1);
+        }
+
         this.renderUsers(filteredUsers);
     }
 

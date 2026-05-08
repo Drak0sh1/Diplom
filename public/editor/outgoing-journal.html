@@ -72,7 +72,7 @@
                 <div class="card-header">
                     <h2><i class="fas fa-table"></i> Журнал регистрации исходящих документов</h2>
                     <div class="header-actions">
-                        <button class="btn-sm btn-primary" id="exportOutgoingJournalBtn">
+                        <button class="btn-sm btn-primary" id="openOutgoingExportModalBtn" type="button">
                             <i class="fas fa-file-word"></i> Экспорт в Word
                         </button>
                     </div>
@@ -98,6 +98,11 @@
                             <option value="archived">Архив</option>
                         </select>
                     </div>
+                    <div class="filter-group filter-group--reset">
+                        <button type="button" class="btn-sm btn-secondary" id="resetOutgoingFiltersBtn" title="Очистить поиск, даты и статус">
+                            <i class="fas fa-undo"></i> Сбросить
+                        </button>
+                    </div>
                 </div>
 
                 <div class="table-container table-container--incoming-journal">
@@ -121,6 +126,48 @@
                 </div>
             </div>
         </main>
+
+        <div class="modal-overlay" id="outgoingExportModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="outgoingExportModalTitle">
+            <div class="modal-content journal-export-modal">
+                <div class="modal-header">
+                    <h3 id="outgoingExportModalTitle"><i class="fas fa-file-word"></i> Экспорт журнала в Word</h3>
+                    <button type="button" class="close-btn" id="closeOutgoingExportModal" aria-label="Закрыть">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p class="journal-export-hint">Условия отбора будут перечислены в документе под заголовком столбиком (отдельными строками). Отметьте категории по статусу и при необходимости скорректируйте поиск и даты.</p>
+                    <div class="form-group">
+                        <label for="exportOutgoingSearch">Поиск по корреспонденту, индексу или содержанию</label>
+                        <input type="text" id="exportOutgoingSearch" class="form-control" placeholder="Как на странице журнала…">
+                    </div>
+                    <div class="journal-export-dates">
+                        <div class="form-group">
+                            <label for="exportOutgoingDateFrom">Дата документа с</label>
+                            <input type="date" id="exportOutgoingDateFrom" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="exportOutgoingDateTo">Дата документа по</label>
+                            <input type="date" id="exportOutgoingDateTo" class="form-control">
+                        </div>
+                    </div>
+                    <fieldset class="journal-export-fieldset">
+                        <legend>Включить в выгрузку</legend>
+                        <div class="journal-export-checkboxes">
+                            <label class="journal-export-label"><input type="checkbox" class="journal-export-cb" id="exportOutDraft" checked> Черновики</label>
+                            <label class="journal-export-label"><input type="checkbox" class="journal-export-cb" id="exportOutInProcess" checked> В процессе, срок не просрочен (или срок не задан)</label>
+                            <label class="journal-export-label"><input type="checkbox" class="journal-export-cb" id="exportOutOverdue" checked> Просрочено (в процессе, срок исполнения прошёл)</label>
+                            <label class="journal-export-label"><input type="checkbox" class="journal-export-cb" id="exportOutExecuted" checked> Исполненные</label>
+                            <label class="journal-export-label"><input type="checkbox" class="journal-export-cb" id="exportOutArchived" checked> В архиве</label>
+                        </div>
+                    </fieldset>
+                </div>
+                <div class="modal-footer journal-export-modal-footer">
+                    <button type="button" class="btn-secondary" id="cancelOutgoingExportModal">Отмена</button>
+                    <button type="button" class="btn-primary" id="confirmOutgoingExportModal">
+                        <i class="fas fa-file-word"></i> Сформировать Word
+                    </button>
+                </div>
+            </div>
+        </div>
 
         <div class="modal-overlay" id="changePasswordModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="changePasswordTitle">
             <div class="modal-content">
@@ -234,6 +281,19 @@
                 document.getElementById('filterOutgoingDateFrom')?.addEventListener('change', () => this.applyFilters());
                 document.getElementById('filterOutgoingDateTo')?.addEventListener('change', () => this.applyFilters());
                 document.getElementById('filterOutgoingStatus')?.addEventListener('change', () => this.applyFilters());
+                document.getElementById('resetOutgoingFiltersBtn')?.addEventListener('click', () => this.resetFilters());
+            }
+
+            resetFilters() {
+                const search = document.getElementById('searchOutgoingDocs');
+                const dateFrom = document.getElementById('filterOutgoingDateFrom');
+                const dateTo = document.getElementById('filterOutgoingDateTo');
+                const status = document.getElementById('filterOutgoingStatus');
+                if (search) search.value = '';
+                if (dateFrom) dateFrom.value = '';
+                if (dateTo) dateTo.value = '';
+                if (status) status.value = '';
+                this.applyFilters();
             }
 
             applyFilters() {
@@ -270,7 +330,7 @@
                 }
 
                 tbody.innerHTML = this.filteredDocuments.map((doc) => `
-                    <tr>
+                    <tr class="${this.getJournalRowClass(doc)}">
                         <td>
                             <div class="journal-cell-block">
                                 <div>${this.formatDate(doc.documentDate)}</div>
@@ -285,39 +345,85 @@
             }
 
             setupExport() {
-                document.getElementById('exportOutgoingJournalBtn')?.addEventListener('click', async () => {
-                    try {
-                        const params = new URLSearchParams();
-                        const search = document.getElementById('searchOutgoingDocs')?.value?.trim() || '';
-                        const dateFrom = document.getElementById('filterOutgoingDateFrom')?.value || '';
-                        const dateTo = document.getElementById('filterOutgoingDateTo')?.value || '';
-                        const status = document.getElementById('filterOutgoingStatus')?.value || '';
-
-                        if (search) params.set('search', search);
-                        if (dateFrom) params.set('dateFrom', dateFrom);
-                        if (dateTo) params.set('dateTo', dateTo);
-                        if (status) params.set('status', status);
-
-                        const query = params.toString();
-                        const response = await fetch(`/api/editor/reports/outgoing-journal-word${query ? `?${query}` : ''}`);
-                        if (!response.ok) throw new Error('Не удалось сформировать отчет');
-                        const blob = await response.blob();
-                        const objectUrl = URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        const disposition = response.headers.get('content-disposition') || '';
-                        const match = disposition.match(/filename="?([^"]+)"?/i);
-                        link.href = objectUrl;
-                        link.download = match?.[1] || `outgoing_journal_report_${new Date().toISOString().split('T')[0]}.docx`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(objectUrl);
-                        this.showNotification('Word-отчет по исходящей документации сформирован', 'success');
-                    } catch (error) {
-                        console.error('Ошибка экспорта Word-отчета:', error);
-                        this.showNotification('Ошибка экспорта Word-отчета', 'error');
-                    }
+                document.getElementById('openOutgoingExportModalBtn')?.addEventListener('click', () => this.openOutgoingExportModal());
+                document.getElementById('closeOutgoingExportModal')?.addEventListener('click', () => this.hideOutgoingExportModal());
+                document.getElementById('cancelOutgoingExportModal')?.addEventListener('click', () => this.hideOutgoingExportModal());
+                document.getElementById('outgoingExportModal')?.addEventListener('click', (e) => {
+                    if (e.target.id === 'outgoingExportModal') this.hideOutgoingExportModal();
                 });
+                document.getElementById('confirmOutgoingExportModal')?.addEventListener('click', () => this.runOutgoingExport());
+            }
+
+            openOutgoingExportModal() {
+                const modal = document.getElementById('outgoingExportModal');
+                if (!modal) return;
+                document.getElementById('exportOutgoingSearch').value = document.getElementById('searchOutgoingDocs')?.value || '';
+                document.getElementById('exportOutgoingDateFrom').value = document.getElementById('filterOutgoingDateFrom')?.value || '';
+                document.getElementById('exportOutgoingDateTo').value = document.getElementById('filterOutgoingDateTo')?.value || '';
+                modal.style.display = 'flex';
+            }
+
+            hideOutgoingExportModal() {
+                const modal = document.getElementById('outgoingExportModal');
+                if (modal) modal.style.display = 'none';
+            }
+
+            buildOutgoingExportQueryParams() {
+                const params = new URLSearchParams();
+                const search = document.getElementById('exportOutgoingSearch')?.value?.trim() || '';
+                if (search) params.set('search', search);
+                const dateFrom = document.getElementById('exportOutgoingDateFrom')?.value || '';
+                const dateTo = document.getElementById('exportOutgoingDateTo')?.value || '';
+                if (dateFrom) params.set('dateFrom', dateFrom);
+                if (dateTo) params.set('dateTo', dateTo);
+                params.set('includeDraft', document.getElementById('exportOutDraft')?.checked ? '1' : '0');
+                params.set('includeInProcess', document.getElementById('exportOutInProcess')?.checked ? '1' : '0');
+                params.set('includeOverdue', document.getElementById('exportOutOverdue')?.checked ? '1' : '0');
+                params.set('includeExecuted', document.getElementById('exportOutExecuted')?.checked ? '1' : '0');
+                params.set('includeArchived', document.getElementById('exportOutArchived')?.checked ? '1' : '0');
+                return params;
+            }
+
+            async runOutgoingExport() {
+                const modal = document.getElementById('outgoingExportModal');
+                const checked = modal?.querySelectorAll('.journal-export-cb:checked') || [];
+                if (!checked.length) {
+                    this.showNotification('Отметьте хотя бы одну категорию документов', 'error');
+                    return;
+                }
+                const btn = document.getElementById('confirmOutgoingExportModal');
+                const prevHtml = btn?.innerHTML;
+                try {
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Формируем…';
+                    }
+                    const params = this.buildOutgoingExportQueryParams();
+                    const query = params.toString();
+                    const response = await fetch(`/api/editor/reports/outgoing-journal-word${query ? `?${query}` : ''}`);
+                    if (!response.ok) throw new Error('Не удалось сформировать отчет');
+                    const blob = await response.blob();
+                    const objectUrl = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    const disposition = response.headers.get('content-disposition') || '';
+                    const match = disposition.match(/filename="?([^"]+)"?/i);
+                    link.href = objectUrl;
+                    link.download = match?.[1] || `outgoing_journal_report_${new Date().toISOString().split('T')[0]}.docx`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(objectUrl);
+                    this.hideOutgoingExportModal();
+                    this.showNotification('Word-отчет по исходящей документации сформирован', 'success');
+                } catch (error) {
+                    console.error('Ошибка экспорта Word-отчета:', error);
+                    this.showNotification('Ошибка экспорта Word-отчета', 'error');
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = prevHtml || '<i class="fas fa-file-word"></i> Сформировать Word';
+                    }
+                }
             }
 
             setupUserMenu() {
@@ -441,6 +547,29 @@
                     archived: 'Архив'
                 };
                 return statusMap[status] || '—';
+            }
+
+            isDeadlinePassed(doc) {
+                const raw = doc && doc.dueDate;
+                if (!raw) return false;
+                const d = new Date(raw);
+                if (Number.isNaN(d.getTime())) return false;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                d.setHours(0, 0, 0, 0);
+                return d < today;
+            }
+
+            getJournalRowClass(doc) {
+                const key = String(doc && doc.status || '').trim().toLowerCase();
+                const known = ['draft', 'registered', 'executed', 'archived'];
+                let cls = known.includes(key)
+                    ? `journal-row journal-row--${key}`
+                    : 'journal-row journal-row--unknown';
+                if (key === 'registered' && this.isDeadlinePassed(doc)) {
+                    cls += ' journal-row--due-passed';
+                }
+                return cls;
             }
 
             showNotification(message, type = 'info') {
