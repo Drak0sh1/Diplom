@@ -9,11 +9,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="editor.css">
     <link rel="stylesheet" href="../user/user-nav.css">
+    <link rel="stylesheet" href="../app-theme.css">
 </head>
 <body>
     <div class="admin-container">
         <!-- Шапка -->
-        <header class="header">
+        <header class="header header--editor-topbar">
             <div class="header-left">
                 <div class="logo">
                     <div class="logo-text">
@@ -118,8 +119,8 @@
                     </div>
 
                     <!-- Таблица каталогов -->
-                    <div class="table-container table-container--directories">
-                        <table class="directories-table directories-table--modern" aria-label="Список каталогов">
+                    <div class="users-table">
+                        <table aria-label="Список каталогов">
                             <thead>
                                 <tr>
                                     <th scope="col" class="col-id">ID</th>
@@ -884,10 +885,11 @@
                 }
                 
                 let html = '';
-                pageData.forEach(dir => {
+                pageData.forEach((dir, index) => {
                     console.log('📁 Рендерим каталог:', dir);
                     const parentName = dir.parentName || '—';
                     const createdAt = dir.createdAt ? new Date(dir.createdAt).toLocaleDateString('ru-RU') : '—';
+                    const rowClass = index % 2 === 0 ? 'even' : 'odd';
                     
                     // Определяем статус для отображения
                     const status = dir.status || 'active';
@@ -899,7 +901,7 @@
                     const titleName = (dir.name || 'Без названия').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
                     const titleParent = String(parentName).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
                     html += `
-                        <tr class="directories-table__row" data-directory-id="${dir.id}">
+                        <tr class="${rowClass} directories-table__row" data-directory-id="${dir.id}">
                             <td class="dir-td-num">${dir.id}</td>
                             <td class="dir-td-clip" title="${titleName}">
                                 <span class="dir-name-line"><i class="fas fa-folder" aria-hidden="true"></i> ${safeName}</span>

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -19,8 +19,8 @@
 
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f8fafc;
-            color: #334155;
+            background: rgba(229, 219, 230, 0.08);
+            color: #E5DBE6;
             line-height: 1.6;
             height: 100vh;
             display: flex;
@@ -29,7 +29,7 @@
 
         /* Хэдер */
         .header {
-            background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+            background: linear-gradient(135deg, #7692FF 0%, #7692FF 100%);
             color: white;
             padding: 15px 30px;
             display: flex;
@@ -133,15 +133,15 @@
             box-shadow: 0 8px 30px rgba(0,0,0,.18);
             z-index: 2000;
             overflow: hidden;
-            border: 1px solid #f1f5f9;
+            border: 1px solid rgba(229, 219, 230, 0.12);
         }
         .user-profile.open .user-dropdown { display: block; }
         .dd-user-header {
             padding: 14px 16px 11px;
-            border-bottom: 1px solid #f1f5f9;
+            border-bottom: 1px solid rgba(229, 219, 230, 0.12);
         }
         .dd-user-header .duh-name { font-weight: 700; font-size: 14px; color: #1f2937; }
-        .dd-user-header .duh-role { font-size: 12px; color: #64748b; margin-top: 2px; }
+        .dd-user-header .duh-role { font-size: 12px; color: #E5DBE6; margin-top: 2px; }
         .dd-item {
             display: flex;
             align-items: center;
@@ -153,11 +153,11 @@
             font-weight: 500;
             transition: background .15s;
         }
-        .dd-item:hover { background: #f8fafc; }
-        .dd-item i { width: 16px; color: #5b86e5; font-size: 13px; }
+        .dd-item:hover { background: rgba(229, 219, 230, 0.08); }
+        .dd-item i { width: 16px; color: #7692FF; font-size: 13px; }
         .dd-item.danger { color: #ef4444; }
         .dd-item.danger i { color: #ef4444; }
-        .dd-divider { height: 1px; background: #f1f5f9; }
+        .dd-divider { height: 1px; background: rgba(229, 219, 230, 0.12); }
 
         /* Кнопка "Главная" в хэдере */
         .header-nav {
@@ -195,7 +195,7 @@
             flex: 1;
             padding: 30px;
             margin-top: 74px;
-            background: #f8fafc;
+            background: rgba(229, 219, 230, 0.08);
             min-height: calc(100vh - 74px);
         }
 
@@ -203,7 +203,7 @@
             padding: 30px;
             min-height: calc(100vh - 74px);
             margin-top: 74px;
-            background: #f8fafc;
+            background: rgba(229, 219, 230, 0.08);
         }
 
         @media (max-width: 768px) {
@@ -249,7 +249,7 @@
             padding: 25px;
             margin-bottom: 24px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border: 1px solid #e2e8f0;
+            border: 1px solid rgba(229, 219, 230, 0.22);
         }
         
         .catalog-title {
@@ -261,11 +261,11 @@
         
         
         .catalog-info-card {
-            background: #f8fafc;
+            background: rgba(229, 219, 230, 0.08);
             border-radius: 8px;
             padding: 20px;
             margin-top: 20px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid rgba(229, 219, 230, 0.22);
         }
         
         .info-item {
@@ -276,13 +276,13 @@
         
         .info-item i {
             font-size: 20px;
-            color: #64748b;
+            color: #E5DBE6;
         }
         
         .info-label {
             display: block;
             font-size: 12px;
-            color: #64748b;
+            color: #E5DBE6;
             margin-bottom: 4px;
         }
         
@@ -298,7 +298,7 @@
             border-radius: 8px;
             padding: 16px;
             margin-bottom: 20px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid rgba(229, 219, 230, 0.22);
         }
         
         .documents-section {
@@ -306,7 +306,7 @@
             border-radius: 12px;
             padding: 24px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border: 1px solid #e2e8f0;
+            border: 1px solid rgba(229, 219, 230, 0.22);
         }
         
         .documents-grid {
@@ -317,7 +317,7 @@
         }
         
         .document-card {
-            border: 1px solid #e2e8f0;
+            border: 1px solid rgba(229, 219, 230, 0.22);
             border-radius: 8px;
             padding: 16px;
             display: flex;
@@ -350,8 +350,8 @@
         }
         
         .document-icon.doc {
-            background: #dbeafe;
-            color: #2563eb;
+            background: rgba(118, 146, 255, 0.18);
+            color: #7692FF;
         }
         
         .document-icon.xls {
@@ -400,7 +400,7 @@
             align-items: center;
             gap: 4px;
             font-size: 12px;
-            color: #64748b;
+            color: #E5DBE6;
         }
         
         .meta-item i {
@@ -413,7 +413,7 @@
         }
 
         .meta-item.journal-type.incoming i {
-            color: #2563eb;
+            color: #7692FF;
         }
 
         .meta-item.journal-type.outgoing i {
@@ -422,7 +422,7 @@
 
         .document-summary {
             font-size: 12px;
-            color: #64748b;
+            color: #E5DBE6;
             margin-bottom: 10px;
             line-height: 1.45;
         }
@@ -433,11 +433,11 @@
 
         .journal-fields-section {
             display: none;
-            border: 1px solid #e2e8f0;
+            border: 1px solid rgba(229, 219, 230, 0.22);
             border-radius: 8px;
             padding: 16px;
             margin-bottom: 16px;
-            background: #f8fafc;
+            background: rgba(229, 219, 230, 0.08);
         }
 
         .journal-fields-title {
@@ -547,9 +547,9 @@
         }
 
         .user-status.never-changed {
-            background: #dbeafe;
-            color: #1e40af;
-            border: 1px solid #bfdbfe;
+            background: rgba(118, 146, 255, 0.18);
+            color: #7692FF;
+            border: 1px solid rgba(229, 219, 230, 0.22);
         }
 
         .user-status.error {
@@ -827,8 +827,8 @@
         }
 
         .add-document-panel {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            background: rgba(229, 219, 230, 0.08);
+            border: 1px solid rgba(229, 219, 230, 0.22);
             border-radius: 10px;
             padding: 12px 14px;
             height: 100%;
@@ -905,12 +905,12 @@
 
         .document-preview-hint {
             font-size: 12px;
-            color: #64748b;
+            color: #E5DBE6;
             margin-top: 8px;
         }
 
         .document-preview-readonly {
-            background: #f8fafc;
+            background: rgba(229, 219, 230, 0.08);
             color: #6b7280;
             cursor: default;
             pointer-events: none;
@@ -948,6 +948,7 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="/app-theme.css">
 </head>
 <body>
     <!-- Хэдер -->
@@ -1103,7 +1104,7 @@
                 
                 // Добавляем цветной градиент для аватара
                 const colors = [
-                    'linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%)',
+                    'linear-gradient(135deg, #7692FF 0%, #7692FF 100%)',
                     'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
                     'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
                     'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
@@ -1132,7 +1133,7 @@
             if (userRole) userRole.textContent = 'Пользователь';
             if (userAvatar) {
                 userAvatar.textContent = 'Г';
-                userAvatar.style.background = 'linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%)';
+                userAvatar.style.background = 'linear-gradient(135deg, #7692FF 0%, #7692FF 100%)';
                 userAvatar.style.color = 'white';
             }
         }
@@ -2895,7 +2896,7 @@
                     uploadSection.style.display = 'block';
                     
                     const compareBarHtml = data.versions.length >= 2 ? `
-                        <div class="card mb-3 border-0 shadow-sm" style="background: #f1f5f9;">
+                        <div class="card mb-3 border-0 shadow-sm" style="background: rgba(229, 219, 230, 0.12);">
                             <div class="card-body py-3">
                                 <div class="row g-2 align-items-end">
                                     <div class="col-md-4 col-sm-6">

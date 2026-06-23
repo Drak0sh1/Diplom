@@ -1,4 +1,4 @@
-* {
+﻿* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -6,7 +6,7 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(180deg, #201a4f 0%, #41236f 48%, #180f3d 100%);
     min-height: 100vh;
     padding: 20px;
 }
@@ -30,7 +30,7 @@ body {
 }
 
 .header h1 {
-    color: #2d3748;
+    color: #7692FF;
     font-size: 28px;
     display: flex;
     align-items: center;
@@ -38,7 +38,7 @@ body {
 }
 
 .header h1 i {
-    color: #667eea;
+    color: #7692FF;
 }
 
 .user-info {
@@ -48,13 +48,13 @@ body {
     background: #f7fafc;
     padding: 12px 20px;
     border-radius: 10px;
-    border: 2px solid #e2e8f0;
+    border: 2px solid rgba(229, 219, 230, 0.22);
 }
 
 .user-avatar {
     width: 45px;
     height: 45px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(180deg, #201a4f 0%, #41236f 48%, #180f3d 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -113,12 +113,12 @@ body {
 }
 
 .back-btn {
-    background: #4299e1;
+    background: #7692FF;
     color: white;
 }
 
 .back-btn:hover {
-    background: #3182ce;
+    background: #7692FF;
     transform: translateY(-2px);
 }
 
@@ -166,11 +166,11 @@ body {
     align-items: center;
     margin-bottom: 25px;
     padding-bottom: 15px;
-    border-bottom: 2px solid #e2e8f0;
+    border-bottom: 2px solid rgba(229, 219, 230, 0.22);
 }
 
 .logs-header h2 {
-    color: #2d3748;
+    color: #7692FF;
     font-size: 24px;
     display: flex;
     align-items: center;
@@ -178,7 +178,7 @@ body {
 }
 
 .logs-header h2 i {
-    color: #667eea;
+    color: #7692FF;
 }
 
 .logs-info {
@@ -190,20 +190,21 @@ body {
     background: #f7fafc;
     padding: 12px 20px;
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(229, 219, 230, 0.22);
     min-width: 120px;
     text-align: center;
 }
 
 .info-card h3 {
-    color: #4a5568;
+    color: rgba(255, 255, 255, 0.94);
     font-size: 14px;
     margin-bottom: 5px;
     white-space: nowrap;
+    font-weight: 500;
 }
 
 .info-card p {
-    color: #2d3748;
+    color: #7692FF;
     font-size: 20px;
     font-weight: bold;
 }
@@ -216,50 +217,102 @@ body {
     color: #dc3545;
 }
 
-.logs-table-container {
+/* Таблица логов — как в админ-панели (.users-table) */
+.users-table,
+.logs-table-wrap {
     overflow-x: auto;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    margin-bottom: 20px;
-    background: white;
+    margin-bottom: 30px;
+    border-radius: 10px;
+    border: 1px solid rgba(229, 219, 230, 0.22);
+    background: transparent;
 }
 
-.logs-table {
+.users-table table {
     width: 100%;
     border-collapse: collapse;
     min-width: 1000px;
 }
 
-.logs-table th {
-    background: #f8f9fa;
-    padding: 12px 16px;
-    text-align: left;
+.users-table th {
+    background: rgba(229, 219, 230, 0.1);
+    color: rgba(255, 255, 255, 0.94);
     font-weight: 600;
-    color: #495057;
-    border-bottom: 2px solid #e2e8f0;
+    text-align: left;
+    padding: 15px 20px;
+    border-bottom: 2px solid rgba(229, 219, 230, 0.22);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     white-space: nowrap;
-    font-size: 13px;
-    position: sticky;
-    top: 0;
 }
 
-/* Стили для колонок */
-.logs-table th:nth-child(1) { width: 160px; } /* Дата и время */
-.logs-table th:nth-child(2) { width: 140px; } /* Пользователь */
-.logs-table th:nth-child(3) { width: auto; min-width: 400px; } /* Действие */
-.logs-table th:nth-child(4) { width: 110px; } /* Статус */
-.logs-table th:nth-child(5) { width: 120px; } /* Модуль */
-.logs-table th:nth-child(6) { width: 90px; } /* Детали */
+.users-table th:nth-child(1) { width: 160px; }
+.users-table th:nth-child(2) { width: 140px; }
+.users-table th:nth-child(3) { width: auto; min-width: 320px; }
+.users-table th:nth-child(4) { width: 110px; }
+.users-table th:nth-child(5) { width: 120px; }
+.users-table th:nth-child(6) { width: 90px; }
 
-.logs-table td {
-    padding: 12px 16px;
-    border-bottom: 1px solid #e2e8f0;
-    vertical-align: top;
-    font-size: 13px;
+.users-table td {
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(229, 219, 230, 0.12);
+    color: rgba(255, 255, 255, 0.94);
+    font-size: 15px;
+    vertical-align: middle;
 }
 
-.logs-table tbody tr:hover {
-    background-color: #f8f9fa;
+.users-table tr:hover {
+    background: rgba(229, 219, 230, 0.1);
+}
+
+.users-table tr.even {
+    background: rgba(229, 219, 230, 0.06);
+}
+
+.users-table tr.even:hover {
+    background: rgba(229, 219, 230, 0.1);
+}
+
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.users-table .action-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start;
+}
+
+.users-table .btn-action {
+    background: rgba(229, 219, 230, 0.14);
+    color: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(229, 219, 230, 0.22);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-right: 0;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.users-table .btn-action:hover {
+    background: rgba(118, 146, 255, 0.22);
+    border-color: rgba(118, 146, 255, 0.45);
+    color: #ffffff;
+    transform: translateY(-2px);
+}
+
+.users-table .btn-action-view i {
+    color: #7692FF;
+}
+
+.users-table .btn-action-view:hover i {
+    color: #ffffff;
 }
 
 /* Стили для даты и времени */
@@ -275,21 +328,21 @@ body {
 }
 
 .user-avatar-small {
-    width: 28px;
-    height: 28px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    background-color: #007bff;
+    background: #7692FF;
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: bold;
     flex-shrink: 0;
 }
 
 .system-label {
-    color: #6c757d;
+    color: #E5DBE6;
     font-style: italic;
     font-size: 12px;
 }
@@ -304,22 +357,22 @@ body {
 }
 
 .log-action-cell strong {
-    color: #212529;
+    color: rgba(255, 255, 255, 0.94);
     display: block;
     margin-bottom: 4px;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
     line-height: 1.3;
 }
 
 .details-preview {
     font-size: 12px;
-    color: #6c757d;
-    background: #f8f9fa;
+    color: rgba(255, 255, 255, 0.82);
+    background: rgba(229, 219, 230, 0.08);
     padding: 6px 8px;
-    border-radius: 4px;
+    border-radius: 8px;
     margin-top: 4px;
-    border-left: 3px solid #007bff;
+    border-left: 3px solid #7692FF;
     overflow: hidden;
     text-overflow: ellipsis;
 
@@ -379,7 +432,7 @@ body {
     font-size: 11px;
     font-weight: 500;
     background-color: #e9ecef;
-    color: #495057;
+    color: rgba(255, 255, 255, 0.82);
     text-align: center;
     width: 100%;
 }
@@ -392,28 +445,29 @@ body {
 .log-module.log { background-color: #e8eaf6; color: #311b92; }
 .log-module.api { background-color: #e0f2f1; color: #004d40; }
 
-/* Кнопка деталей (Уже) */
+/* Кнопки действий в таблице (общие, вне .users-table) */
 .btn-action {
-    padding: 6px 12px;
-    background: transparent;
-    color: #6c757d;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
+    background: rgba(229, 219, 230, 0.14);
+    color: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(229, 219, 230, 0.22);
+    border-radius: 8px;
     cursor: pointer;
     font-size: 12px;
     transition: all 0.2s;
     width: 36px;
     height: 36px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    padding: 0;
     margin: 0 auto;
 }
 
 .btn-action:hover {
-    background: #f8f9fa;
-    color: #495057;
-    border-color: #adb5bd;
+    background: rgba(118, 146, 255, 0.22);
+    border-color: rgba(118, 146, 255, 0.45);
+    color: #ffffff;
+    transform: translateY(-2px);
 }
 
 .empty-state {
@@ -430,7 +484,7 @@ body {
 .empty-state h3 {
     font-size: 24px;
     margin-bottom: 10px;
-    color: #4a5568;
+    color: rgba(255, 255, 255, 0.94);
 }
 
 .messages {
@@ -465,7 +519,7 @@ body {
 }
 
 .notification.info {
-    border-left-color: #4299e1;
+    border-left-color: #7692FF;
     color: #2c5282;
 }
 
@@ -487,7 +541,7 @@ body {
 
 .loading-state i {
     font-size: 40px;
-    color: #667eea;
+    color: #7692FF;
     margin-bottom: 15px;
 }
 
@@ -505,7 +559,7 @@ body {
 }
 
 .filters-card h3 {
-    color: #2d3748;
+    color: #7692FF;
     margin-bottom: 20px;
     display: flex;
     align-items: center;
@@ -526,7 +580,7 @@ body {
 .filter-group label {
     display: block;
     margin-bottom: 8px;
-    color: #4a5568;
+    color: rgba(255, 255, 255, 0.94);
     font-weight: 500;
     font-size: 14px;
     display: flex;
@@ -537,7 +591,7 @@ body {
 .form-control {
     width: 100%;
     padding: 10px 15px;
-    border: 2px solid #e2e8f0;
+    border: 2px solid rgba(229, 219, 230, 0.22);
     border-radius: 8px;
     font-size: 14px;
     transition: border-color 0.2s ease;
@@ -545,7 +599,7 @@ body {
 
 .form-control:focus {
     outline: none;
-    border-color: #4299e1;
+    border-color: #7692FF;
 }
 
 .filter-actions {
@@ -555,7 +609,7 @@ body {
 }
 
 .btn-primary {
-    background: #4299e1;
+    background: #7692FF;
     color: white;
     border: none;
     padding: 12px 24px;
@@ -570,13 +624,13 @@ body {
 }
 
 .btn-primary:hover {
-    background: #3182ce;
+    background: #7692FF;
     transform: translateY(-2px);
 }
 
 .btn-secondary {
-    background: #e2e8f0;
-    color: #4a5568;
+    background: rgba(229, 219, 230, 0.22);
+    color: rgba(255, 255, 255, 0.94);
     border: none;
     padding: 12px 24px;
     border-radius: 8px;
@@ -599,13 +653,13 @@ body {
     gap: 8px;
     margin-top: 30px;
     padding: 20px;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid rgba(229, 219, 230, 0.22);
 }
 
 .page-btn {
     min-width: 36px;
     height: 36px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(229, 219, 230, 0.22);
     background: white;
     border-radius: 6px;
     cursor: pointer;
@@ -622,9 +676,9 @@ body {
 }
 
 .page-btn.active {
-    background: #4299e1;
+    background: #7692FF;
     color: white;
-    border-color: #4299e1;
+    border-color: #7692FF;
 }
 
 .page-btn.disabled {
@@ -633,22 +687,23 @@ body {
 }
 
 .page-info {
-    color: #718096;
+    color: #E5DBE6;
     font-size: 14px;
     margin-left: 15px;
 }
 
 .modal {
     position: fixed;
-    top: 0;
-    left: 0;
+    inset: 0;
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.5);
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     z-index: 2000;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
 }
 
 .modal-content {
@@ -666,11 +721,11 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 20px;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid rgba(229, 219, 230, 0.22);
 }
 
 .modal-header h3 {
-    color: #2d3748;
+    color: #7692FF;
     margin: 0;
     display: flex;
     align-items: center;
@@ -681,14 +736,14 @@ body {
     background: none;
     border: none;
     font-size: 24px;
-    color: #718096;
+    color: #E5DBE6;
     cursor: pointer;
     padding: 5px;
     transition: color 0.2s;
 }
 
 .close-btn:hover {
-    color: #4a5568;
+    color: rgba(255, 255, 255, 0.94);
 }
 
 .modal-body {
@@ -701,7 +756,7 @@ body {
 
 .export-modal-text {
     margin: 0 0 18px;
-    color: #475569;
+    color: var(--app-caption, rgba(255, 255, 255, 0.94));
     line-height: 1.55;
 }
 
@@ -734,7 +789,7 @@ body {
 
 .detail-item label {
     font-weight: 500;
-    color: #6c757d;
+    color: #E5DBE6;
     font-size: 12px;
     display: flex;
     align-items: center;
@@ -744,24 +799,25 @@ body {
 }
 
 .detail-value {
-    color: #212529;
+    color: var(--app-caption, rgba(255, 255, 255, 0.94));
     font-size: 14px;
     padding: 8px 10px;
-    background: #f8f9fa;
+    background: rgba(229, 219, 230, 0.08);
     border-radius: 4px;
-    border-left: 3px solid #007bff;
+    border-left: 3px solid var(--app-accent, #7692FF);
 }
 
 .action-type {
     font-weight: 600;
-    color: #2d3748;
+    color: #7692FF;
 }
 
 .details-content {
-    background: #f8f9fa;
+    background: rgba(229, 219, 230, 0.08);
     padding: 16px;
     border-radius: 4px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid rgba(229, 219, 230, 0.22);
+    color: var(--app-caption, rgba(255, 255, 255, 0.94));
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: 12px;
     max-height: 200px;
@@ -770,14 +826,21 @@ body {
     line-height: 1.5;
 }
 
+.details-content pre {
+    color: inherit;
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 .no-details {
-    color: #6c757d;
+    color: var(--app-caption-soft, rgba(255, 255, 255, 0.82));
     font-style: italic;
     padding: 16px;
     text-align: center;
-    background: #f8f9fa;
+    background: rgba(229, 219, 230, 0.08);
     border-radius: 4px;
-    border: 1px dashed #dee2e6;
+    border: 1px dashed rgba(229, 219, 230, 0.35);
     font-size: 14px;
 }
 
@@ -831,13 +894,13 @@ body {
         grid-template-columns: 1fr;
     }
     
-    .logs-table {
+    .users-table table {
         font-size: 14px;
     }
     
-    .logs-table th,
-    .logs-table td {
-        padding: 10px 8px;
+    .users-table th,
+    .users-table td {
+        padding: 10px 12px;
     }
     
     .modal-content {
@@ -931,6 +994,9 @@ body {
     align-items: center;
     gap: 18px;
     flex-wrap: wrap;
+    position: relative;
+    z-index: 500;
+    overflow: visible;
 }
 
 .header-left {
@@ -1002,6 +1068,11 @@ button.header-nav-link {
     background: rgba(255, 255, 255, 0.14);
     border: 1px solid rgba(255, 255, 255, 0.18);
     transition: background 0.2s ease;
+    z-index: 501;
+}
+
+.user-profile.open {
+    z-index: 5000;
 }
 
 .user-profile:hover {
@@ -1059,7 +1130,7 @@ button.header-nav-link {
     border-radius: 14px;
     overflow: hidden;
     box-shadow: 0 16px 40px rgba(31, 41, 55, 0.18);
-    z-index: 100;
+    z-index: 5000;
 }
 
 .user-profile.open .user-dropdown {
@@ -1068,7 +1139,7 @@ button.header-nav-link {
 
 .dd-user-header {
     padding: 14px 16px 12px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid rgba(229, 219, 230, 0.12);
 }
 
 .duh-name {
@@ -1080,7 +1151,7 @@ button.header-nav-link {
 .duh-role {
     margin-top: 3px;
     font-size: 12px;
-    color: #64748b;
+    color: #E5DBE6;
 }
 
 .dd-item {
@@ -1096,7 +1167,7 @@ button.header-nav-link {
 }
 
 .dd-item:hover {
-    background: #f8fafc;
+    background: rgba(229, 219, 230, 0.08);
 }
 
 .dd-item i {
@@ -1112,7 +1183,7 @@ button.header-nav-link {
 
 .dd-divider {
     height: 1px;
-    background: #f1f5f9;
+    background: rgba(229, 219, 230, 0.12);
 }
 
 @media (max-width: 768px) {
@@ -1145,126 +1216,7 @@ button.header-nav-link {
     }
 }
 
-/* Тёмно-синяя палитра страницы логов */
-body {
-    background:
-        radial-gradient(circle at top left, rgba(96, 165, 250, 0.22), transparent 26%),
-        radial-gradient(circle at top right, rgba(59, 130, 246, 0.18), transparent 30%),
-        linear-gradient(160deg, #13233f 0%, #1a2f52 45%, #223c67 100%);
-}
-
-.header {
-    background: linear-gradient(135deg, #0b1f3f 0%, #12366f 48%, #1d4f91 100%);
-    box-shadow: 0 16px 36px rgba(5, 13, 29, 0.38);
-}
-
-.header-subtitle {
-    color: rgba(219, 234, 254, 0.88);
-}
-
-.header-nav-link {
-    background: rgba(147, 197, 253, 0.12);
-    border-color: rgba(191, 219, 254, 0.24);
-    color: #eff6ff;
-}
-
-.header-nav-link:hover {
-    background: rgba(147, 197, 253, 0.22);
-    border-color: rgba(191, 219, 254, 0.4);
-}
-
-.user-profile {
-    background: rgba(147, 197, 253, 0.08);
-    border-color: rgba(191, 219, 254, 0.18);
-}
-
-.user-profile:hover {
-    background: rgba(147, 197, 253, 0.16);
-}
-
-.user-avatar {
-    background: rgba(191, 219, 254, 0.16);
-}
-
-.controls,
-.logs-container,
-.filters-card,
-.modal-content {
-    box-shadow: 0 14px 34px rgba(8, 18, 38, 0.12);
-    background: rgba(244, 248, 253, 0.94);
-}
-
-.controls {
-    padding: 16px;
-    border: 1px solid rgba(212, 223, 239, 0.9);
-    border-radius: 16px;
-}
-
-.control-btn {
-    background: linear-gradient(135deg, #153867, #215196);
-    color: white;
-}
-
-.control-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 22px rgba(15, 39, 78, 0.24);
-}
-
-.refresh-btn {
-    background: linear-gradient(135deg, #163d77, #2457a6);
-}
-
-.refresh-btn:hover {
-    background: linear-gradient(135deg, #143665, #214d91);
-}
-
-.filter-btn {
-    background: linear-gradient(135deg, #0f274e, #183b72);
-}
-
-.filter-btn:hover {
-    background: linear-gradient(135deg, #0c203f, #15325f);
-}
-
-.export-btn {
-    background: linear-gradient(135deg, #244b80, #2f67af);
-}
-
-.export-btn:hover {
-    background: linear-gradient(135deg, #1f426f, #29599a);
-}
-
-.logs-header,
-.filters-card,
-.active-filters {
-    border-color: #d8e3f3;
-}
-
-.info-card {
-    background: #edf3fb;
-    border-color: #d4dfef;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #163d77, #2457a6);
-}
-
-.btn-primary:hover {
-    background: linear-gradient(135deg, #143665, #214d91);
-}
-
-.btn-secondary {
-    background: linear-gradient(135deg, #0f274e, #183b72);
-}
-
-.btn-secondary:hover {
-    background: linear-gradient(135deg, #0c203f, #15325f);
-}
-
-.form-control:focus {
-    border-color: #2457a6;
-    box-shadow: 0 0 0 3px rgba(36, 87, 166, 0.12);
-}
+/* Палитра приложения — см. app-theme.css */
 
 .clear-filters-btn:hover {
     background: #dc3545;
@@ -1289,8 +1241,8 @@ body {
 }
 
 /* Стили для фильтров в таблице */
-.logs-table .filtered-row {
-    background-color: #fff3cd !important;
+.users-table .filtered-row {
+    background-color: rgba(255, 243, 205, 0.35) !important;
     border-left: 3px solid #ffc107;
 }
 
@@ -1307,12 +1259,12 @@ body {
     padding: 8px 12px;
     border-radius: 6px;
     font-size: 12px;
-    color: #6c757d;
+    color: #E5DBE6;
     border: 1px solid #dee2e6;
 }
 
 .filtered-stat strong {
-    color: #495057;
+    color: rgba(255, 255, 255, 0.82);
 }
 
 /* Стили для состояния без данных */
@@ -1322,11 +1274,11 @@ body {
 }
 
 .empty-state.filtered i {
-    color: #6c757d;
+    color: #E5DBE6;
 }
 
 .empty-state.filtered p {
-    color: #6c757d;
+    color: #E5DBE6;
     font-size: 16px;
 }
 
@@ -1349,7 +1301,7 @@ body {
     top: 35px;
     background: none;
     border: none;
-    color: #6c757d;
+    color: #E5DBE6;
     cursor: pointer;
     font-size: 14px;
     opacity: 0.7;
@@ -1361,7 +1313,7 @@ body {
     color: #dc3545;
 }
 .project-subtitle {
-    color: #718096;
+    color: #E5DBE6;
     font-size: 16px;
     margin-top: 5px;
     font-weight: 500;

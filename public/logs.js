@@ -254,38 +254,38 @@ truncateText(text, maxLength) {
     
                     <div class="pagination" id="pagination"></div>
                 </div>
-    
-                <div class="modal" id="detailsModal" style="display: none;">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h3><i class="fas fa-info-circle"></i> Детали записи</h3>
-                            <button class="close-btn" id="closeModalBtn">&times;</button>
-                        </div>
-                        <div class="modal-body" id="modalBody">
-                            <!-- Детали будут загружены динамически -->
-                        </div>
-                    </div>
-                </div>
 
-                <div class="modal" id="exportModal" style="display: none;">
-                    <div class="modal-content export-modal-content">
-                        <div class="modal-header">
-                            <h3><i class="fas fa-download"></i> Экспорт журнала</h3>
-                            <button class="close-btn" id="closeExportModalBtn">&times;</button>
-                        </div>
-                        <div class="modal-body">
-                            <p class="export-modal-text">Выберите формат выгрузки журнала действий с текущими применёнными фильтрами.</p>
-                            <div class="export-format-actions">
-                                <button class="btn-primary export-format-btn" id="exportExcelBtn">
-                                    <i class="fas fa-file-excel"></i> Excel
-                                </button>
-                                <button class="btn-primary export-format-btn" id="exportWordBtn">
-                                    <i class="fas fa-file-word"></i> Word
-                                </button>
-                            </div>
+            <div class="modal" id="detailsModal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-info-circle"></i> Детали записи</h3>
+                        <button class="close-btn" id="closeModalBtn">&times;</button>
+                    </div>
+                    <div class="modal-body" id="modalBody">
+                        <!-- Детали будут загружены динамически -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal" id="exportModal" style="display: none;">
+                <div class="modal-content export-modal-content">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-download"></i> Экспорт журнала</h3>
+                        <button class="close-btn" id="closeExportModalBtn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="export-modal-text">Выберите формат выгрузки журнала действий с текущими применёнными фильтрами.</p>
+                        <div class="export-format-actions">
+                            <button class="btn-primary export-format-btn" id="exportExcelBtn">
+                                <i class="fas fa-file-excel"></i> Excel
+                            </button>
+                            <button class="btn-primary export-format-btn" id="exportWordBtn">
+                                <i class="fas fa-file-word"></i> Word
+                            </button>
                         </div>
                     </div>
                 </div>
+            </div>
             </div>
         `;
     
@@ -651,27 +651,28 @@ truncateText(text, maxLength) {
         }
         
         logsContent.innerHTML = `
-            <div class="logs-table-container">
-                <table class="logs-table">
+            <div class="users-table logs-table-wrap">
+                <table>
                     <thead>
                         <tr>
-                            <th style="width: 150px;">Дата и время</th>
-                            <th style="width: 120px;">Пользователь</th>
-                            <th style="width: 40%;">Действие</th>
-                            <th style="width: 100px;">Статус</th>
-                            <th style="width: 100px;">Модуль</th>
-                            <th style="width: 80px;">Детали</th>
+                            <th>Дата и время</th>
+                            <th>Пользователь</th>
+                            <th>Действие</th>
+                            <th>Статус</th>
+                            <th>Модуль</th>
+                            <th>Детали</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${logs.map(log => {
+                        ${logs.map((log, index) => {
                             const actionDescription = this.getActionDescription(log);
+                            const rowClass = index % 2 === 0 ? 'even' : 'odd';
                             return `
-                            <tr>
+                            <tr class="${rowClass}">
                                 <td class="nowrap">${log.date || this.formatDateTime(log.createdAt)}</td>
                                 <td>
                                     ${log.userName ? `
-                                        <div class="log-user">
+                                        <div class="user-cell log-user">
                                             <div class="user-avatar-small">
                                                 ${log.userName.charAt(0).toUpperCase()}
                                             </div>
@@ -697,7 +698,7 @@ truncateText(text, maxLength) {
                                     </span>
                                 </td>
                                 <td>
-                                    <button class="btn-action" onclick="window.logsPage.showDetails(${JSON.stringify(log).replace(/"/g, '&quot;').replace(/'/g, '&apos;')})" title="Показать детали">
+                                    <button class="btn-action btn-action-view" onclick="window.logsPage.showDetails(${JSON.stringify(log).replace(/"/g, '&quot;').replace(/'/g, '&apos;')})" title="Показать детали">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </td>
@@ -777,7 +778,7 @@ truncateText(text, maxLength) {
             </div>
         `;
         
-        modal.style.display = 'block';
+        modal.style.display = 'flex';
         
         // Закрытие по клику вне модального окна
         modal.addEventListener('click', (e) => {

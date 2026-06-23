@@ -124,7 +124,9 @@ class AdminPanel {
                             <div class="form-group">
                                 <label for="password"><i class="fas fa-lock"></i> Пароль</label>
                                 <input type="password" id="password" class="form-control" 
-                                       placeholder="Введите пароль" required>
+                                       placeholder="Введите пароль" required minlength="6"
+                                       aria-describedby="createPasswordHint">
+                                <small id="createPasswordHint" class="form-text">Минимум 6 символов.</small>
                             </div>
                             
                             <div class="form-group">
@@ -169,10 +171,10 @@ class AdminPanel {
                                 <div class="form-group">
                                     <label for="editPassword"><i class="fas fa-key"></i> Новый пароль</label>
                                     <input type="password" id="editPassword" class="form-control" name="newPassword"
-                                           autocomplete="new-password" minlength="4"
+                                           autocomplete="new-password" minlength="6"
                                            placeholder="Оставьте пустым, если пароль не меняете"
                                            aria-describedby="editPasswordHint">
-                                    <small id="editPasswordHint" class="form-text">Заполняйте только при смене пароля — не менее 4 символов.</small>
+                                    <small id="editPasswordHint" class="form-text">Заполняйте только при смене пароля — не менее 6 символов.</small>
                                 </div>
                             </div>
                             <div class="modal-footer">
@@ -625,6 +627,11 @@ class AdminPanel {
             return;
         }
         
+        if (password && password.length < 6) {
+            this.showMessage('Пароль должен содержать минимум 6 символов', 'error');
+            return;
+        }
+        
         const saveBtn = document.getElementById('saveEditBtn');
         const originalText = saveBtn.innerHTML;
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сохранение...';
@@ -726,8 +733,8 @@ class AdminPanel {
             return false;
         }
         
-        if (password.length < 4) {
-            this.showMessage('Пароль должен содержать минимум 4 символа', 'error');
+        if (password.length < 6) {
+            this.showMessage('Пароль должен содержать минимум 6 символов', 'error');
             return false;
         }
         
@@ -820,8 +827,8 @@ class AdminPanel {
             return;
         }
         
-        if (newPassword.length < 4) {
-            this.showMessage('Пароль должен содержать минимум 4 символа', 'error');
+        if (newPassword.length < 6) {
+            this.showMessage('Пароль должен содержать минимум 6 символов', 'error');
             return;
         }
         

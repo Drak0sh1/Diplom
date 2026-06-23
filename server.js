@@ -246,6 +246,107 @@ async function getCatalogChain(catalogId) {
     }
 }
 
+/**
+ * Колонка JSON со списком id файлов: при задании пользователь видит только эти документы в дереве назначенного каталога.
+ */
+async function ensureAssignmentMetadataAllowedFileIdsColumn(connection) {
+    try {
+        await connection.execute(`
+            ALTER TABLE AssignmentMetadata
+            ADD COLUMN allowedFileIds JSON NULL DEFAULT NULL
+            COMMENT 'Доступ только к перечисленным id файлов в ветке назначенного каталога'
+        `);
+    } catch (e) {
+        const msg = e && e.message ? String(e.message) : '';
+        if (!/duplicate column name/i.test(msg)) {
+            console.warn('ensureAssignmentMetadataAllowedFileIdsColumn:', msg);
+        }
+    }
+}
+
+/**
+ * Если у пользователя на цепочке предков каталога есть назначение с allowedFileIds — вернуть множество id файлов, иначе null.
+ */
+async function resolveAllowedFileIdsFilter(userId, catalogId) {
+    try {
+        const chain = await getCatalogChain(catalogId);
+        for (const c of chain) {
+            const [rows] = await pool.execute(`
+                SELECT am.allowedFileIds
+                FROM UsersFolders uf
+                INNER JOIN AssignmentMetadata am ON am.assignmentId = uf.idUsersFolders
+                WHERE uf.idUsers = ? AND uf.idFolders = ? AND am.allowedFileIds IS NOT NULL
+            `, [userId, c.id]);
+            if (!rows.length) continue;
+            const raw = rows[0].allowedFileIds;
+            if (raw == null || raw === '') continue;
+            let arr;
+            if (Array.isArray(raw)) {
+                arr = raw;
+            } else if (Buffer.isBuffer(raw)) {
+                try {
+                    arr = JSON.parse(raw.toString('utf8'));
+                } catch {
+                    continue;
+                }
+            } else if (typeof raw === 'string') {
+                try {
+                    arr = JSON.parse(raw);
+                } catch {
+                    continue;
+                }
+            } else if (typeof raw === 'object') {
+                arr = Object.values(raw);
+            } else {
+                continue;
+            }
+            if (!Array.isArray(arr) || arr.length === 0) continue;
+            const set = new Set(arr.map((x) => parseInt(String(x), 10)).filter((n) => Number.isFinite(n) && n > 0));
+            if (set.size > 0) return set;
+        }
+        return null;
+    } catch (e) {
+        console.error('resolveAllowedFileIdsFilter:', e.message);
+        return null;
+    }
+}
+
+async function verifyFilesBelongToFolderTree(connection, rootFolderId, fileIds) {
+    if (!fileIds.length) return { ok: true };
+    const ph = fileIds.map(() => '?').join(', ');
+    const [fileRows] = await connection.execute(
+        `SELECT idFiles, idFolders FROM Files WHERE idFiles IN (${ph})`,
+        fileIds
+    );
+    if (fileRows.length !== fileIds.length) {
+        return { ok: false, message: 'Один или несколько документов не найдены' };
+    }
+    const [rootRows] = await connection.execute(
+        'SELECT idFolder FROM Folder WHERE idFolder = ? AND status = "active"',
+        [rootFolderId]
+    );
+    if (!rootRows.length) {
+        return { ok: false, message: 'Каталог не найден' };
+    }
+    const [treeRows] = await connection.execute(`
+        WITH RECURSIVE DirectoryTree AS (
+            SELECT idFolder FROM Folder WHERE idFolder = ? AND status = 'active'
+            UNION ALL
+            SELECT f.idFolder FROM Folder f
+            INNER JOIN DirectoryTree dt ON f.parentId = dt.idFolder
+            WHERE f.status = 'active'
+        )
+        SELECT idFolder FROM DirectoryTree
+    `, [rootFolderId]);
+    const allowedFolders = new Set(treeRows.map((r) => r.idFolder));
+    for (const fr of fileRows) {
+        if (!allowedFolders.has(fr.idFolders)) {
+            return { ok: false, message: 'Документ находится вне выбранного каталога' };
+        }
+    }
+    return { ok: true };
+}
+
 function permissionRank(p) {
     if (p === 'ADMIN') return 3;
     if (p === 'WRITE') return 2;
@@ -447,9 +548,10 @@ function isUserEditor(req) {
 // ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ЛОГИРОВАНИЯ ============
 
 async function logAction(userId, actionType, details = '', module = 'system', targetType = null, targetId = null, status = 'info', ip = '', userAgent = '') {
+    let connection;
     try {
-        const connection = await pool.getConnection();
-        
+        connection = await pool.getConnection();
+
         await connection.execute(`
             INSERT INTO Logs (
                 idUsers, 
@@ -463,15 +565,20 @@ async function logAction(userId, actionType, details = '', module = 'system', ta
                 userAgent
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [userId, actionType, details, module, targetType, targetId, status, ip, userAgent]);
-        
-        connection.release();
-        
+
         if (actionType !== 'api_request') {
             console.log(`📝 ${status.toUpperCase()}: ${module}.${actionType} - ${details}`);
         }
-        
     } catch (error) {
         console.error('❌ Ошибка записи лога:', error.message);
+    } finally {
+        if (connection) {
+            try {
+                connection.release();
+            } catch (releaseErr) {
+                console.error('❌ Ошибка возврата соединения в пул (лог):', releaseErr.message);
+            }
+        }
     }
 }
 
@@ -534,10 +641,11 @@ async function logPasswordReset(adminId, adminUsername, targetUsername, ip, user
 // ============ ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ ============
 
 async function initDatabase() {
+    let connection;
     try {
         pool = mysql.createPool(dbConfig);
         
-        const connection = await pool.getConnection();
+        connection = await pool.getConnection();
         console.log('✅ Подключение к MySQL установлено');
 
         const [blockedColCheck] = await connection.execute(`
@@ -633,12 +741,18 @@ async function initDatabase() {
             'system'
         );
         
-        connection.release();
-        
     } catch (error) {
         console.error('❌ Ошибка инициализации БД:', error.message);
         console.error('Stack trace:', error.stack);
         process.exit(1);
+    } finally {
+        if (connection) {
+            try {
+                connection.release();
+            } catch (e) {
+                console.error('❌ Ошибка возврата соединения initDatabase:', e.message);
+            }
+        }
     }
 }
 
@@ -1304,7 +1418,7 @@ app.post('/api/reset-admin', requireAuth('Администратор'), async (r
             });
         }
         
-        if (newPassword.length < 4) {
+        if (newPassword.length < 6) {
             console.log('❌ Слишком короткий пароль');
             
             await logAction(
@@ -1321,7 +1435,7 @@ app.post('/api/reset-admin', requireAuth('Администратор'), async (r
             
             return res.json({
                 success: false,
-                message: 'Пароль должен содержать минимум 4 символа'
+                message: 'Пароль должен содержать минимум 6 символов'
             });
         }
         
@@ -1620,6 +1734,20 @@ app.post('/api/admin/users', requireAuth('Администратор'), async (r
         
         console.log(`📝 Создание пользователя: ${username}, роль ID: ${roleId}`);
         
+        if (!username || !password || !roleId) {
+            return res.json({
+                success: false,
+                message: 'Заполните все поля'
+            });
+        }
+
+        if (password.length < 6) {
+            return res.json({
+                success: false,
+                message: 'Пароль должен содержать минимум 6 символов'
+            });
+        }
+        
         // Проверка существующего пользователя
         const [existingUsers] = await pool.execute(
             'SELECT idUsers FROM Users WHERE name = ?',
@@ -1762,10 +1890,10 @@ app.put('/api/admin/users/:id', requireAuth('Администратор'), async
         
         // Обновляем пароль, если он предоставлен
         if (password && password.trim() !== '') {
-            if (password.length < 4) {
+            if (password.length < 6) {
                 return res.json({
                     success: false,
-                    message: 'Пароль должен содержать минимум 4 символа'
+                    message: 'Пароль должен содержать минимум 6 символов'
                 });
             }
             
@@ -2635,12 +2763,19 @@ app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
     
     try {
         const { userId, directoryId, includeChildren = true, notes = '' } = req.body;
+        const rawAllowed = req.body.allowedFileIds;
+        let allowedFileIds = [];
+        if (Array.isArray(rawAllowed)) {
+            allowedFileIds = [...new Set(rawAllowed.map((x) => parseInt(String(x), 10))
+                .filter((n) => Number.isFinite(n) && n > 0))];
+        }
+        const metaIncludesChildren = allowedFileIds.length > 0 ? false : !!includeChildren;
         const permission = 'WRITE';
         const editorId = req.user.userId;
         const editorName = req.user.username;
         
         console.log('📡 Создание назначения с наследованием:', { 
-            userId, directoryId, permission, includeChildren 
+            userId, directoryId, permission, includeChildren: metaIncludesChildren, allowedFileIds: allowedFileIds.length
         });
         
         // Проверка обязательных полей
@@ -2704,6 +2839,18 @@ app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
         
         const directoryName = directoryExists[0].Name;
         
+        if (allowedFileIds.length > 0) {
+            const v = await verifyFilesBelongToFolderTree(connection, directoryId, allowedFileIds);
+            if (!v.ok) {
+                await connection.rollback();
+                connection.release();
+                return res.json({
+                    success: false,
+                    message: v.message
+                });
+            }
+        }
+        
         // 3. Проверяем, не назначен ли уже доступ к этому каталогу
         const [existingAssignment] = await connection.execute(
             'SELECT idUsersFolders FROM UsersFolders WHERE idUsers = ? AND idFolders = ?',
@@ -2738,11 +2885,12 @@ app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
                     FOREIGN KEY (assignmentId) REFERENCES UsersFolders(idUsersFolders) ON DELETE CASCADE
                 )
             `);
-            
-            // Сохраняем метаданные
+            await ensureAssignmentMetadataAllowedFileIdsColumn(connection);
+
+            const fileIdsJson = allowedFileIds.length > 0 ? JSON.stringify(allowedFileIds) : null;
             await connection.execute(
-                'INSERT INTO AssignmentMetadata (assignmentId, includesChildren, notes) VALUES (?, ?, ?)',
-                [assignmentId, includeChildren, notes]
+                'INSERT INTO AssignmentMetadata (assignmentId, includesChildren, notes, allowedFileIds) VALUES (?, ?, ?, ?)',
+                [assignmentId, metaIncludesChildren, notes, fileIdsJson]
             );
         } catch (metadataError) {
             console.log('ℹ️ Ошибка при создании метаданных назначения:', metadataError.message);
@@ -2753,7 +2901,7 @@ app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
         let totalChildrenCreated = 0;
         
         // 6. Если включено наследование, создаем назначения для дочерних каталогов
-        if (includeChildren) {
+        if (metaIncludesChildren) {
             console.log('📦 Поиск дочерних каталогов для наследования...');
             
             // Используем рекурсивный CTE запрос для получения всех дочерних каталогов
@@ -2844,8 +2992,10 @@ app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
         // 8. Логируем создание назначения
         let logMessage = `Редактор ${editorName} назначил доступ ${permission} пользователю "${userName}" к каталогу "${directoryName}"`;
         
-        if (includeChildren && totalChildrenCreated > 0) {
+        if (metaIncludesChildren && totalChildrenCreated > 0) {
             logMessage += ` и ${totalChildrenCreated} дочерним каталогам`;
+        } else if (allowedFileIds.length > 0) {
+            logMessage += ` с ограничением по ${allowedFileIds.length} документам`;
         }
         
         await logAction(
@@ -2861,17 +3011,23 @@ app.post('/api/editor/assignments', requireEditorRole, async (req, res) => {
         );
         
         // 9. Возвращаем успешный ответ
+        let successMessage = 'Назначение создано';
+        if (metaIncludesChildren && totalChildrenCreated > 0) {
+            successMessage = `Назначение создано. Предоставлен доступ к основному каталогу и ${totalChildrenCreated} дочерним каталогам`;
+        } else if (allowedFileIds.length > 0) {
+            successMessage = `Назначение создано. Доступ к каталогу с ограничением по ${allowedFileIds.length} выбранным документам`;
+        }
+
         res.json({
             success: true,
-            message: includeChildren 
-                ? `Назначение создано. Предоставлен доступ к основному каталогу и ${totalChildrenCreated} дочерним каталогам`
-                : 'Назначение создано',
+            message: successMessage,
             data: {
                 id: assignmentId,
                 userId: userId,
                 directoryId: directoryId,
                 permission: permission,
-                includeChildren: includeChildren,
+                includeChildren: metaIncludesChildren,
+                allowedFileIds: allowedFileIds.length > 0 ? allowedFileIds : null,
                 childrenCreated: totalChildrenCreated,
                 childAssignments: childAssignments
             }
@@ -2951,6 +3107,54 @@ app.get('/api/editor/directories/:id/all-children', requireEditorRole, async (re
         res.status(500).json({ 
             success: false, 
             message: 'Ошибка сервера при получении дочерних каталогов' 
+        });
+    }
+});
+
+/** Документы (файлы) во всём дереве каталога — для мастера назначения прав */
+app.get('/api/editor/directories/:id/tree-documents', requireEditorRole, async (req, res) => {
+    try {
+        const rootId = parseInt(String(req.params.id), 10);
+        if (Number.isNaN(rootId)) {
+            return res.status(400).json({ success: false, message: 'Некорректный id каталога' });
+        }
+
+        const [rows] = await pool.execute(`
+            WITH RECURSIVE tree AS (
+                SELECT idFolder, Name, parentId, 0 AS depth,
+                       CAST(Name AS CHAR(2000)) AS pathLabel
+                FROM Folder
+                WHERE idFolder = ? AND status = 'active'
+                UNION ALL
+                SELECT f.idFolder, f.Name, f.parentId, t.depth + 1,
+                       CONCAT(t.pathLabel, ' → ', f.Name)
+                FROM Folder f
+                INNER JOIN tree t ON f.parentId = t.idFolder
+                WHERE f.status = 'active'
+            )
+            SELECT
+                fl.idFiles AS id,
+                fl.name AS fileName,
+                fl.documentIndex,
+                fl.idFolders AS folderId,
+                t.Name AS folderName,
+                t.depth,
+                t.pathLabel AS folderPath
+            FROM tree t
+            INNER JOIN Files fl ON fl.idFolders = t.idFolder
+            ORDER BY t.depth, t.pathLabel, fl.name
+        `, [rootId]);
+
+        res.json({
+            success: true,
+            data: rows,
+            count: rows.length
+        });
+    } catch (error) {
+        console.error('❌ Ошибка получения документов дерева каталога:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Ошибка сервера при получении списка документов'
         });
     }
 });
@@ -3563,6 +3767,7 @@ app.get('/api/editor/assignments/:id', requireEditorRole, async (req, res) => {
         const assignmentId = req.params.id;
         
         const connection = await pool.getConnection();
+        await ensureAssignmentMetadataAllowedFileIdsColumn(connection);
         
         const [assignments] = await connection.execute(`
             SELECT 
@@ -3571,10 +3776,14 @@ app.get('/api/editor/assignments/:id', requireEditorRole, async (req, res) => {
                 uf.idFolders as directoryId,
                 uf.permission,
                 u.name as userName,
-                f.Name as directoryName
+                f.Name as directoryName,
+                am.notes,
+                am.includesChildren,
+                am.allowedFileIds
             FROM UsersFolders uf
             JOIN Users u ON uf.idUsers = u.idUsers
             JOIN Folder f ON uf.idFolders = f.idFolder
+            LEFT JOIN AssignmentMetadata am ON am.assignmentId = uf.idUsersFolders
             WHERE uf.idUsersFolders = ?
         `, [assignmentId]);
         
@@ -3586,10 +3795,39 @@ app.get('/api/editor/assignments/:id', requireEditorRole, async (req, res) => {
                 message: 'Назначение не найдено'
             });
         }
+
+        const raw = assignments[0];
+        let allowedFileIds = null;
+        if (raw.allowedFileIds != null && raw.allowedFileIds !== '') {
+            try {
+                const p = Array.isArray(raw.allowedFileIds)
+                    ? raw.allowedFileIds
+                    : JSON.parse(
+                        Buffer.isBuffer(raw.allowedFileIds)
+                            ? raw.allowedFileIds.toString('utf8')
+                            : String(raw.allowedFileIds)
+                    );
+                if (Array.isArray(p) && p.length > 0) {
+                    allowedFileIds = p.map((x) => parseInt(String(x), 10)).filter((n) => Number.isFinite(n) && n > 0);
+                }
+            } catch {
+                allowedFileIds = null;
+            }
+        }
         
         res.json({
             success: true,
-            data: assignments[0]
+            data: {
+                id: raw.id,
+                userId: raw.userId,
+                directoryId: raw.directoryId,
+                permission: raw.permission,
+                userName: raw.userName,
+                directoryName: raw.directoryName,
+                notes: raw.notes || '',
+                includesChildren: !!raw.includesChildren,
+                allowedFileIds
+            }
         });
         
     } catch (error) {
@@ -5760,17 +5998,25 @@ function buildAdminLogExportRows(logs) {
     }));
 }
 
+function buildAdminLogFiltersSummaryLines(filters) {
+    const lines = [];
+
+    if (filters.search) lines.push(`Поиск: ${filters.search}`);
+    if (filters.status) lines.push(`Статус: ${getAdminLogStatusText(filters.status)}`);
+    if (filters.module) lines.push(`Модуль: ${getAdminLogModuleText(filters.module)}`);
+    if (filters.user) lines.push(`Пользователь: ${filters.user}`);
+    if (filters.dateFrom) lines.push(`Дата с: ${formatExportDate(filters.dateFrom)}`);
+    if (filters.dateTo) lines.push(`Дата по: ${formatExportDate(filters.dateTo)}`);
+
+    if (!lines.length) {
+        lines.push('Без фильтров');
+    }
+
+    return lines;
+}
+
 function buildAdminLogFiltersSummary(filters) {
-    const parts = [];
-
-    if (filters.search) parts.push(`Поиск: ${filters.search}`);
-    if (filters.status) parts.push(`Статус: ${getAdminLogStatusText(filters.status)}`);
-    if (filters.module) parts.push(`Модуль: ${getAdminLogModuleText(filters.module)}`);
-    if (filters.user) parts.push(`Пользователь: ${filters.user}`);
-    if (filters.dateFrom) parts.push(`Дата с: ${formatExportDate(filters.dateFrom)}`);
-    if (filters.dateTo) parts.push(`Дата по: ${formatExportDate(filters.dateTo)}`);
-
-    return parts.length > 0 ? parts.join('; ') : 'Без фильтров';
+    return buildAdminLogFiltersSummaryLines(filters).join('; ');
 }
 
 function getEditorAssignmentPermissionText(permission) {
@@ -6399,6 +6645,8 @@ app.get('/api/admin/logs/export', requireAuth('Администратор'), asy
         const exportRows = buildAdminLogExportRows(logs);
         const dateStamp = new Date().toISOString().slice(0, 10);
         const filtersSummary = buildAdminLogFiltersSummary(filters);
+        const filterLines = buildAdminLogFiltersSummaryLines(filters);
+        const formedAtStr = formatExportDate(new Date());
 
         if (format === 'excel') {
             const workbook = new ExcelJS.Workbook();
@@ -6418,13 +6666,20 @@ app.get('/api/admin/logs/export', requireAuth('Администратор'), asy
             worksheet.getCell('A1').font = { size: 16, bold: true };
             worksheet.getCell('A1').alignment = { horizontal: 'center' };
 
-            worksheet.mergeCells('A2:F2');
-            worksheet.getCell('A2').value = `Фильтры: ${filtersSummary}`;
-            worksheet.getCell('A2').font = { italic: true, color: { argb: 'FF4B5563' } };
+            let metaRow = 2;
+            worksheet.mergeCells(`A${metaRow}:F${metaRow}`);
+            worksheet.getCell(`A${metaRow}`).value = 'Фильтры:';
+            worksheet.getCell(`A${metaRow}`).font = { italic: true, bold: true, color: { argb: 'FF4B5563' } };
+            worksheet.getCell(`A${metaRow}`).alignment = { vertical: 'top', wrapText: true };
+            metaRow += 1;
 
-            worksheet.mergeCells('A3:F3');
-            worksheet.getCell('A3').value = `Сформировано: ${formatExportDate(new Date())}`;
-            worksheet.getCell('A3').font = { color: { argb: 'FF6B7280' } };
+            filterLines.forEach((line) => {
+                worksheet.mergeCells(`A${metaRow}:F${metaRow}`);
+                worksheet.getCell(`A${metaRow}`).value = line;
+                worksheet.getCell(`A${metaRow}`).font = { italic: true, color: { argb: 'FF4B5563' } };
+                worksheet.getCell(`A${metaRow}`).alignment = { vertical: 'top', wrapText: true };
+                metaRow += 1;
+            });
 
             worksheet.addRow({});
             const headerRow = worksheet.addRow([
@@ -6437,6 +6692,11 @@ app.get('/api/admin/logs/export', requireAuth('Администратор'), asy
             ]);
             exportRows.forEach((row) => worksheet.addRow(row));
 
+            const footerRow = worksheet.addRow([]);
+            worksheet.mergeCells(`A${footerRow.number}:F${footerRow.number}`);
+            worksheet.getCell(`A${footerRow.number}`).value = `Сформировано: ${formedAtStr}`;
+            worksheet.getCell(`A${footerRow.number}`).font = { color: { argb: 'FF6B7280' } };
+
             headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
             headerRow.fill = {
                 type: 'pattern',
@@ -6444,10 +6704,18 @@ app.get('/api/admin/logs/export', requireAuth('Администратор'), asy
                 fgColor: { argb: 'FF1D4F91' }
             };
 
-            worksheet.eachRow((row, rowNumber) => {
-                row.alignment = { vertical: 'top', wrapText: true };
+            const firstTableRowNumber = headerRow.number;
+            const lastTableRowNumber = headerRow.number + exportRows.length;
+            const footerRowNumber = footerRow.number;
 
-                if (rowNumber >= 5) {
+            worksheet.eachRow((row, rowNumber) => {
+                if (rowNumber === footerRowNumber) {
+                    row.alignment = { horizontal: 'right', vertical: 'top', wrapText: true };
+                } else {
+                    row.alignment = { vertical: 'top', wrapText: true };
+                }
+
+                if (rowNumber >= firstTableRowNumber && rowNumber <= lastTableRowNumber) {
                     row.eachCell((cell) => {
                         cell.border = {
                             top: { style: 'thin', color: { argb: 'FFD8E3F3' } },
@@ -6511,15 +6779,22 @@ app.get('/api/admin/logs/export', requireAuth('Администратор'), asy
                             alignment: AlignmentType.CENTER
                         }),
                         new Paragraph({
-                            children: [new TextRun({ text: `Фильтры: ${filtersSummary}`, italics: true })]
+                            children: [new TextRun({ text: 'Фильтры:', italics: true, bold: true })]
                         }),
-                        new Paragraph({
-                            children: [new TextRun({ text: `Сформировано: ${formatExportDate(new Date())}` })]
-                        }),
+                        ...filterLines.map(
+                            (line) => new Paragraph({
+                                children: [new TextRun({ text: line, italics: true })]
+                            })
+                        ),
                         new Paragraph({ text: '' }),
                         new Table({
                             width: { size: 100, type: WidthType.PERCENTAGE },
                             rows: tableRows
+                        }),
+                        new Paragraph({ text: '' }),
+                        new Paragraph({
+                            alignment: AlignmentType.RIGHT,
+                            children: [new TextRun({ text: `Сформировано: ${formedAtStr}` })]
                         })
                     ]
                 }]
@@ -6850,7 +7125,7 @@ app.get('/api/user/catalogs/:id/documents', requireAuth(), async (req, res) => {
         `, [catalogId]);
         
         // Форматируем данные для клиента
-        const formattedDocs = documents.map(doc => {
+        let formattedDocs = documents.map(doc => {
             const docName = fileManager.fixUtf8FilenameIfNeeded(doc.name) || doc.name;
             const sizeInKB = doc.fileSize ? Math.round(doc.fileSize / 1024) : 0;
             const sizeText = sizeInKB > 1024 
@@ -6886,6 +7161,16 @@ app.get('/api/user/catalogs/:id/documents', requireAuth(), async (req, res) => {
             };
         });
         
+        let allowedSet = null;
+        try {
+            allowedSet = await resolveAllowedFileIdsFilter(userId, catalogId);
+        } catch (filterErr) {
+            console.warn('resolveAllowedFileIdsFilter:', filterErr.message);
+        }
+        if (allowedSet && allowedSet.size > 0) {
+            formattedDocs = formattedDocs.filter((doc) => allowedSet.has(Number(doc.id)));
+        }
+        
         res.json({
             success: true,
             documents: formattedDocs,
@@ -6893,7 +7178,7 @@ app.get('/api/user/catalogs/:id/documents', requireAuth(), async (req, res) => {
             catalog: {
                 name: fileManager.fixUtf8FilenameIfNeeded(catalogInfo[0].Name) || catalogInfo[0].Name,
                 description: fileManager.fixUtf8FilenameIfNeeded(catalogInfo[0].description) || catalogInfo[0].description,
-                documentCount: documents.length
+                documentCount: formattedDocs.length
             }
         });
         

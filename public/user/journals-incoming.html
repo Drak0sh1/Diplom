@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -13,12 +13,12 @@
 
         body {
             font-family: 'Inter', 'Segoe UI', sans-serif;
-            background: #f8fafc; color: #334155; line-height: 1.6;
+            background: rgba(229, 219, 230, 0.08); color: #E5DBE6; line-height: 1.6;
         }
 
         /* ── Хэдер ── */
         .header {
-            background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+            background: linear-gradient(135deg, #7692FF 0%, #7692FF 100%);
             color: white; padding: 0 30px;
             display: flex; justify-content: space-between; align-items: center;
             box-shadow: 0 2px 15px rgba(0,0,0,.12);
@@ -62,57 +62,57 @@
             display: none; position: absolute; top: calc(100% + 8px); right: 0;
             background: white; min-width: 215px;
             border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,.18);
-            z-index: 2000; overflow: hidden; border: 1px solid #f1f5f9;
+            z-index: 2000; overflow: hidden; border: 1px solid rgba(229, 219, 230, 0.12);
         }
         .user-profile.open .user-dropdown { display: block; }
         .dd-user-header {
-            padding: 14px 16px 11px; border-bottom: 1px solid #f1f5f9;
+            padding: 14px 16px 11px; border-bottom: 1px solid rgba(229, 219, 230, 0.12);
         }
         .dd-user-header .duh-name { font-weight: 700; font-size: 14px; color: #1f2937; }
-        .dd-user-header .duh-role { font-size: 12px; color: #64748b; margin-top: 2px; }
+        .dd-user-header .duh-role { font-size: 12px; color: #E5DBE6; margin-top: 2px; }
         .dd-item {
             display: flex; align-items: center; gap: 10px;
             padding: 11px 16px; color: #374151; cursor: pointer;
             font-size: 13.5px; font-weight: 500; transition: background .15s;
         }
-        .dd-item:hover { background: #f8fafc; }
-        .dd-item i { width: 16px; color: #5b86e5; font-size: 13px; }
+        .dd-item:hover { background: rgba(229, 219, 230, 0.08); }
+        .dd-item i { width: 16px; color: #7692FF; font-size: 13px; }
         .dd-item.danger { color: #ef4444; }
         .dd-item.danger i { color: #ef4444; }
-        .dd-divider { height: 1px; background: #f1f5f9; }
+        .dd-divider { height: 1px; background: rgba(229, 219, 230, 0.12); }
 
         /* ── Контент ── */
-        .main-content { padding: 30px; margin-top: 68px; min-height: calc(100vh - 68px); background: #f8fafc; }
+        .main-content { padding: 30px; margin-top: 68px; min-height: calc(100vh - 68px); background: rgba(229, 219, 230, 0.08); }
 
         /* ── Панель управления ── */
         .control-panel {
             background: white; border-radius: 12px; padding: 18px 22px;
-            margin-bottom: 20px; border: 1px solid #e2e8f0;
+            margin-bottom: 20px; border: 1px solid rgba(229, 219, 230, 0.22);
             box-shadow: 0 1px 6px rgba(0,0,0,.05);
             display: flex; gap: 0;
         }
         .filter-row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
         .filter-field { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
-        .filter-label { font-size: 12px; color: #64748b; line-height: 1; min-height: 14px; }
+        .filter-label { font-size: 12px; color: rgba(255, 255, 255, 0.94); line-height: 1; min-height: 14px; font-weight: 500; }
 
         /* Кастомный select */
         .cp-select {
-            height: 36px; padding: 0 12px; border: 1px solid #e2e8f0; border-radius: 8px;
-            font-size: 13px; color: #334155; background: #f8fafc; cursor: pointer;
+            height: 36px; padding: 0 12px; border: 1px solid rgba(229, 219, 230, 0.22); border-radius: 8px;
+            font-size: 13px; color: #E5DBE6; background: rgba(229, 219, 230, 0.08); cursor: pointer;
             outline: none; transition: border-color .2s, box-shadow .2s;
             appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
             background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
         }
-        .cp-select:focus { border-color: #5b86e5; box-shadow: 0 0 0 3px rgba(91,134,229,.15); }
+        .cp-select:focus { border-color: #7692FF; box-shadow: 0 0 0 3px rgba(91,134,229,.15); }
 
         /* Инпуты поиска */
         .cp-input-group {
             display: flex; align-items: center; gap: 0;
-            border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;
-            background: #f8fafc; transition: border-color .2s, box-shadow .2s;
+            border: 1px solid rgba(229, 219, 230, 0.22); border-radius: 8px; overflow: hidden;
+            background: rgba(229, 219, 230, 0.08); transition: border-color .2s, box-shadow .2s;
         }
         .cp-input-group:focus-within {
-            border-color: #5b86e5; box-shadow: 0 0 0 3px rgba(91,134,229,.15);
+            border-color: #7692FF; box-shadow: 0 0 0 3px rgba(91,134,229,.15);
             background: white;
         }
         .cp-input-group .cp-icon {
@@ -120,7 +120,7 @@
         }
         .cp-input-group input {
             height: 36px; border: none; background: transparent; outline: none;
-            font-size: 13px; color: #334155; padding: 0 10px 0 0; min-width: 0;
+            font-size: 13px; color: #E5DBE6; padding: 0 10px 0 0; min-width: 0;
         }
         .cp-input-group input::placeholder { color: #94a3b8; }
 
@@ -132,17 +132,17 @@
             transition: background .2s, transform .1s;
         }
         .cp-btn:active { transform: scale(.97); }
-        .cp-btn-primary { background: #5b86e5; color: white; }
+        .cp-btn-primary { background: #7692FF; color: white; }
         .cp-btn-primary:hover { background: #4a72d4; }
-        .cp-btn-ghost { background: #f1f5f9; color: #64748b; }
-        .cp-btn-ghost:hover { background: #e2e8f0; color: #334155; }
+        .cp-btn-ghost { background: rgba(229, 219, 230, 0.12); color: #E5DBE6; }
+        .cp-btn-ghost:hover { background: rgba(229, 219, 230, 0.22); color: #E5DBE6; }
         /* Убираем Bootstrap focus-ring */
         .cp-btn:focus, .cp-select:focus-visible { outline: none; }
 
         /* ── Таблица ── */
         .table-section {
             background: white; border-radius: 10px; padding: 20px;
-            border: 1px solid #e2e8f0; overflow-x: auto;
+            border: 1px solid rgba(229, 219, 230, 0.22); overflow-x: auto;
         }
         .table-header {
             display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
@@ -151,11 +151,11 @@
 
         .journal-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .journal-table th {
-            background: #f8fafc; color: #64748b; font-weight: 600;
-            padding: 10px 12px; text-align: left; border-bottom: 2px solid #e2e8f0;
+            background: rgba(229, 219, 230, 0.08); color: #E5DBE6; font-weight: 600;
+            padding: 10px 12px; text-align: left; border-bottom: 2px solid rgba(229, 219, 230, 0.22);
             white-space: nowrap;
         }
-        .journal-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+        .journal-table td { padding: 10px 12px; border-bottom: 1px solid rgba(229, 219, 230, 0.12); vertical-align: middle; }
         .journal-table tr:hover td { background: #fafbfc; }
         .truncate { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -172,15 +172,15 @@
             display: inline-flex; align-items: center; gap: 4px;
             padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
         }
-        .status-registered { background: #dbeafe; color: #1d4ed8; }
+        .status-registered { background: rgba(118, 146, 255, 0.18); color: #1d4ed8; }
         .status-executed   { background: #dcfce7; color: #15803d; }
         .status-archived   { background: #fef3c7; color: #92400e; }
-        .status-draft      { background: #f1f5f9; color: #64748b; }
+        .status-draft      { background: rgba(229, 219, 230, 0.12); color: #E5DBE6; }
 
         /* ── Дедлайн ── */
         .deadline-overdue { color: #dc2626; font-weight: 600; }
         .deadline-soon    { color: #d97706; font-weight: 600; }
-        .deadline-ok      { color: #334155; }
+        .deadline-ok      { color: #E5DBE6; }
 
         /* ── Пустое / загрузка / ошибка ── */
         .state-container { text-align: center; padding: 60px 20px; }
@@ -232,6 +232,7 @@
         }
         @media (max-width: 480px) { .user-details { display: none; } }
     </style>
+    <link rel="stylesheet" href="/app-theme.css">
 </head>
 <body>
 
@@ -412,7 +413,7 @@ async function loadUserInfo() {
             if (name) {
                 av.textContent = name.charAt(0).toUpperCase();
                 const colors = [
-                    'linear-gradient(135deg,#36d1dc,#5b86e5)',
+                    'linear-gradient(135deg,#7692FF,#7692FF)',
                     'linear-gradient(135deg,#10b981,#34d399)',
                     'linear-gradient(135deg,#8b5cf6,#a78bfa)',
                     'linear-gradient(135deg,#f59e0b,#fbbf24)'

@@ -1,4 +1,4 @@
-// Основной скрипт для управления интерфейсом
+﻿// Основной скрипт для управления интерфейсом
 document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ Страница загружена');
     
@@ -407,7 +407,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         // Добавляем цветной градиент для аватара
                         const colors = [
-                            'linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%)',
+                            'linear-gradient(135deg, #7692FF 0%, #5b86e5 100%)',
                             'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
                             'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
                             'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
@@ -442,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (userRole) userRole.textContent = 'Пользователь';
             if (userAvatar) {
                 userAvatar.textContent = 'П';
-                userAvatar.style.background = 'linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%)';
+                userAvatar.style.background = 'linear-gradient(135deg, #7692FF 0%, #5b86e5 100%)';
             }
             
             this.currentUser = {
@@ -1573,7 +1573,7 @@ document.addEventListener('DOMContentLoaded', function() {
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             overflow: hidden;
-            border: 1px solid #e2e8f0;
+            border: 1px solid rgba(229, 219, 230, 0.22);
             margin-top: 20px;
         }
         
@@ -1584,7 +1584,7 @@ document.addEventListener('DOMContentLoaded', function() {
             gap: 16px;
             padding: 20px 25px;
             color: white;
-            background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+            background: linear-gradient(135deg, #7692FF 0%, #5b86e5 100%);
         }
 
         .catalogs-open-hint {
@@ -1637,7 +1637,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         .catalogs-info {
-            background: #f8fafc;
+            background: rgba(229, 219, 230, 0.08);
             padding: 15px 25px;
             border-bottom: 1px solid #e5e7eb;
             font-size: 14px;
@@ -1672,12 +1672,12 @@ document.addEventListener('DOMContentLoaded', function() {
         .catalogs-search-input {
             flex: 1;
             min-width: 0;
-            border: 1px solid #e2e8f0;
+            border: 1px solid rgba(229, 219, 230, 0.22);
             border-radius: 8px;
             padding: 10px 14px;
             font-size: 14px;
             color: #1e293b;
-            background: #f8fafc;
+            background: rgba(229, 219, 230, 0.08);
             transition: border-color 0.2s, box-shadow 0.2s;
         }
         
@@ -1719,7 +1719,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         .catalog-item {
             transition: all 0.3s ease;
-            border-bottom: 1px solid #f1f5f9;
+            border-bottom: 1px solid rgba(229, 219, 230, 0.12);
         }
         
         .catalog-item:last-child {
@@ -1734,7 +1734,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         .catalog-item-header:hover {
-            background: #f8fafc;
+            background: rgba(229, 219, 230, 0.08);
         }
         
         .catalog-item-header.has-children:hover {
@@ -1842,7 +1842,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         .badge-READ {
-            background: #dbeafe;
+            background: rgba(118, 146, 255, 0.18);
             color: #1d4ed8;
         }
         
@@ -1857,7 +1857,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         .badge-info {
-            background: #dbeafe;
+            background: rgba(118, 146, 255, 0.18);
             color: #1d4ed8;
             font-size: 11px;
             padding: 3px 8px;
@@ -1882,7 +1882,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         .catalog-children {
             animation: slideDown 0.3s ease;
-            background: #f8fafc;
+            background: rgba(229, 219, 230, 0.08);
             border-top: 1px solid #e5e7eb;
             border-bottom: 1px solid #e5e7eb;
             margin: 0 25px;
@@ -1994,7 +1994,7 @@ document.addEventListener('DOMContentLoaded', function() {
             align-items: center;
             padding: 20px 25px;
             border-bottom: 1px solid #e5e7eb;
-            background: #f8fafc;
+            background: rgba(229, 219, 230, 0.08);
             border-radius: 12px 12px 0 0;
         }
         
@@ -2037,7 +2037,7 @@ document.addEventListener('DOMContentLoaded', function() {
             display: flex;
             justify-content: flex-end;
             gap: 10px;
-            background: #f8fafc;
+            background: rgba(229, 219, 230, 0.08);
             border-radius: 0 0 12px 12px;
         }
         
@@ -2068,7 +2068,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         .form-control:focus {
             outline: none;
-            border-color: #36d1dc;
+            border-color: #7692FF;
             box-shadow: 0 0 0 3px rgba(54, 209, 220, 0.1);
         }
         
@@ -2081,7 +2081,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         .password-requirements {
-            background: #f8fafc;
+            background: rgba(229, 219, 230, 0.08);
             padding: 15px;
             border-radius: 6px;
             margin-top: 20px;
@@ -2108,7 +2108,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+            background: linear-gradient(135deg, #7692FF 0%, #5b86e5 100%);
             color: white;
             border: none;
             padding: 10px 20px;

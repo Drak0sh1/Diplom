@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -16,13 +16,13 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: #f8fafc;
+            background: rgba(229, 219, 230, 0.08);
             min-height: 100vh;
         }
 
         /* Header */
         .header {
-            background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+            background: linear-gradient(135deg, #7692FF 0%, #7692FF 100%);
             padding: 0 30px;
             height: 68px;
             display: flex;
@@ -128,16 +128,16 @@
             box-shadow: 0 8px 30px rgba(0,0,0,.18);
             z-index: 2000;
             overflow: hidden;
-            border: 1px solid #f1f5f9;
+            border: 1px solid rgba(229, 219, 230, 0.12);
         }
         .user-profile.open .user-dropdown { display: block; }
 
         .dd-user-header {
             padding: 14px 16px 11px;
-            border-bottom: 1px solid #f1f5f9;
+            border-bottom: 1px solid rgba(229, 219, 230, 0.12);
         }
         .dd-user-header .duh-name { font-weight: 700; font-size: 14px; color: #1f2937; }
-        .dd-user-header .duh-role { font-size: 12px; color: #64748b; margin-top: 2px; }
+        .dd-user-header .duh-role { font-size: 12px; color: #E5DBE6; margin-top: 2px; }
 
         .dd-item {
             display: flex;
@@ -150,11 +150,11 @@
             font-weight: 500;
             transition: background .15s;
         }
-        .dd-item:hover { background: #f8fafc; }
-        .dd-item i { width: 16px; color: #5b86e5; font-size: 13px; }
+        .dd-item:hover { background: rgba(229, 219, 230, 0.08); }
+        .dd-item i { width: 16px; color: #7692FF; font-size: 13px; }
         .dd-item.danger { color: #ef4444; }
         .dd-item.danger i { color: #ef4444; }
-        .dd-divider { height: 1px; background: #f1f5f9;
+        .dd-divider { height: 1px; background: rgba(229, 219, 230, 0.12);
         }
 
         /* Content Area */
@@ -166,7 +166,7 @@
 
         /* Welcome Message */
         .page-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(180deg, #201a4f 0%, #41236f 48%, #180f3d 100%);
             border-radius: 24px;
             padding: 40px 48px;
             margin-bottom: 32px;
@@ -249,7 +249,7 @@
         .journals-section h3 {
             font-size: 16px;
             font-weight: 600;
-            color: #334155;
+            color: #E5DBE6;
             margin-bottom: 14px;
             display: flex;
             align-items: center;
@@ -257,7 +257,7 @@
         }
 
         .journals-section h3 i {
-            color: #5b86e5;
+            color: #7692FF;
         }
 
         .journals-grid {
@@ -271,8 +271,8 @@
             border-radius: 14px;
             padding: 20px;
             text-decoration: none;
-            color: #334155;
-            border: 1px solid #e2e8f0;
+            color: #E5DBE6;
+            border: 1px solid rgba(229, 219, 230, 0.22);
             display: flex;
             align-items: center;
             gap: 14px;
@@ -281,10 +281,10 @@
         }
 
         .journal-card:hover {
-            border-color: #5b86e5;
+            border-color: #7692FF;
             box-shadow: 0 4px 12px rgba(91,134,229,0.15);
             transform: translateY(-2px);
-            color: #334155;
+            color: #E5DBE6;
             text-decoration: none;
         }
 
@@ -299,7 +299,7 @@
             flex-shrink: 0;
         }
 
-        .journal-card-icon.incoming  { background: #dbeafe; color: #2563eb; }
+        .journal-card-icon.incoming  { background: rgba(118, 146, 255, 0.18); color: #7692FF; }
         .journal-card-icon.outgoing  { background: #dcfce7; color: #16a34a; }
         .journal-card-icon.internal  { background: #fef3c7; color: #d97706; }
 
@@ -312,7 +312,7 @@
 
         .journal-card-text span {
             font-size: 12px;
-            color: #64748b;
+            color: #E5DBE6;
         }
 
         @media (max-width: 768px) {
@@ -357,6 +357,7 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="/app-theme.css">
 </head>
 <body>
     <header class="header">

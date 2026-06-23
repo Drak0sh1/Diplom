@@ -9,10 +9,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="editor.css">
     <link rel="stylesheet" href="../user/user-nav.css">
+    <link rel="stylesheet" href="../app-theme.css">
 </head>
 <body>
     <div class="admin-container">
-        <header class="header">
+        <header class="header header--editor-topbar">
             <div class="header-left">
                 <div class="logo">
                     <div class="logo-text">
@@ -81,7 +82,7 @@
                 <div class="search-filters">
                     <div class="search-box">
                         <i class="fas fa-search"></i>
-                        <input type="text" id="searchIncomingDocs" placeholder="Поиск по корреспонденту, индексу или содержанию...">
+                        <input type="text" id="searchIncomingDocs" placeholder="Поиск по индексу, корреспонденту, содержанию, резолюции или статусу...">
                     </div>
                     <div class="filter-group">
                         <input type="date" id="filterIncomingDateFrom" class="form-control">
@@ -105,16 +106,16 @@
                     </div>
                 </div>
 
-                <div class="table-container table-container--incoming-journal">
-                    <table class="incoming-journal-table">
+                <div class="users-table users-table--incoming-journal">
+                    <table>
                         <thead>
                             <tr>
-                                <th>Дата поступления и индекс документа</th>
-                                <th>Корреспондент, дата и индекс поступившего документа</th>
-                                <th>Краткое содержание</th>
-                                <th>Резолюция или кому направлен документ</th>
-                                <th>Срок исполнения</th>
-                                <th>Отметка об исполнении документа</th>
+                                <th>Дата поступления<br>и индекс документа</th>
+                                <th>Корреспондент,<br>дата и индекс документа</th>
+                                <th>Краткое<br>содержание</th>
+                                <th>Резолюция<br>или кому направлен документ</th>
+                                <th>Срок<br>исполнения</th>
+                                <th>Отметка<br>об исполнении документа</th>
                             </tr>
                         </thead>
                         <tbody id="incomingJournalTable">
@@ -136,7 +137,7 @@
                     <button type="button" class="close-btn" id="closeIncomingExportModal" aria-label="Закрыть">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p class="journal-export-hint">Условия отбора будут перечислены в документе под заголовком столбиком (отдельными строками). Отметьте категории по статусу и при необходимости скорректируйте поиск и даты.</p>
+                    <p class="journal-export-hint">Отметьте категории по статусу и при необходимости скорректируйте поиск и даты.</p>
                     <div class="form-group">
                         <label for="exportIncomingSearch">Поиск по корреспонденту, индексу или содержанию</label>
                         <input type="text" id="exportIncomingSearch" class="form-control" placeholder="Как на странице журнала…">
@@ -328,24 +329,65 @@
                 this.applyFilters();
             }
 
+            normalizeText(value) {
+                return String(value ?? '')
+                    .toLowerCase()
+                    .replace(/ё/g, 'е')
+                    .trim();
+            }
+
+            getDateKey(value) {
+                if (!value) return '';
+
+                const raw = String(value).trim();
+                const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+
+                const ruMatch = raw.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+                if (ruMatch) return `${ruMatch[3]}-${ruMatch[2]}-${ruMatch[1]}`;
+
+                const date = new Date(raw);
+                if (Number.isNaN(date.getTime())) return '';
+
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+
+            getDocumentSearchText(doc) {
+                const status = doc.status || '';
+                return this.normalizeText([
+                    doc.id,
+                    doc.documentName,
+                    doc.name,
+                    doc.documentIndex,
+                    doc.correspondent,
+                    doc.senderDate ? this.formatDate(doc.senderDate) : '',
+                    doc.senderDocumentIndex,
+                    doc.summary,
+                    doc.description,
+                    doc.resolution,
+                    doc.executionMark,
+                    doc.dueDate ? this.formatDate(doc.dueDate) : '',
+                    doc.receivedDate ? this.formatDate(doc.receivedDate) : '',
+                    status,
+                    this.getStatusText(status)
+                ].filter(Boolean).join(' '));
+            }
+
             applyFilters() {
-                const search = document.getElementById('searchIncomingDocs').value.trim().toLowerCase();
-                const dateFrom = document.getElementById('filterIncomingDateFrom').value;
-                const dateTo = document.getElementById('filterIncomingDateTo').value;
-                const status = document.getElementById('filterIncomingStatus').value;
+                const search = this.normalizeText(document.getElementById('searchIncomingDocs')?.value);
+                const searchTerms = search.split(/\s+/).filter(Boolean);
+                const dateFrom = document.getElementById('filterIncomingDateFrom')?.value || '';
+                const dateTo = document.getElementById('filterIncomingDateTo')?.value || '';
+                const status = document.getElementById('filterIncomingStatus')?.value || '';
 
                 this.filteredDocuments = this.documents.filter((doc) => {
-                    const docText = [
-                        doc.documentIndex,
-                        doc.correspondent,
-                        doc.summary,
-                        doc.resolution,
-                        this.getStatusText(doc.status)
-                    ].join(' ').toLowerCase();
-
-                    const matchesSearch = !search || docText.includes(search);
-                    const matchesStatus = !status || doc.status === status;
-                    const receivedDate = doc.receivedDate ? String(doc.receivedDate).slice(0, 10) : '';
+                    const docText = this.getDocumentSearchText(doc);
+                    const matchesSearch = !searchTerms.length || searchTerms.every((term) => docText.includes(term));
+                    const matchesStatus = !status || String(doc.status || '') === status;
+                    const receivedDate = this.getDateKey(doc.receivedDate);
                     const matchesDateFrom = !dateFrom || (receivedDate && receivedDate >= dateFrom);
                     const matchesDateTo = !dateTo || (receivedDate && receivedDate <= dateTo);
 
@@ -366,27 +408,31 @@
                     return;
                 }
 
-                tbody.innerHTML = this.filteredDocuments.map((doc) => `
-                    <tr class="${this.getJournalRowClass(doc)}">
+                tbody.innerHTML = this.filteredDocuments.map((doc, index) => {
+                    const rowClass = index % 2 === 0 ? 'even' : 'odd';
+                    const status = doc.status || 'unknown';
+                    return `
+                    <tr class="${rowClass} ${this.getJournalRowClass(doc)}">
                         <td>
                             <div class="journal-cell-block">
-                                <div>${this.formatDate(doc.receivedDate)}</div>
-                                <div class="journal-secondary-text">${doc.documentIndex || '—'}</div>
+                                <div class="journal-primary-text">${this.formatDate(doc.receivedDate)}</div>
+                                <div class="journal-index-badge">${doc.documentIndex || '—'}</div>
                             </div>
                         </td>
                         <td>
                             <div class="journal-cell-block">
-                                <div>${doc.correspondent || '—'}</div>
+                                <div class="journal-primary-text">${doc.correspondent || '—'}</div>
                                 <div class="journal-secondary-text">${doc.senderDate ? `Дата: ${this.formatDate(doc.senderDate)}` : ''}</div>
                                 <div class="journal-secondary-text">${doc.senderDocumentIndex ? `Индекс: ${doc.senderDocumentIndex}` : ''}</div>
                             </div>
                         </td>
-                        <td>${doc.summary || '—'}</td>
+                        <td><div class="journal-main-text">${doc.summary || '—'}</div></td>
                         <td><div class="journal-resolution-text">${this.formatMultilineText(doc.resolution) || '—'}</div></td>
-                        <td>${this.formatDate(doc.dueDate) || '—'}</td>
-                        <td>${this.getStatusText(doc.status)}</td>
+                        <td><span class="journal-date-pill">${this.formatDate(doc.dueDate) || '—'}</span></td>
+                        <td><span class="journal-status-badge status-${status}">${this.getStatusText(doc.status)}</span></td>
                     </tr>
-                `).join('');
+                    `;
+                }).join('');
             }
 
             setupExport() {

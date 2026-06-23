@@ -1,0 +1,942 @@
+/* Единый стиль приложения — как на странице авторизации (index.css) */
+:root {
+    --app-font: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    --app-gray: #E5DBE6;
+    --app-gray-rgb: 229, 219, 230;
+    --app-gray-soft: rgba(229, 219, 230, 0.55);
+    --app-gray-muted: rgba(229, 219, 230, 0.82);
+    --app-gray-bg: rgba(229, 219, 230, 0.1);
+    --app-gray-bg-strong: rgba(229, 219, 230, 0.16);
+    --app-gray-border: rgba(229, 219, 230, 0.35);
+    --app-gray-border-soft: rgba(229, 219, 230, 0.22);
+    --app-caption: rgba(255, 255, 255, 0.94);
+    --app-caption-soft: rgba(255, 255, 255, 0.82);
+    --app-bg: linear-gradient(180deg, #201a4f 0%, #41236f 48%, #180f3d 100%);
+    --app-surface: linear-gradient(180deg, rgba(61, 67, 124, 0.72) 0%, rgba(39, 35, 79, 0.76) 100%);
+    --app-surface-strong: linear-gradient(180deg, rgba(61, 67, 124, 0.88) 0%, rgba(39, 35, 79, 0.92) 100%);
+    --app-border: var(--app-gray-border);
+    --app-border-soft: var(--app-gray-border-soft);
+    --app-text: #ffffff;
+    --app-text-muted: var(--app-caption-soft);
+    --app-text-label: var(--app-caption);
+    --app-accent: #7692FF;
+    --app-accent-glow: rgba(118, 146, 255, 0.22);
+    --app-highlight: #7692FF;
+    --app-btn-primary: linear-gradient(180deg, #ffffff 0%, #f1edff 100%);
+    --app-btn-primary-text: #24184d;
+    --app-shadow: 0 24px 80px rgba(5, 5, 20, 0.42);
+    --app-shadow-sm: 0 14px 30px rgba(10, 12, 34, 0.32);
+    --app-radius-xl: 28px;
+    --app-radius-lg: 18px;
+    --app-radius-md: 14px;
+    --app-radius-pill: 999px;
+    --app-input-bg: rgba(229, 219, 230, 0.08);
+    --app-glass-nav: rgba(229, 219, 230, 0.12);
+}
+
+body:not(.login-page) {
+    font-family: var(--app-font) !important;
+    color: var(--app-text) !important;
+    background:
+        radial-gradient(circle at top left, rgba(167, 139, 250, 0.4), transparent 28%),
+        radial-gradient(circle at top right, rgba(96, 165, 250, 0.35), transparent 26%),
+        radial-gradient(circle at bottom center, rgba(124, 58, 237, 0.28), transparent 34%),
+        var(--app-bg) !important;
+    background-attachment: fixed !important;
+    min-height: 100vh;
+    position: relative;
+}
+
+body:not(.login-page)::before,
+body:not(.login-page)::after {
+    content: "";
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(16px);
+    opacity: 0.45;
+    pointer-events: none;
+    z-index: 0;
+}
+
+body:not(.login-page)::before {
+    width: 420px;
+    height: 420px;
+    left: -120px;
+    bottom: -120px;
+    background: radial-gradient(circle, rgba(182, 121, 255, 0.45), rgba(182, 121, 255, 0));
+}
+
+body:not(.login-page)::after {
+    width: 360px;
+    height: 360px;
+    right: -90px;
+    top: -70px;
+    background: radial-gradient(circle, rgba(116, 191, 255, 0.4), rgba(116, 191, 255, 0));
+}
+
+body:not(.login-page) .admin-container,
+body:not(.login-page) .content-area,
+body:not(.login-page) .main-content,
+body:not(.login-page) > .header {
+    position: relative;
+    z-index: 1;
+}
+
+/* ── Шапка ── */
+body:not(.login-page) .header,
+body:not(.login-page) .admin-container > .header {
+    background: var(--app-surface-strong) !important;
+    border-bottom: 1px solid var(--app-border) !important;
+    box-shadow: var(--app-shadow-sm) !important;
+    backdrop-filter: blur(22px) !important;
+    -webkit-backdrop-filter: blur(22px) !important;
+    color: var(--app-text) !important;
+    overflow: visible !important;
+}
+
+/* Карточная шапка (админка, журнал) — не трогаем fixed-шапку редактора */
+body:not(.login-page) .admin-container > .header:not(.header--editor-topbar) {
+    position: relative;
+    z-index: 500;
+}
+
+/* Меню профиля / «Выйти» — поверх карточек и таблиц */
+body:not(.login-page) .user-profile {
+    position: relative;
+    z-index: 501;
+}
+
+body:not(.login-page) .user-profile.open {
+    z-index: 5000;
+}
+
+body:not(.login-page) .user-dropdown {
+    z-index: 5000 !important;
+}
+
+body:not(.login-page) .header-text h1,
+body:not(.login-page) .header h1,
+body:not(.login-page) .logo-text h1,
+body:not(.login-page) .admin-container > .header .logo-text h1,
+body:not(.login-page) .admin-container > .header .logo-text h1 > i,
+body:not(.login-page) .header h1 i {
+    color: var(--app-text) !important;
+}
+
+body:not(.login-page) .header-subtitle,
+body:not(.login-page) .logo-text p,
+body:not(.login-page) .admin-container > .header .logo-text p {
+    color: var(--app-text-muted) !important;
+}
+
+body:not(.login-page) .header-nav-link,
+body:not(.login-page) .admin-container > .header .header-nav-link {
+    color: var(--app-text) !important;
+    background: var(--app-glass-nav) !important;
+    border: 1px solid var(--app-gray-border-soft) !important;
+    border-radius: 10px !important;
+}
+
+body:not(.login-page) .header-nav-link i,
+body:not(.login-page) .admin-container > .header .header-nav-link i {
+    color: var(--app-text) !important;
+}
+
+body:not(.login-page) .header-nav-link:hover,
+body:not(.login-page) .admin-container > .header .header-nav-link:hover,
+body:not(.login-page) .header-nav-link.active {
+    background: var(--app-gray-bg-strong) !important;
+    border-color: var(--app-gray-border) !important;
+    color: #fff !important;
+}
+
+body:not(.login-page) .user-profile,
+body:not(.login-page) .admin-container > .header .user-profile {
+    background: var(--app-glass-nav) !important;
+    border: 1px solid var(--app-gray-border-soft) !important;
+}
+
+body:not(.login-page) .user-profile:hover,
+body:not(.login-page) .admin-container > .header .user-profile:hover {
+    background: var(--app-gray-bg-strong) !important;
+}
+
+body:not(.login-page) .user-name,
+body:not(.login-page) .admin-container > .header .user-name {
+    color: var(--app-text) !important;
+}
+
+body:not(.login-page) .user-role,
+body:not(.login-page) .user-chevron,
+body:not(.login-page) .admin-container > .header .user-role,
+body:not(.login-page) .admin-container > .header .user-chevron {
+    color: var(--app-text-muted) !important;
+    background: transparent !important;
+}
+
+body:not(.login-page) .user-avatar,
+body:not(.login-page) .admin-container > .header .user-avatar,
+body:not(.login-page) .logo-icon {
+    background: linear-gradient(135deg, rgba(229, 219, 230, 0.22), rgba(229, 219, 230, 0.08)) !important;
+    border: 1px solid var(--app-gray-border-soft) !important;
+    color: var(--app-text) !important;
+    box-shadow: none !important;
+}
+
+body:not(.login-page) .mobile-menu-btn {
+    background: var(--app-glass-nav) !important;
+    color: var(--app-text) !important;
+    border: 1px solid var(--app-gray-border-soft) !important;
+}
+
+/* ── Карточки и панели ── */
+body:not(.login-page) .card,
+body:not(.login-page) .stat-card,
+body:not(.login-page) .modal-content,
+body:not(.login-page) .controls,
+body:not(.login-page) .logs-container,
+body:not(.login-page) .filters-card,
+body:not(.login-page) .admin-container .card,
+body:not(.login-page) .admin-container .main-content > .card,
+body:not(.login-page) .admin-container .stats-summary-card,
+body:not(.login-page) .admin-container .stats-visual-card,
+body:not(.login-page) .admin-container .search-filters,
+body:not(.login-page) .admin-container .table-container,
+body:not(.login-page) .admin-container .tree-view-container,
+body:not(.login-page) .info-card,
+body:not(.login-page) .assignment-side-card {
+    background: var(--app-surface) !important;
+    border: 1px solid var(--app-border) !important;
+    border-radius: var(--app-radius-xl) !important;
+    box-shadow: var(--app-shadow) !important;
+    backdrop-filter: blur(22px) !important;
+    -webkit-backdrop-filter: blur(22px) !important;
+    color: var(--app-text) !important;
+}
+
+body:not(.login-page) .page-header,
+body:not(.login-page) .admin-container .page-header,
+body:not(.login-page) .admin-container .page-header.editor-intro-banner {
+    background: var(--app-surface-strong) !important;
+    border: 1px solid var(--app-border) !important;
+    border-radius: var(--app-radius-lg) !important;
+    box-shadow: var(--app-shadow-sm) !important;
+    backdrop-filter: blur(22px) !important;
+    color: var(--app-text) !important;
+}
+
+body:not(.login-page) .card-header,
+body:not(.login-page) .admin-container .card .card-header {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid var(--app-border-soft) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    color: var(--app-text) !important;
+}
+
+body:not(.login-page) .page-header h1,
+body:not(.login-page) .page-header h2,
+body:not(.login-page) .admin-container .page-header h1,
+body:not(.login-page) .admin-container .page-header h2,
+body:not(.login-page) .card-header h2,
+body:not(.login-page) .card h2,
+body:not(.login-page) .admin-container .card .card-header h2 {
+    color: var(--app-text) !important;
+}
+
+body:not(.login-page) .page-subtitle,
+body:not(.login-page) .admin-container .page-subtitle,
+body:not(.login-page) .admin-container .card-header p,
+body:not(.login-page) .project-subtitle {
+    color: var(--app-text-muted) !important;
+}
+
+body:not(.login-page) .admin-container {
+    color: var(--app-text) !important;
+}
+
+body:not(.login-page) .admin-container .page-header h1,
+body:not(.login-page) .admin-container .card-header h2,
+body:not(.login-page) .admin-container .tree-node-name,
+body:not(.login-page) .admin-container .stats-ranking-name,
+body:not(.login-page) .admin-container .stat-value,
+body:not(.login-page) .admin-container .info-value,
+body:not(.login-page) .admin-container .stats-ranking-value,
+body:not(.login-page) .admin-container .stats-ranking-percent {
+    color: var(--app-highlight) !important;
+}
+
+body:not(.login-page) .page-header h1 i,
+body:not(.login-page) .page-header h2 i,
+body:not(.login-page) .page-header h3 i,
+body:not(.login-page) .admin-container .page-header h1 i,
+body:not(.login-page) .admin-container .page-header h2 i,
+body:not(.login-page) .card-header h2 i,
+body:not(.login-page) .card-header h3 i,
+body:not(.login-page) .card h2 i,
+body:not(.login-page) .card h3 i,
+body:not(.login-page) .admin-container .card .card-header h2 i,
+body:not(.login-page) .admin-container .card .card-header h3 i,
+body:not(.login-page) .logs-header h2 i,
+body:not(.login-page) .section-header h3 i,
+body:not(.login-page) .catalogs-header h3 i,
+body:not(.login-page) .modal-header h3 i,
+body:not(.login-page) .filters-card h3 i,
+body:not(.login-page) .journals-section h3 i {
+    color: var(--app-highlight) !important;
+}
+
+body:not(.login-page) .admin-container .page-subtitle,
+body:not(.login-page) .admin-container .stats-card-note,
+body:not(.login-page) .admin-container .journal-secondary-text,
+body:not(.login-page) .admin-container .table-placeholder,
+body:not(.login-page) .admin-container .info-label,
+body:not(.login-page) .admin-container .stats-ranking-subtitle {
+    color: var(--app-text-muted) !important;
+}
+
+/* ── Кнопки ── */
+body:not(.login-page) .btn-primary,
+body:not(.login-page) .admin-container .btn-primary,
+body:not(.login-page) .modal-overlay .btn-primary,
+body:not(.login-page) .control-btn.refresh-btn,
+body:not(.login-page) .refresh-btn {
+    background: var(--app-btn-primary) !important;
+    color: var(--app-btn-primary-text) !important;
+    border: none !important;
+    border-radius: var(--app-radius-pill) !important;
+    font-weight: 700 !important;
+    box-shadow: 0 14px 30px rgba(12, 12, 40, 0.24) !important;
+}
+
+body:not(.login-page) .btn-primary:hover,
+body:not(.login-page) .admin-container .btn-primary:hover,
+body:not(.login-page) .refresh-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 32px rgba(12, 12, 40, 0.32) !important;
+    color: var(--app-btn-primary-text) !important;
+}
+
+body:not(.login-page) .btn-secondary,
+body:not(.login-page) .admin-container .btn-secondary,
+body:not(.login-page) .admin-container .pagination-btn,
+body:not(.login-page) .control-btn.filter-btn,
+body:not(.login-page) .filter-btn,
+body:not(.login-page) .export-btn,
+body:not(.login-page) .control-btn {
+    background: rgba(229, 219, 230, 0.08) !important;
+    color: var(--app-text) !important;
+    border: 1px solid var(--app-gray-border-soft) !important;
+    border-radius: var(--app-radius-pill) !important;
+    box-shadow: none !important;
+}
+
+body:not(.login-page) .btn-secondary:hover,
+body:not(.login-page) .admin-container .btn-secondary:hover,
+body:not(.login-page) .filter-btn:hover {
+    background: rgba(229, 219, 230, 0.16) !important;
+    color: #fff !important;
+}
+
+body:not(.login-page) .admin-container .status-filter-btn.active,
+body:not(.login-page) .admin-container .view-toggle-btn.active,
+body:not(.login-page) .admin-container .card .card-header .view-toggle-btn.active {
+    background: var(--app-btn-primary) !important;
+    color: var(--app-btn-primary-text) !important;
+    border-color: transparent !important;
+}
+
+body:not(.login-page) .admin-container .card .card-header .view-toggle {
+    background: rgba(229, 219, 230, 0.1) !important;
+}
+
+body:not(.login-page) .admin-container .card .card-header .view-toggle-btn {
+    color: var(--app-text-muted) !important;
+}
+
+body:not(.login-page) .admin-container .card .card-header .btn-sm.btn-primary {
+    background: var(--app-btn-primary) !important;
+    color: var(--app-btn-primary-text) !important;
+}
+
+body:not(.login-page) .admin-container .card .card-header .btn-sm.btn-secondary {
+    background: rgba(229, 219, 230, 0.1) !important;
+    color: var(--app-text) !important;
+    border-color: rgba(229, 219, 230, 0.2) !important;
+}
+
+/* ── Поля ввода ── */
+body:not(.login-page) .form-control,
+body:not(.login-page) .admin-container .form-control,
+body:not(.login-page) .admin-container input[type="text"],
+body:not(.login-page) .admin-container input[type="date"],
+body:not(.login-page) .admin-container input[type="password"],
+body:not(.login-page) .admin-container textarea,
+body:not(.login-page) .admin-container select,
+body:not(.login-page) .admin-container .search-box input {
+    background: var(--app-input-bg) !important;
+    border: 1px solid rgba(229, 219, 230, 0.14) !important;
+    border-radius: var(--app-radius-lg) !important;
+    color: var(--app-text) !important;
+    box-shadow: inset 0 1px 0 rgba(229, 219, 230, 0.04) !important;
+}
+
+body:not(.login-page) .form-control::placeholder,
+body:not(.login-page) .admin-container .form-control::placeholder {
+    color: var(--app-gray-soft) !important;
+}
+
+body:not(.login-page) .form-control:focus,
+body:not(.login-page) .admin-container .form-control:focus,
+body:not(.login-page) .admin-container input:focus,
+body:not(.login-page) .admin-container select:focus,
+body:not(.login-page) .admin-container textarea:focus {
+    outline: none !important;
+    border-color: var(--app-highlight) !important;
+    background: rgba(229, 219, 230, 0.08) !important;
+    box-shadow: 0 0 0 4px var(--app-accent-glow) !important;
+}
+
+body:not(.login-page) select,
+body:not(.login-page) .form-control select,
+body:not(.login-page) .admin-container select,
+body:not(.login-page) select.form-control,
+body:not(.login-page) .cp-select,
+body:not(.login-page) .filter-row select {
+    color: var(--app-text) !important;
+    background-color: rgba(39, 35, 79, 0.96) !important;
+    color-scheme: dark;
+}
+
+body:not(.login-page) select option,
+body:not(.login-page) select optgroup,
+body:not(.login-page) .admin-container select option,
+body:not(.login-page) .admin-container select optgroup,
+body:not(.login-page) .form-control option,
+body:not(.login-page) .cp-select option,
+body:not(.login-page) .filter-row select option {
+    background-color: #27234f !important;
+    color: #ffffff !important;
+}
+
+body:not(.login-page) select option:checked,
+body:not(.login-page) .admin-container select option:checked,
+body:not(.login-page) .form-control option:checked {
+    background-color: #7692FF !important;
+    color: #ffffff !important;
+}
+
+body:not(.login-page) select option:disabled,
+body:not(.login-page) .admin-container select option:disabled,
+body:not(.login-page) .form-control option:disabled {
+    color: rgba(255, 255, 255, 0.55) !important;
+}
+
+body:not(.login-page) label,
+body:not(.login-page) .form-group label,
+body:not(.login-page) .filter-group label {
+    color: var(--app-text-label) !important;
+}
+
+/* ── Таблицы ── */
+body:not(.login-page) .admin-container table thead th,
+body:not(.login-page) .users-table th,
+body:not(.login-page) .logs-table-wrap th,
+body:not(.login-page) .admin-container .users-table th {
+    background: rgba(24, 15, 61, 0.72) !important;
+    color: #ffffff !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    text-align: left !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    white-space: nowrap !important;
+    padding: 15px 20px !important;
+    border-bottom: 2px solid var(--app-border-soft) !important;
+    border-right: 1px solid var(--app-border-soft) !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35) !important;
+}
+
+body:not(.login-page) .admin-container table thead th:last-child,
+body:not(.login-page) .users-table th:last-child,
+body:not(.login-page) .logs-table-wrap th:last-child,
+body:not(.login-page) .admin-container .users-table th:last-child {
+    border-right: none !important;
+}
+
+body:not(.login-page) .admin-container .users-table--incoming-journal th {
+    white-space: normal !important;
+    line-height: 1.35 !important;
+    text-align: center !important;
+}
+
+body:not(.login-page) .admin-container table tbody td,
+body:not(.login-page) .users-table td,
+body:not(.login-page) .logs-table-wrap td,
+body:not(.login-page) .admin-container .users-table td {
+    background: rgba(229, 219, 230, 0.03) !important;
+    color: var(--app-gray) !important;
+    border-bottom: 1px solid var(--app-border-soft) !important;
+    border-right: 1px solid var(--app-border-soft) !important;
+}
+
+body:not(.login-page) .admin-container table tbody tr:nth-child(even) td,
+body:not(.login-page) .users-table tr.even,
+body:not(.login-page) .logs-table-wrap tr.even {
+    background: rgba(229, 219, 230, 0.06) !important;
+}
+
+body:not(.login-page) .admin-container table tbody tr:hover td,
+body:not(.login-page) .users-table tr:hover,
+body:not(.login-page) .logs-table-wrap tr:hover {
+    background: rgba(229, 219, 230, 0.1) !important;
+}
+
+body:not(.login-page) .admin-container .users-table,
+body:not(.login-page) .users-table,
+body:not(.login-page) .logs-table-wrap {
+    border: 1px solid var(--app-border) !important;
+    border-radius: var(--app-radius-lg) !important;
+    overflow: hidden;
+    background: transparent !important;
+}
+
+body:not(.login-page) .admin-container .users-table .dir-name-line,
+body:not(.login-page) .admin-container .users-table .dir-td-muted,
+body:not(.login-page) .admin-container .users-table td.empty-state p {
+    color: var(--app-text-muted) !important;
+}
+
+body:not(.login-page) .admin-container .users-table .dir-name-line {
+    color: var(--app-text) !important;
+}
+
+body:not(.login-page) .admin-container .directories-table--modern .dir-name-line i,
+body:not(.login-page) .admin-container .table-placeholder i {
+    color: var(--app-highlight) !important;
+}
+
+/* ── Модальные окна ── */
+body:not(.login-page) .modal-header,
+body:not(.login-page) .admin-container .modal-header {
+    background: rgba(229, 219, 230, 0.06) !important;
+    border-bottom: 1px solid var(--app-border) !important;
+}
+
+body:not(.login-page) .modal-header h3,
+body:not(.login-page) .admin-container .modal-header h3,
+body:not(.login-page) .admin-container .modal-header .close-btn {
+    color: var(--app-text) !important;
+}
+
+/* ── Dropdown, статистика ── */
+body:not(.login-page) .user-dropdown,
+body:not(.login-page) .dropdown-content {
+    background: rgba(39, 35, 79, 0.96) !important;
+    border: 1px solid var(--app-border) !important;
+    border-radius: var(--app-radius-md) !important;
+    box-shadow: var(--app-shadow) !important;
+    backdrop-filter: blur(22px) !important;
+}
+
+body:not(.login-page) .dd-item,
+body:not(.login-page) .dropdown-content a {
+    color: var(--app-text) !important;
+}
+
+body:not(.login-page) .dd-item:hover,
+body:not(.login-page) .dropdown-content a:hover {
+    background: rgba(229, 219, 230, 0.08) !important;
+}
+
+body:not(.login-page) .dd-user-header,
+body:not(.login-page) .dd-divider {
+    border-color: var(--app-border-soft) !important;
+}
+
+body:not(.login-page) .dd-user-header .duh-name {
+    color: var(--app-text) !important;
+}
+
+body:not(.login-page) .dd-user-header .duh-role {
+    color: var(--app-text-muted) !important;
+}
+
+body:not(.login-page) .dd-item i {
+    color: var(--app-highlight) !important;
+}
+
+body:not(.login-page) .stat-card.active {
+    background: rgba(118, 146, 255, 0.12) !important;
+    border-color: var(--app-highlight) !important;
+}
+
+body:not(.login-page) .stat-card:hover {
+    border-color: var(--app-highlight) !important;
+}
+
+body:not(.login-page) .admin-container .stats-ranking-header {
+    background: rgba(229, 219, 230, 0.08) !important;
+    color: var(--app-text) !important;
+    border-color: var(--app-border) !important;
+}
+
+body:not(.login-page) .admin-container .stats-ranking-bar {
+    background: linear-gradient(90deg, #7692FF, #5a78e8) !important;
+}
+
+body:not(.login-page) .admin-container .stats-ranking-bar-wrap {
+    background: rgba(229, 219, 230, 0.08) !important;
+    border-color: var(--app-border) !important;
+}
+
+body:not(.login-page) .stats-grid > .stat-card:nth-child(1) .stat-icon,
+body:not(.login-page) .stat-icon {
+    background: linear-gradient(135deg, rgba(229, 219, 230, 0.22), rgba(229, 219, 230, 0.08)) !important;
+    border: 1px solid var(--app-gray-border-soft) !important;
+}
+
+body:not(.login-page) .info-card {
+    background: rgba(229, 219, 230, 0.06) !important;
+}
+
+/* Bootstrap-страницы пользователя */
+body:not(.login-page) .table {
+    color: var(--app-text) !important;
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--app-gray);
+    --bs-table-striped-bg: rgba(229, 219, 230, 0.06);
+    --bs-table-hover-bg: rgba(229, 219, 230, 0.1);
+    --bs-table-border-color: rgba(229, 219, 230, 0.1);
+}
+
+body:not(.login-page) .table thead th {
+    background: rgba(229, 219, 230, 0.1) !important;
+    color: var(--app-text-label) !important;
+    border-color: var(--app-border-soft) !important;
+}
+
+body:not(.login-page) .table td,
+body:not(.login-page) .table th {
+    border-color: var(--app-border-soft) !important;
+}
+
+body:not(.login-page) .text-muted {
+    color: var(--app-text-muted) !important;
+}
+
+body:not(.login-page) .card-body,
+body:not(.login-page) .modal-body {
+    color: var(--app-text) !important;
+}
+
+/* Боковая панель редактора */
+body:not(.login-page) .sidebar {
+    background: var(--app-surface-strong) !important;
+    border-right: 1px solid var(--app-border) !important;
+    backdrop-filter: blur(22px) !important;
+}
+
+body:not(.login-page) .sidebar-brand h2,
+body:not(.login-page) .sidebar-nav a {
+    color: var(--app-text) !important;
+}
+
+body:not(.login-page) .sidebar-nav a:hover,
+body:not(.login-page) .sidebar-nav a.active {
+    background: rgba(229, 219, 230, 0.12) !important;
+    color: #fff !important;
+}
+
+body:not(.login-page) .sidebar-footer {
+    border-top: 1px solid var(--app-border) !important;
+    color: var(--app-text-muted) !important;
+}
+
+body:not(.login-page) .filtered-stat {
+    background: rgba(229, 219, 230, 0.08) !important;
+    border-color: var(--app-border) !important;
+    color: var(--app-text-muted) !important;
+}
+
+body:not(.login-page) .filtered-stat strong {
+    color: var(--app-text) !important;
+}
+
+/* Уведомления — как на странице входа */
+body:not(.login-page) .notification {
+    border-radius: 14px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.24);
+}
+
+/* ── Все серые элементы → #E5DBE6 ── */
+body:not(.login-page) .main-content,
+body:not(.login-page) .content-area {
+    background: transparent !important;
+    color: var(--app-text) !important;
+}
+
+body:not(.login-page) .filter-label,
+body:not(.login-page) .dd-user-header .duh-role,
+body:not(.login-page) .dd-user-header .duh-meta,
+body:not(.login-page) .project-subtitle,
+body:not(.login-page) .journals-section h3,
+body:not(.login-page) .sidebar-footer,
+body:not(.login-page) .assignment-side-hint,
+body:not(.login-page) .assignment-documents-note,
+body:not(.login-page) .assignment-documents-empty,
+body:not(.login-page) .assignment-docs-loading,
+body:not(.login-page) .journal-export-hint,
+body:not(.login-page) .empty-state p,
+body:not(.login-page) .loading-state,
+body:not(.login-page) .cp-btn-ghost,
+body:not(.login-page) .text-secondary,
+body:not(.login-page) small,
+body:not(.login-page) .form-text,
+body:not(.login-page) .breadcrumb-item,
+body:not(.login-page) .header-subtitle {
+    color: var(--app-gray) !important;
+}
+
+body:not(.login-page) .journal-table th,
+body:not(.login-page) .journal-table td,
+body:not(.login-page) .users-table th,
+body:not(.login-page) .users-table td,
+body:not(.login-page) .control-panel,
+body:not(.login-page) .filter-row input,
+body:not(.login-page) .filter-row select,
+body:not(.login-page) .search-box,
+body:not(.login-page) .cp-input,
+body:not(.login-page) .cp-select,
+body:not(.login-page) .dd-divider,
+body:not(.login-page) .dd-user-header,
+body:not(.login-page) .user-dropdown,
+body:not(.login-page) .breadcrumb,
+body:not(.login-page) .list-group-item,
+body:not(.login-page) .nav-tabs,
+body:not(.login-page) .pagination,
+body:not(.login-page) hr {
+    border-color: var(--app-gray-border-soft) !important;
+}
+
+body:not(.login-page) .journal-table th,
+body:not(.login-page) .control-panel,
+body:not(.login-page) .filter-row input,
+body:not(.login-page) .filter-row select,
+body:not(.login-page) .search-box,
+body:not(.login-page) .cp-input,
+body:not(.login-page) .cp-select,
+body:not(.login-page) .dd-divider,
+body:not(.login-page) .list-group-item,
+body:not(.login-page) .breadcrumb,
+body:not(.login-page) .info-card,
+body:not(.login-page) .filtered-stat,
+body:not(.login-page) .assignment-side-card,
+body:not(.login-page) .assignment-documents-list,
+body:not(.login-page) .journal-export-fieldset,
+body:not(.login-page) .cp-btn-ghost,
+body:not(.login-page) .cp-btn-ghost:hover,
+body:not(.login-page) .dd-item:hover,
+body:not(.login-page) .dropdown-content a:hover,
+body:not(.login-page) .modal-header,
+body:not(.login-page) .table-striped > tbody > tr:nth-of-type(odd) > *,
+body:not(.login-page) .table-hover > tbody > tr:hover > * {
+    background-color: var(--app-gray-bg) !important;
+}
+
+body:not(.login-page) .journal-table th,
+body:not(.login-page) .journal-table thead th {
+    background: var(--app-gray-bg-strong) !important;
+    color: var(--app-gray) !important;
+}
+
+body:not(.login-page) .journal-table td {
+    color: var(--app-gray) !important;
+}
+
+body:not(.login-page) .cp-btn-ghost:hover {
+    color: var(--app-gray) !important;
+}
+
+body:not(.login-page) .admin-container h1,
+body:not(.login-page) .admin-container h2,
+body:not(.login-page) .admin-container h3,
+body:not(.login-page) .admin-container h4,
+body:not(.login-page) .admin-container p,
+body:not(.login-page) .admin-container span,
+body:not(.login-page) .admin-container label,
+body:not(.login-page) .admin-container td,
+body:not(.login-page) .admin-container th,
+body:not(.login-page) .card-body,
+body:not(.login-page) .modal-body,
+body:not(.login-page) .stat-card,
+body:not(.login-page) .logs-table-wrap td,
+body:not(.login-page) .logs-table-wrap th {
+    border-color: var(--app-gray-border-soft);
+}
+
+body:not(.login-page) .admin-container .journal-secondary-text,
+body:not(.login-page) .admin-container .dir-td-muted,
+body:not(.login-page) .admin-container .dir-td-num,
+body:not(.login-page) .admin-container .table-placeholder,
+body:not(.login-page) .admin-container .empty-tree p,
+body:not(.login-page) .admin-container .stats-ranking-subtitle,
+body:not(.login-page) .admin-container .stats-ranking-percent,
+body:not(.login-page) .admin-container .info-label,
+body:not(.login-page) .admin-container .page-subtitle,
+body:not(.login-page) .admin-container .card-header p,
+body:not(.login-page) .admin-container .stats-card-note {
+    color: var(--app-gray) !important;
+}
+
+/* Страница авторизации */
+body.login-page .login-hero p,
+body.login-page .form-group label {
+    color: var(--app-gray) !important;
+}
+
+body.login-page .form-control::placeholder {
+    color: var(--app-gray-soft) !important;
+}
+
+body.login-page .login-badge {
+    border-color: var(--app-gray-border-soft) !important;
+}
+
+/* Подписи и вторичные надписи — высокая читаемость на тёмном фоне */
+body:not(.login-page) .info-card h3,
+body:not(.login-page) .stat-info h3,
+body:not(.login-page) .stat-label,
+body:not(.login-page) .stats-card-note,
+body:not(.login-page) .filter-group label,
+body:not(.login-page) .filter-label,
+body:not(.login-page) .form-text,
+body:not(.login-page) .assignment-side-hint,
+body:not(.login-page) .assignment-documents-note,
+body:not(.login-page) .journal-export-hint,
+body:not(.login-page) .export-modal-text,
+body:not(.login-page) .modal-body p,
+body:not(.login-page) .modal-description,
+body:not(.login-page) .modal-hint,
+body:not(.login-page) .no-details,
+body:not(.login-page) .project-subtitle,
+body:not(.login-page) .logs-header h2 + .logs-info .info-card h3,
+body:not(.login-page) .card-header p,
+body:not(.login-page) .empty-state p,
+body:not(.login-page) .loading-state,
+body:not(.login-page) .table-placeholder,
+body:not(.login-page) .stats-ranking-subtitle,
+body:not(.login-page) .breadcrumb-item,
+body:not(.login-page) .journals-section h3 {
+    color: var(--app-caption) !important;
+}
+
+body:not(.login-page) .page-subtitle,
+body:not(.login-page) .admin-container .page-subtitle,
+body:not(.login-page) .dd-user-header .duh-role,
+body:not(.login-page) .dd-user-header .duh-meta,
+body:not(.login-page) .user-role,
+body:not(.login-page) .header-subtitle,
+body:not(.login-page) .logo-text p,
+body:not(.login-page) .admin-container .info-label,
+body:not(.login-page) .admin-container .stats-card-note,
+body:not(.login-page) .admin-container .journal-secondary-text,
+body:not(.login-page) .admin-container .dir-td-muted,
+body:not(.login-page) .admin-container .dir-td-num,
+body:not(.login-page) .filtered-stat,
+body:not(.login-page) .sidebar-footer,
+body:not(.login-page) .form-control[readonly] {
+    color: var(--app-caption-soft) !important;
+}
+
+body:not(.login-page) label,
+body:not(.login-page) .form-group label,
+body:not(.login-page) .filter-group label {
+    color: var(--app-caption) !important;
+    font-weight: 500;
+}
+
+body:not(.login-page) .info-card p,
+body:not(.login-page) .stat-number,
+body:not(.login-page) .stat-value {
+    color: var(--app-highlight) !important;
+}
+
+/* Цифры статистики и элементы того же акцентного цвета → #7692FF */
+body:not(.login-page) .stat-number,
+body:not(.login-page) .stats-grid .stat-number,
+body:not(.login-page) .stat-value,
+body:not(.login-page) .stat-card-small .stat-value,
+body:not(.login-page) .stats-summary-card .stat-value,
+body:not(.login-page) .info-value,
+body:not(.login-page) .stats-ranking-value,
+body:not(.login-page) .stats-ranking-percent,
+body:not(.login-page) .journal-card-count,
+body:not(.login-page) .stat-card .stat-number {
+    color: var(--app-highlight) !important;
+}
+
+body:not(.login-page) .stats-grid > .stat-card:nth-child(1) .stat-icon,
+body:not(.login-page) .stat-card .stat-icon:first-child {
+    background: linear-gradient(135deg, #7692FF, #5a78e8) !important;
+}
+
+body:not(.login-page) .dd-item i,
+body:not(.login-page) .admin-container .directories-table--modern .dir-name-line i,
+body:not(.login-page) .admin-container .table-placeholder i,
+body:not(.login-page) .journal-card-icon.incoming {
+    color: var(--app-highlight) !important;
+}
+
+/* Статистика: все вторичные подписи должны читаться на тёмном фоне */
+body:not(.login-page) .admin-container .stats-dashboard-card,
+body:not(.login-page) .admin-container .stats-summary-card,
+body:not(.login-page) .admin-container .stats-visual-card,
+body:not(.login-page) .admin-container .stats-ranking-item,
+body:not(.login-page) .admin-container .stats-empty-state,
+body:not(.login-page) .admin-container .stats-chart-wrapper {
+    background: rgba(39, 35, 79, 0.72) !important;
+    border-color: var(--app-border-soft) !important;
+    color: var(--app-text) !important;
+}
+
+body:not(.login-page) .admin-container .stats-chart-wrapper {
+    box-shadow: inset 0 1px 0 rgba(229, 219, 230, 0.08) !important;
+}
+
+body:not(.login-page) .admin-container .stats-card-note,
+body:not(.login-page) .admin-container .stat-label,
+body:not(.login-page) .admin-container .stats-ranking-subtitle,
+body:not(.login-page) .admin-container .stats-empty-state,
+body:not(.login-page) .admin-container .stats-empty-state span,
+body:not(.login-page) .admin-container .stats-ranking-header {
+    color: var(--app-caption) !important;
+}
+
+body:not(.login-page) .admin-container .stats-ranking-name {
+    color: #ffffff !important;
+    font-weight: 700;
+}
+
+body:not(.login-page) .admin-container .stats-ranking-header {
+    background: rgba(229, 219, 230, 0.12) !important;
+}
+
+body:not(.login-page) .admin-container .stats-ranking-bar-wrap {
+    background: rgba(229, 219, 230, 0.12) !important;
+    border-color: var(--app-border-soft) !important;
+}
+
+body:not(.login-page) .admin-container .stats-ranking-percent {
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+body:not(.login-page) .admin-container .stats-ranking-value,
+body:not(.login-page) .admin-container .stats-summary-card .stat-value {
+    color: var(--app-highlight) !important;
+}

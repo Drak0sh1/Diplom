@@ -64,13 +64,14 @@ class CounterpartiesPage {
         }
         
         let html = '';
-        pageData.forEach(counterparty => {
+        pageData.forEach((counterparty, index) => {
             const letterDate = new Date(counterparty.letterDate).toLocaleDateString('ru-RU');
             const statusClass = `status-${counterparty.processingStatus || 'new'}`;
             const priorityClass = `priority-${counterparty.priority || 'medium'}`;
+            const rowClass = index % 2 === 0 ? 'even' : 'odd';
             
             html += `
-                <tr>
+                <tr class="${rowClass}">
                     <td>#${counterparty.id}</td>
                     <td>
                         <div class="counterparty-cell">
@@ -95,7 +96,7 @@ class CounterpartiesPage {
                         </span>
                     </td>
                     <td>
-                        <div class="responsible-cell">
+                        <div class="user-cell">
                             <div class="user-avatar-small">${counterparty.responsibleName?.charAt(0) || '—'}</div>
                             <span>${counterparty.responsibleName || 'Не назначен'}</span>
                         </div>

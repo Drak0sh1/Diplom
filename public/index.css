@@ -102,7 +102,7 @@ body.login-page::after {
 .login-hero p {
     max-width: 360px;
     margin: 0 auto;
-    color: rgba(237, 236, 255, 0.78);
+    color: #E5DBE6;
     font-size: 0.98rem;
     line-height: 1.55;
 }
@@ -115,7 +115,7 @@ body.login-page::after {
     display: block;
     margin-bottom: 9px;
     font-size: 0.9rem;
-    color: rgba(237, 236, 255, 0.9);
+    color: #E5DBE6;
 }
 
 .password-container {
@@ -138,14 +138,14 @@ body.login-page::after {
 }
 
 .form-control::placeholder {
-    color: rgba(228, 225, 255, 0.42);
+    color: rgba(229, 219, 230, 0.55);
 }
 
 .form-control:focus {
     outline: none;
-    border-color: rgba(185, 153, 255, 0.9);
+    border-color: #7692FF;
     background: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 0 4px rgba(151, 111, 255, 0.14);
+    box-shadow: 0 0 0 4px rgba(118, 146, 255, 0.22);
 }
 
 .show-password {

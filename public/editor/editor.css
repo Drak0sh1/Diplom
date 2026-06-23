@@ -1,13 +1,13 @@
-.search-filters {
+﻿.search-filters {
     display: flex;
     gap: 16px;
     margin-bottom: 20px;
     align-items: center;
     flex-wrap: wrap;
-    background: #f8fafc;
+    background: rgba(229, 219, 230, 0.08);
     padding: 16px;
     border-radius: 10px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(229, 219, 230, 0.22);
 }
 
 /* Одинаковые промежутки между полями фильтров на странице редактора */
@@ -37,7 +37,7 @@
 .search-box input {
     width: 100%;
     padding: 12px 15px 12px 45px;
-    border: 2px solid #e2e8f0;
+    border: 2px solid rgba(229, 219, 230, 0.22);
     border-radius: 8px;
     font-size: 14px;
     transition: all 0.3s ease;
@@ -62,9 +62,9 @@
 .status-filter-btn {
     padding: 8px 16px;
     border-radius: 8px;
-    border: 2px solid #e2e8f0;
+    border: 2px solid rgba(229, 219, 230, 0.22);
     background: white;
-    color: #4a5568;
+    color: rgba(255, 255, 255, 0.94);
     cursor: pointer;
     font-size: 13px;
     font-weight: 500;
@@ -76,20 +76,20 @@
 }
 
 .status-filter-btn:hover {
-    border-color: #2563eb;
+    border-color: #7692FF;
     transform: translateY(-1px);
 }
 
 .status-filter-btn.active {
-    background: #1e40af;
-    border-color: #1e40af;
+    background: #7692FF;
+    border-color: #7692FF;
     color: white;
 }
 
 .status-filter-btn[data-status="all"]:hover,
 .status-filter-btn[data-status="all"].active {
-    background: #1e40af;
-    border-color: #1e40af;
+    background: #7692FF;
+    border-color: #7692FF;
 }
 
 .status-filter-btn[data-status="active"]:hover,
@@ -169,7 +169,7 @@
 .count-badge {
     display: inline-block;
     padding: 4px 8px;
-    background: #e2e8f0;
+    background: rgba(229, 219, 230, 0.22);
     border-radius: 12px;
     font-size: 12px;
     font-weight: 600;
@@ -194,7 +194,7 @@
 .loading-state {
     text-align: center;
     padding: 40px 20px;
-    color: #718096;
+    color: #E5DBE6;
 }
 
 .loading-state i {
@@ -254,7 +254,7 @@
 
 .tree-toggle {
     margin-right: 10px;
-    color: #6b7280;
+    color: rgba(255, 255, 255, 0.82);
     font-size: 12px;
     width: 16px;
     text-align: center;
@@ -277,7 +277,7 @@
     display: flex;
     gap: 15px;
     font-size: 12px;
-    color: #6b7280;
+    color: rgba(255, 255, 255, 0.82);
 }
 
 .tree-node-badge {
@@ -302,6 +302,8 @@
     display: flex;
     gap: 10px;
     align-items: center;
+    flex-shrink: 0;
+    margin-left: auto;
 }
 
 .btn-group {
@@ -328,7 +330,7 @@
     align-items: center;
     gap: 6px;
     font-size: 14px;
-    color: #6b7280;
+    color: rgba(255, 255, 255, 0.82);
     transition: all 0.2s;
 }
 
@@ -345,7 +347,7 @@
 .empty-tree {
     text-align: center;
     padding: 40px 20px;
-    color: #6b7280;
+    color: rgba(255, 255, 255, 0.82);
 }
 
 .empty-tree i {
@@ -375,7 +377,7 @@
 .tree-node-action-btn {
     background: none;
     border: none;
-    color: #6b7280;
+    color: rgba(255, 255, 255, 0.82);
     cursor: pointer;
     font-size: 12px;
     padding: 4px 8px;
@@ -407,12 +409,12 @@
 
 .status-archived {
     background: #f3f4f6;
-    color: #6b7280;
+    color: rgba(255, 255, 255, 0.82);
 }
 
 .tree-node-description {
     font-size: 12px;
-    color: #6b7280;
+    color: rgba(255, 255, 255, 0.82);
     margin-top: 4px;
     display: -webkit-box;
     -webkit-box-orient: vertical;
@@ -429,7 +431,7 @@
 .tree-loading {
     text-align: center;
     padding: 20px;
-    color: #6b7280;
+    color: rgba(255, 255, 255, 0.82);
 }
 
 .tree-loading i {
@@ -451,7 +453,7 @@
     border-radius: 6px;
     border: 1px solid #e5e7eb;
     font-size: 13px;
-    color: #6b7280;
+    color: rgba(255, 255, 255, 0.82);
 }
 
 .tree-path-item {
@@ -476,7 +478,7 @@
 
 .tree-back-btn {
     margin-right: 10px;
-    color: #6b7280;
+    color: rgba(255, 255, 255, 0.82);
     cursor: pointer;
     transition: color 0.2s;
 }
@@ -512,16 +514,16 @@
     pointer-events: none;
 }
 
-/* Панель дерева каталогов: фон как у карточек админки, рамка #d8e3f3 */
+/* Панель дерева каталогов: фон как у карточек админки, рамка rgba(229, 219, 230, 0.22) */
 .tree-view-container.directories-tree-panel {
     display: block;
     margin-top: 20px;
     padding: 20px;
     border-radius: 12px;
-    border: 1px solid #d8e3f3;
-    background: rgba(244, 248, 253, 0.94);
+    border: 1px solid rgba(229, 219, 230, 0.22);
+    background: rgba(61, 67, 124, 0.94);
     box-shadow: 0 14px 34px rgba(8, 18, 38, 0.1);
-    color: #23314f;
+    color: #7692FF;
 }
 
 .directories-tree-panel .tree-view {
@@ -533,13 +535,13 @@
 }
 
 .directories-tree-panel .tree-node-content {
-    border-left-color: #d8e3f3;
+    border-left-color: rgba(229, 219, 230, 0.22);
 }
 
 .directories-tree-panel .tree-node-header {
     background: #fff;
-    border: 1px solid #d8e3f3;
-    color: #26324f;
+    border: 1px solid rgba(229, 219, 230, 0.22);
+    color: #7692FF;
 }
 
 .directories-tree-panel .tree-node-header:hover {
@@ -550,24 +552,24 @@
 
 .directories-tree-panel .tree-node-header.is-selected {
     background: #e8f0fc;
-    border-color: #2457a6;
+    border-color: #7692FF;
     color: #0f274e;
     box-shadow: 0 2px 10px rgba(36, 87, 166, 0.12);
 }
 
 .directories-tree-panel .tree-node-header:not(.is-selected) .tree-node-name,
 .directories-tree-panel .tree-node-header:not(.is-selected) .tree-icon {
-    color: #26324f;
+    color: #7692FF;
 }
 
 .directories-tree-panel .tree-node-header:not(.is-selected) .tree-node-description,
 .directories-tree-panel .tree-node-header:not(.is-selected) .tree-node-children-count,
 .directories-tree-panel .tree-node-header:not(.is-selected) .tree-toggle {
-    color: #71809d;
+    color: #E5DBE6;
 }
 
 .directories-tree-panel .tree-node-header:not(.is-selected) .tree-node-info {
-    color: #71809d;
+    color: #E5DBE6;
 }
 
 .directories-tree-panel .tree-node-header.is-selected .tree-node-name,
@@ -580,9 +582,9 @@
 }
 
 .directories-tree-panel .tree-node-header:not(.is-selected) .tree-node-badge {
-    background: #f1f5f9;
+    background: rgba(229, 219, 230, 0.12);
     color: #475569;
-    border: 1px solid #d8e3f3;
+    border: 1px solid rgba(229, 219, 230, 0.22);
 }
 
 .directories-tree-panel .tree-node-header.is-selected .tree-node-badge {
@@ -592,12 +594,12 @@
 }
 
 .directories-tree-panel .tree-node-header:not(.is-selected) .tree-node-action-btn {
-    color: #71809d;
+    color: #E5DBE6;
 }
 
 .directories-tree-panel .tree-node-header:not(.is-selected) .tree-node-action-btn:hover {
     background: #eef2f8;
-    color: #26324f;
+    color: #7692FF;
 }
 
 .directories-tree-panel .tree-node-header.is-selected .tree-node-action-btn {
@@ -613,32 +615,32 @@
 .directories-tree-panel .empty-tree h3,
 .directories-tree-panel .empty-tree p,
 .directories-tree-panel .tree-loading {
-    color: #71809d;
+    color: #E5DBE6;
 }
 
 .directories-tree-panel .empty-tree i,
 .directories-tree-panel .tree-loading i {
-    color: #96a2bc;
+    color: #E5DBE6;
 }
 
 .directories-tree-panel .tree-path {
     background: rgba(255, 255, 255, 0.85);
-    border: 1px solid #d8e3f3;
+    border: 1px solid rgba(229, 219, 230, 0.22);
     color: #475569;
 }
 
 .directories-tree-panel .tree-path-item {
-    color: #2457a6;
+    color: #7692FF;
     text-decoration: underline;
     text-underline-offset: 2px;
 }
 
 .directories-tree-panel .tree-back-btn {
-    color: #71809d;
+    color: #E5DBE6;
 }
 
 .directories-tree-panel .tree-back-btn:hover {
-    color: #2457a6;
+    color: #7692FF;
 }
 
 /* Стили для статуса пароля в хэдере */
@@ -680,17 +682,17 @@
 .admin-container .page-header.editor-intro-banner {
     animation: editorIntroFadeOut 0.5s ease forwards;
     animation-delay: 5s;
-    background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 45%, #2563eb 100%);
+    background: linear-gradient(180deg, rgba(61, 67, 124, 0.88) 0%, rgba(39, 35, 79, 0.92) 100%);
     border: 1px solid rgba(255, 255, 255, 0.35);
     box-shadow: 0 4px 16px rgba(37, 99, 235, 0.28);
 }
 
 .admin-container .page-header.editor-intro-banner h1 {
-    color: #1e3a8a;
+    color: #7692FF;
 }
 
 .admin-container .page-header.editor-intro-banner .page-subtitle {
-    color: #1e40af;
+    color: #7692FF;
     font-weight: 500;
 }
 
@@ -711,14 +713,22 @@
     margin-bottom: 28px;
 }
 
-/* Заголовок карточки: «Список каталогов», блок формы — палитра как у шапки */
+/* Заголовок карточки — только строка шапки, без отдельной обводки */
 .admin-container .card .card-header {
-    background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 45%, #2563eb 100%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    background: transparent;
+    border-bottom: 1px solid rgba(229, 219, 230, 0.22);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
 }
 
 .admin-container .card .card-header h2 {
-    color: #1e3a8a;
+    color: #7692FF;
+    flex: 1 1 auto;
+    min-width: 180px;
+    margin: 0;
 }
 
 .admin-container .card .card-header .view-toggle {
@@ -726,7 +736,7 @@
 }
 
 .admin-container .card .card-header .view-toggle-btn {
-    color: #71809d;
+    color: #E5DBE6;
     background: transparent;
     border: none;
     box-shadow: none;
@@ -734,7 +744,7 @@
 
 .admin-container .card .card-header .view-toggle-btn.active {
     background: #fff;
-    color: #2563eb;
+    color: #7692FF;
     box-shadow: 0 1px 4px rgba(30, 58, 138, 0.12);
 }
 
@@ -746,7 +756,7 @@
 .admin-container .card .card-header .btn-sm.btn-secondary {
     background: rgba(255, 255, 255, 0.45);
     border-color: rgba(30, 58, 138, 0.3);
-    color: #1e3a8a;
+    color: #7692FF;
 }
 
 .admin-container .card .card-header .btn-sm.btn-secondary:hover {
@@ -756,20 +766,20 @@
 
 .admin-container .card .card-header .btn-sm.btn-primary {
     background: #fff;
-    color: #2563eb;
+    color: #7692FF;
     border: 1px solid rgba(37, 99, 235, 0.35);
     box-shadow: 0 1px 4px rgba(30, 58, 138, 0.1);
 }
 
 .admin-container .card .card-header .btn-sm.btn-primary:hover {
-    background: #eff6ff;
+    background: #ffffff;
     color: #1d4ed8;
     border-color: rgba(29, 78, 216, 0.45);
     box-shadow: 0 3px 10px rgba(37, 99, 235, 0.2);
 }
 
 .admin-container .card .card-header .btn-sm.btn-primary i {
-    color: #2563eb;
+    color: #7692FF;
 }
 
 .admin-container .card .card-header .btn-sm.btn-primary:hover i {
@@ -789,15 +799,35 @@
     }
 }
 
-/* Фон страницы как в кабинете пользователя */
+/* Фон страницы — см. app-theme.css */
 body {
-    background: #f8fafc;
+    background: linear-gradient(180deg, #201a4f 0%, #41236f 48%, #180f3d 100%);
     background-attachment: fixed;
 }
 
 /* Шапка: те же голубые цвета, что у заголовка карточки «Список каталогов» (.card .card-header) */
-.admin-container > .header {
-    background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 45%, #2563eb 100%);
+.admin-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: none;
+    padding: 0;
+    margin: 0;
+}
+
+.admin-container > .header.header--editor-topbar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    box-sizing: border-box;
+    background: linear-gradient(180deg, rgba(61, 67, 124, 0.88) 0%, rgba(39, 35, 79, 0.92) 100%);
     padding: 0 30px;
     height: 68px;
     box-shadow: 0 2px 15px rgba(30, 58, 138, 0.15);
@@ -806,8 +836,12 @@ body {
 }
 
 .admin-container > .header .header-left {
+    flex: 1 1 auto;
+    min-width: 0;
     gap: 10px;
     align-items: center;
+    display: flex;
+    flex-wrap: wrap;
 }
 
 .admin-container > .header .header-nav {
@@ -831,7 +865,7 @@ body {
 .admin-container > .header .logo-text h1 {
     font-size: 19px;
     font-weight: 700;
-    color: #1e3a8a;
+    color: #7692FF;
     letter-spacing: -0.3px;
     white-space: nowrap;
     margin: 0;
@@ -843,13 +877,13 @@ body {
 
 .admin-container > .header .logo-text h1 > i {
     font-size: 18px;
-    color: #1e3a8a;
+    color: #7692FF;
     opacity: 1;
 }
 
 .admin-container > .header .logo-text p {
     font-size: 11px;
-    color: #1e40af;
+    color: #7692FF;
     margin-top: 1px;
     font-weight: 500;
 }
@@ -858,7 +892,7 @@ body {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: #1e40af;
+    color: #7692FF;
     text-decoration: none;
     font-size: 14px;
     font-weight: 500;
@@ -871,7 +905,7 @@ body {
 }
 
 .admin-container > .header .header-nav-link i {
-    color: #1e40af;
+    color: #7692FF;
 }
 
 .admin-container > .header .header-nav-link:hover {
@@ -896,6 +930,12 @@ body {
     background: rgba(255, 255, 255, 0.45);
     border: 1px solid rgba(30, 58, 138, 0.3);
     transition: background 0.2s, border-color 0.2s;
+    z-index: 501;
+    flex-shrink: 0;
+}
+
+.admin-container > .header .user-profile.open {
+    z-index: 5000;
 }
 
 .admin-container > .header .user-profile:hover {
@@ -913,7 +953,7 @@ body {
     font-weight: 700;
     font-size: 15px;
     background: rgba(255, 255, 255, 0.65);
-    color: #1e3a8a;
+    color: #7692FF;
     flex-shrink: 0;
     box-shadow: none;
     border: 1px solid rgba(30, 58, 138, 0.2);
@@ -928,12 +968,12 @@ body {
 .admin-container > .header .user-name {
     font-weight: 600;
     font-size: 13.5px;
-    color: #1e3a8a;
+    color: #7692FF;
 }
 
 .admin-container > .header .user-role {
     font-size: 11px;
-    color: #1e40af;
+    color: #7692FF;
     background: transparent;
     padding: 0;
     border-radius: 0;
@@ -941,7 +981,7 @@ body {
 
 .admin-container > .header .user-chevron {
     font-size: 10px;
-    color: #1e40af;
+    color: #7692FF;
     transition: transform 0.2s;
     margin-left: 2px;
 }
@@ -959,9 +999,9 @@ body {
     min-width: 215px;
     border-radius: 12px;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
-    z-index: 2000;
+    z-index: 5000;
     overflow: hidden;
-    border: 1px solid #f1f5f9;
+    border: 1px solid rgba(229, 219, 230, 0.12);
 }
 
 .admin-container > .header .user-profile.open .user-dropdown {
@@ -970,7 +1010,7 @@ body {
 
 .admin-container > .header .dd-user-header {
     padding: 14px 16px 11px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid rgba(229, 219, 230, 0.12);
 }
 
 .admin-container > .header .dd-user-header .duh-name {
@@ -981,7 +1021,7 @@ body {
 
 .admin-container > .header .dd-user-header .duh-role {
     font-size: 12px;
-    color: #64748b;
+    color: #E5DBE6;
     margin-top: 2px;
 }
 
@@ -1007,7 +1047,7 @@ body {
 }
 
 .admin-container > .header .dd-user-header .user-status.never-changed {
-    color: #64748b;
+    color: #E5DBE6;
 }
 
 .admin-container > .header .dd-item {
@@ -1023,12 +1063,12 @@ body {
 }
 
 .admin-container > .header .dd-item:hover {
-    background: #f8fafc;
+    background: rgba(229, 219, 230, 0.08);
 }
 
 .admin-container > .header .dd-item i {
     width: 16px;
-    color: #5b86e5;
+    color: #7692FF;
     font-size: 13px;
 }
 
@@ -1042,16 +1082,18 @@ body {
 
 .admin-container > .header .dd-divider {
     height: 1px;
-    background: #f1f5f9;
+    background: rgba(229, 219, 230, 0.12);
 }
 
 .admin-container .main-content {
     margin-top: 68px;
-    margin-left: 0;
-    width: 100%;
-    max-width: none;
-    padding: 14px 22px;
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 14px 22px 28px;
     min-height: calc(100vh - 68px);
+    flex: 1;
+    box-sizing: border-box;
 }
 
 /* Компактнее верхний блок (плашка с заголовком страницы) */
@@ -1074,38 +1116,39 @@ body {
 }
 
 @media (max-width: 768px) {
-    .admin-container > .header {
+    .admin-container > .header.header--editor-topbar {
         padding: 0 20px;
         height: 68px;
     }
 
-    .admin-container > .header .logo-text p {
+    .admin-container > .header.header--editor-topbar .logo-text p {
         display: none;
     }
 
     .admin-container .main-content {
         margin-top: 68px;
-        margin-left: 0;
+        margin-left: 0 !important;
+        width: 100% !important;
         min-height: calc(100vh - 68px);
         padding: 12px 16px;
     }
 }
 
 @media (max-width: 480px) {
-    .admin-container > .header {
+    .admin-container > .header.header--editor-topbar {
         height: 62px;
         padding: 0 10px;
     }
 
-    .admin-container > .header .logo-text h1 {
+    .admin-container > .header.header--editor-topbar .logo-text h1 {
         font-size: 17px;
     }
 
-    .admin-container > .header .user-details {
+    .admin-container > .header.header--editor-topbar .user-details {
         display: none;
     }
 
-    .admin-container > .header .header-nav-link {
+    .admin-container > .header.header--editor-topbar .header-nav-link {
         font-size: 12px;
         padding: 6px 10px;
         margin-left: 0;
@@ -1113,7 +1156,8 @@ body {
 
     .admin-container .main-content {
         margin-top: 62px;
-        margin-left: 0;
+        margin-left: 0 !important;
+        width: 100% !important;
         min-height: calc(100vh - 62px);
         padding: 10px 12px;
     }
@@ -1165,7 +1209,7 @@ body {
 
 #directoryFormModal .form-group label i,
 #assignmentFormModal .form-group label i {
-    color: #2563eb;
+    color: #7692FF;
 }
 
 #directoryFormModal.modal-overlay,
@@ -1177,7 +1221,7 @@ body {
 #assignmentFormModal .modal-content--directory-form {
     max-width: min(640px, 94vw);
     width: 100%;
-    background: linear-gradient(180deg, #eff6ff 0%, #e0f2fe 50%, #dbeafe 100%);
+    background: linear-gradient(180deg, #ffffff 0%, rgba(118, 146, 255, 0.12) 50%, rgba(118, 146, 255, 0.18) 100%);
     border: 1px solid rgba(37, 99, 235, 0.4);
     box-shadow:
         0 24px 48px rgba(30, 64, 175, 0.18),
@@ -1186,47 +1230,74 @@ body {
 
 #directoryFormModal .modal-header,
 #assignmentFormModal .modal-header {
-    background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 45%, #2563eb 100%);
+    background: linear-gradient(180deg, rgba(61, 67, 124, 0.88) 0%, rgba(39, 35, 79, 0.92) 100%);
     border-bottom: 1px solid rgba(255, 255, 255, 0.35);
 }
 
 #directoryFormModal .modal-header h3,
 #assignmentFormModal .modal-header h3 {
-    color: #1e3a8a;
+    color: #7692FF;
 }
 
 #directoryFormModal .modal-header h3 i,
 #assignmentFormModal .modal-header h3 i {
-    color: #1e40af;
+    color: #7692FF;
 }
 
 #directoryFormModal .modal-header .close-btn,
 #assignmentFormModal .modal-header .close-btn {
-    color: #1e40af;
+    color: #7692FF;
 }
 
 #directoryFormModal .modal-header .close-btn:hover,
 #assignmentFormModal .modal-header .close-btn:hover {
     background: rgba(255, 255, 255, 0.4);
-    color: #1e3a8a;
+    color: #7692FF;
 }
 
 #directoryFormModal .form-control,
 #assignmentFormModal .form-control {
-    border: 2px solid rgba(147, 197, 253, 0.45);
-    background: rgba(255, 255, 255, 0.97);
+    border: 2px solid rgba(229, 219, 230, 0.45);
+    background: rgba(39, 35, 79, 0.96) !important;
+    color: #ffffff !important;
+    color-scheme: dark;
+}
+
+#directoryFormModal select.form-control,
+#assignmentFormModal select.form-control {
+    background-color: rgba(39, 35, 79, 0.96) !important;
+    color: #ffffff !important;
+}
+
+#directoryFormModal select.form-control option,
+#assignmentFormModal select.form-control option,
+#directoryFormModal select.form-control optgroup,
+#assignmentFormModal select.form-control optgroup {
+    background-color: #27234f !important;
+    color: #ffffff !important;
+}
+
+#directoryFormModal select.form-control option:checked,
+#assignmentFormModal select.form-control option:checked {
+    background-color: #7692FF !important;
+    color: #ffffff !important;
+}
+
+#directoryFormModal .form-control::placeholder,
+#assignmentFormModal .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.68) !important;
 }
 
 #directoryFormModal .form-control:focus,
 #assignmentFormModal .form-control:focus {
     outline: none;
-    border-color: #2563eb;
+    border-color: #7692FF;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.22);
 }
 
 #directoryFormModal .directory-form-footer .btn-primary,
 #assignmentFormModal .directory-form-footer .btn-primary {
-    background: linear-gradient(135deg, #60a5fa, #2563eb);
+    background: linear-gradient(135deg, #60a5fa, #7692FF);
     color: #fff;
     border: none;
     box-shadow: 0 2px 10px rgba(37, 99, 235, 0.35);
@@ -1234,7 +1305,7 @@ body {
 
 #directoryFormModal .directory-form-footer .btn-primary:hover,
 #assignmentFormModal .directory-form-footer .btn-primary:hover {
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: linear-gradient(135deg, #7692FF, #1d4ed8);
     box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);
     transform: translateY(-1px);
 }
@@ -1250,7 +1321,7 @@ body {
 #directoryFormModal .directory-form-footer .btn-secondary:hover,
 #assignmentFormModal .directory-form-footer .btn-secondary:hover {
     background: #fff;
-    color: #1e40af;
+    color: #7692FF;
     border-color: rgba(29, 78, 216, 0.55);
     box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
     transform: translateY(-1px);
@@ -1300,7 +1371,7 @@ body {
 #reportExportModal .report-export-text {
     margin: 0;
     width: 100%;
-    color: #1e40af;
+    color: #7692FF;
     font-size: 15px;
     line-height: 1.55;
     text-align: center;
@@ -1378,19 +1449,19 @@ body {
 
 .admin-container .btn-primary,
 .modal-overlay .btn-primary {
-    background: linear-gradient(135deg, #2563eb, #1e40af);
+    background: linear-gradient(135deg, #7692FF, #5a78e8);
     color: #fff;
 }
 
 .admin-container .btn-primary:hover,
 .modal-overlay .btn-primary:hover {
-    background: linear-gradient(135deg, #1d4ed8, #1e3a8a);
+    background: linear-gradient(135deg, #1d4ed8, #7692FF);
     box-shadow: 0 4px 12px rgba(30, 64, 175, 0.35);
 }
 
 .admin-container .form-control:focus,
 .modal-overlay .form-control:focus {
-    border-color: #2563eb;
+    border-color: #7692FF;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
@@ -1400,7 +1471,7 @@ body {
 }
 
 .admin-container .btn-action-edit {
-    background: linear-gradient(135deg, #2563eb, #1e40af);
+    background: linear-gradient(135deg, #7692FF, #5a78e8);
 }
 
 .admin-container .btn-action-edit:hover {
@@ -1408,7 +1479,7 @@ body {
 }
 
 .admin-container .password-requirements {
-    border-left-color: #2563eb;
+    border-left-color: #7692FF;
 }
 
 .notification.info {
@@ -1425,7 +1496,7 @@ body {
 
 .admin-container > .header .header-nav-link.active,
 .admin-container > .header .header-nav-link.active i {
-    color: #2563eb !important;
+    color: #7692FF !important;
 }
 
 .admin-container > .header .header-nav-link.active:hover,
@@ -1456,8 +1527,8 @@ body {
 
 .stats-summary-card {
     min-height: 120px;
-    border: 1px solid #dbeafe;
-    background: linear-gradient(180deg, #ffffff 0%, #eff6ff 100%);
+    border: 1px solid rgba(118, 146, 255, 0.18);
+    background: linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
     box-shadow: 0 14px 34px rgba(30, 64, 175, 0.08);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -1476,11 +1547,11 @@ body {
 }
 
 .stats-gradient-purple {
-    background: linear-gradient(135deg, #2563eb, #1e40af);
+    background: linear-gradient(135deg, #7692FF, #5a78e8);
 }
 
 .stats-gradient-blue {
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: linear-gradient(135deg, #7692FF, #1d4ed8);
 }
 
 .stats-gradient-green {
@@ -1520,7 +1591,7 @@ body {
     margin: 6px 0 0;
     font-size: 13px;
     line-height: 1.45;
-    color: #6b7280;
+    color: rgba(255, 255, 255, 0.82);
     max-width: 820px;
 }
 
@@ -1538,8 +1609,8 @@ body {
     align-items: center;
     padding: 12px 16px;
     border-radius: 14px;
-    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-    color: #1e3a8a;
+    background: linear-gradient(135deg, rgba(118, 146, 255, 0.18), rgba(229, 219, 230, 0.22));
+    color: #7692FF;
     font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
@@ -1553,8 +1624,8 @@ body {
     align-items: center;
     padding: 14px 16px;
     border-radius: 16px;
-    background: linear-gradient(180deg, #ffffff 0%, #eff6ff 100%);
-    border: 1px solid #bfdbfe;
+    background: linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
+    border: 1px solid rgba(229, 219, 230, 0.22);
     box-shadow: 0 10px 24px rgba(30, 64, 175, 0.06);
 }
 
@@ -1578,8 +1649,8 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #dbeafe;
-    color: #1e40af;
+    background: rgba(118, 146, 255, 0.18);
+    color: #7692FF;
     font-size: 13px;
     font-weight: 700;
     flex-shrink: 0;
@@ -1603,15 +1674,15 @@ body {
     width: 100%;
     height: 18px;
     border-radius: 999px;
-    background: linear-gradient(180deg, #dbeafe 0%, #bae6fd 100%);
+    background: linear-gradient(180deg, rgba(118, 146, 255, 0.18) 0%, #bae6fd 100%);
     overflow: hidden;
-    border: 1px solid #bfdbfe;
+    border: 1px solid rgba(229, 219, 230, 0.22);
 }
 
 .stats-ranking-bar {
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: linear-gradient(135deg, #7692FF, #1d4ed8);
 }
 
 .stats-ranking-percent {
@@ -1621,12 +1692,12 @@ body {
     transform: translateY(-50%);
     font-size: 11px;
     font-weight: 700;
-    color: #1e3a8a;
+    color: #7692FF;
 }
 
 .stats-ranking-value {
     font-weight: 700;
-    color: #1e3a8a;
+    color: #7692FF;
     text-align: right;
     font-size: 15px;
 }
@@ -1653,9 +1724,9 @@ body {
     align-items: center;
     justify-content: center;
     gap: 10px;
-    color: #2563eb;
-    background: #eff6ff;
-    border: 1px dashed #bfdbfe;
+    color: #7692FF;
+    background: #ffffff;
+    border: 1px dashed rgba(229, 219, 230, 0.22);
     border-radius: 16px;
 }
 
@@ -1705,7 +1776,7 @@ body {
 
 /* Модалка «Подтверждение удаления» — как окно формы каталога */
 #confirmModal .modal-content {
-    background: linear-gradient(180deg, #eff6ff 0%, #e0f2fe 50%, #dbeafe 100%);
+    background: linear-gradient(180deg, #ffffff 0%, rgba(118, 146, 255, 0.12) 50%, rgba(118, 146, 255, 0.18) 100%);
     border: 1px solid rgba(37, 99, 235, 0.4);
     box-shadow:
         0 24px 48px rgba(30, 64, 175, 0.18),
@@ -1714,13 +1785,13 @@ body {
 }
 
 #confirmModal .modal-header {
-    background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 45%, #2563eb 100%);
+    background: linear-gradient(180deg, rgba(61, 67, 124, 0.88) 0%, rgba(39, 35, 79, 0.92) 100%);
     border-bottom: 1px solid rgba(255, 255, 255, 0.35);
     padding: 18px 20px;
 }
 
 #confirmModal .modal-header h3 {
-    color: #1e3a8a;
+    color: #7692FF;
     font-size: 17px;
 }
 
@@ -1729,12 +1800,12 @@ body {
 }
 
 #confirmModal .modal-header .close-btn {
-    color: #1e40af;
+    color: #7692FF;
 }
 
 #confirmModal .modal-header .close-btn:hover {
     background: rgba(255, 255, 255, 0.4);
-    color: #1e3a8a;
+    color: #7692FF;
 }
 
 #confirmModal .modal-body {
@@ -1786,7 +1857,7 @@ body {
 
 #confirmModal .btn-secondary:hover {
     background: #fff;
-    color: #1e40af;
+    color: #7692FF;
     border-color: rgba(29, 78, 216, 0.55);
 }
 
@@ -1798,7 +1869,7 @@ body {
 #changePasswordModal .modal-content {
     max-width: min(480px, 94vw);
     width: 100%;
-    background: linear-gradient(180deg, #eff6ff 0%, #e0f2fe 50%, #dbeafe 100%);
+    background: linear-gradient(180deg, #ffffff 0%, rgba(118, 146, 255, 0.12) 50%, rgba(118, 146, 255, 0.18) 100%);
     border: 1px solid rgba(37, 99, 235, 0.4);
     box-shadow:
         0 24px 48px rgba(30, 64, 175, 0.18),
@@ -1808,13 +1879,13 @@ body {
 }
 
 #changePasswordModal .modal-header {
-    background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 45%, #2563eb 100%);
+    background: linear-gradient(180deg, rgba(61, 67, 124, 0.88) 0%, rgba(39, 35, 79, 0.92) 100%);
     border-bottom: 1px solid rgba(255, 255, 255, 0.35);
     padding: 18px 20px;
 }
 
 #changePasswordModal .modal-header h3 {
-    color: #1e3a8a;
+    color: #7692FF;
     font-size: 17px;
     margin: 0;
     display: flex;
@@ -1823,16 +1894,16 @@ body {
 }
 
 #changePasswordModal .modal-header h3 i {
-    color: #1e40af;
+    color: #7692FF;
 }
 
 #changePasswordModal .modal-header .close-btn {
-    color: #1e40af;
+    color: #7692FF;
 }
 
 #changePasswordModal .modal-header .close-btn:hover {
     background: rgba(255, 255, 255, 0.4);
-    color: #1e3a8a;
+    color: #7692FF;
 }
 
 #changePasswordModal .modal-body {
@@ -1858,17 +1929,17 @@ body {
 }
 
 #changePasswordModal .modal-body .form-group label i {
-    color: #2563eb;
+    color: #7692FF;
 }
 
 #changePasswordModal .form-control {
-    border: 2px solid rgba(147, 197, 253, 0.45);
+    border: 2px solid rgba(229, 219, 230, 0.45);
     background: rgba(255, 255, 255, 0.97);
 }
 
 #changePasswordModal .form-control:focus {
     outline: none;
-    border-color: #2563eb;
+    border-color: #7692FF;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.22);
 }
 
@@ -1885,12 +1956,12 @@ body {
     background: rgba(255, 255, 255, 0.55);
     border: 1px solid rgba(37, 99, 235, 0.25);
     border-radius: 10px;
-    border-left: 4px solid #2563eb;
+    border-left: 4px solid #7692FF;
 }
 
 #changePasswordModal .password-requirements p {
     margin: 0 0 10px;
-    color: #1e3a8a;
+    color: #7692FF;
     font-size: 13px;
 }
 
@@ -1924,14 +1995,14 @@ body {
 }
 
 #changePasswordModal .modal-footer .btn-primary {
-    background: linear-gradient(135deg, #60a5fa, #2563eb);
+    background: linear-gradient(135deg, #60a5fa, #7692FF);
     border: none;
     color: #fff;
     box-shadow: 0 2px 10px rgba(37, 99, 235, 0.35);
 }
 
 #changePasswordModal .modal-footer .btn-primary:hover {
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: linear-gradient(135deg, #7692FF, #1d4ed8);
     box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);
     transform: translateY(-1px);
 }
@@ -1945,7 +2016,7 @@ body {
 
 #changePasswordModal .modal-footer .btn-secondary:hover {
     background: #fff;
-    color: #1e40af;
+    color: #7692FF;
     border-color: rgba(29, 78, 216, 0.55);
 }
 
@@ -1960,7 +2031,7 @@ body {
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    background: linear-gradient(135deg, #bfdbfe, #2563eb);
+    background: linear-gradient(135deg, #7692FF, #5a78e8);
     color: #fff;
     display: flex;
     align-items: center;
@@ -1983,7 +2054,7 @@ body {
 }
 
 .admin-container .directory-info-small i {
-    color: #2563eb;
+    color: #7692FF;
 }
 
 .admin-container .status-badge.status-expired {
@@ -1997,8 +2068,8 @@ body {
 }
 
 .admin-container .status-badge.status-revoked {
-    background: #e2e8f0;
-    color: #4a5568;
+    background: rgba(229, 219, 230, 0.22);
+    color: rgba(255, 255, 255, 0.94);
 }
 
 .admin-container .expiring-soon {
@@ -2025,15 +2096,16 @@ body {
     top: 100%;
     left: 0;
     right: 0;
-    background: #fff;
-    border: 2px solid #bae6fd;
+    background: rgba(39, 35, 79, 0.98);
+    border: 2px solid rgba(229, 219, 230, 0.35);
     border-top: none;
     border-radius: 0 0 10px 10px;
     max-height: 220px;
     overflow-y: auto;
     z-index: 1000;
     display: none;
-    box-shadow: 0 8px 24px rgba(30, 64, 175, 0.12);
+    box-shadow: 0 16px 40px rgba(5, 5, 20, 0.35);
+    color: #ffffff;
 }
 
 .admin-container .search-results.active {
@@ -2044,20 +2116,26 @@ body {
     padding: 10px 15px;
     cursor: pointer;
     transition: background-color 0.15s;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid rgba(229, 219, 230, 0.18);
+    color: #ffffff;
 }
 
 .admin-container .search-result-item:hover {
-    background: #eff6ff;
+    background: rgba(118, 146, 255, 0.22);
 }
 
 .admin-container .search-result-item:last-child {
     border-bottom: none;
 }
 
+.admin-container .search-result-item strong,
+.admin-container .search-result-item em {
+    color: #ffffff;
+}
+
 .admin-container .search-result-item .directory-path {
     font-size: 12px;
-    color: #64748b;
+    color: rgba(255, 255, 255, 0.78);
     margin-top: 2px;
 }
 
@@ -2080,7 +2158,7 @@ body {
 }
 
 .admin-container .assignments-table--modern thead {
-    background: linear-gradient(135deg, #bfdbfe 0%, #2563eb 100%);
+    background: linear-gradient(180deg, rgba(61, 67, 124, 0.88) 0%, rgba(39, 35, 79, 0.92) 100%);
 }
 
 .admin-container .assignments-table--modern thead th {
@@ -2104,7 +2182,7 @@ body {
     padding: 12px 12px;
     font-size: 13px;
     line-height: 1.35;
-    color: #334155;
+    color: #E5DBE6;
     border-bottom: 1px solid rgba(37, 99, 235, 0.18);
     vertical-align: middle;
     background: rgba(255, 255, 255, 0.65);
@@ -2167,37 +2245,37 @@ body {
 }
 
 .admin-container .incoming-journal-table thead th:nth-child(1),
-.admin-container .incoming-journal-table tbody td:nth-child(1) {
+.admin-container .users-table--incoming-journal tbody td:nth-child(1) {
     width: 14%;
 }
 
 .admin-container .incoming-journal-table thead th:nth-child(2),
-.admin-container .incoming-journal-table tbody td:nth-child(2) {
+.admin-container .users-table--incoming-journal tbody td:nth-child(2) {
     width: 20%;
 }
 
 .admin-container .incoming-journal-table thead th:nth-child(3),
-.admin-container .incoming-journal-table tbody td:nth-child(3) {
+.admin-container .users-table--incoming-journal tbody td:nth-child(3) {
     width: 18%;
 }
 
 .admin-container .incoming-journal-table thead th:nth-child(4),
-.admin-container .incoming-journal-table tbody td:nth-child(4) {
+.admin-container .users-table--incoming-journal tbody td:nth-child(4) {
     width: 24%;
 }
 
 .admin-container .incoming-journal-table thead th:nth-child(5),
-.admin-container .incoming-journal-table tbody td:nth-child(5) {
+.admin-container .users-table--incoming-journal tbody td:nth-child(5) {
     width: 10%;
 }
 
 .admin-container .incoming-journal-table thead th:nth-child(6),
-.admin-container .incoming-journal-table tbody td:nth-child(6) {
+.admin-container .users-table--incoming-journal tbody td:nth-child(6) {
     width: 14%;
 }
 
 .admin-container .incoming-journal-table thead {
-    background: linear-gradient(135deg, #bfdbfe 0%, #2563eb 100%);
+    background: linear-gradient(180deg, rgba(61, 67, 124, 0.88) 0%, rgba(39, 35, 79, 0.92) 100%);
 }
 
 .admin-container .incoming-journal-table thead th {
@@ -2213,11 +2291,11 @@ body {
     box-sizing: border-box;
 }
 
-.admin-container .incoming-journal-table tbody td {
+.admin-container .users-table--incoming-journal tbody td {
     padding: 12px 12px;
     font-size: 13px;
     line-height: 1.45;
-    color: #334155;
+    color: #E5DBE6;
     border-bottom: 1px solid rgba(37, 99, 235, 0.18);
     border-right: 1px solid rgba(37, 99, 235, 0.18);
     vertical-align: top;
@@ -2225,12 +2303,12 @@ body {
     box-sizing: border-box;
 }
 
-.admin-container .incoming-journal-table tbody tr:hover td {
+.admin-container .users-table--incoming-journal tbody tr:hover td {
     background: rgba(255, 255, 255, 0.92);
 }
 
 .admin-container .incoming-journal-table thead th:last-child,
-.admin-container .incoming-journal-table tbody td:last-child {
+.admin-container .users-table--incoming-journal tbody td:last-child {
     border-right: none;
 }
 
@@ -2239,22 +2317,22 @@ body {
 }
 
 .admin-container .outgoing-journal-table thead th:nth-child(1),
-.admin-container .outgoing-journal-table tbody td:nth-child(1) {
+.admin-container .users-table--outgoing-journal tbody td:nth-child(1) {
     width: 20%;
 }
 
 .admin-container .outgoing-journal-table thead th:nth-child(2),
-.admin-container .outgoing-journal-table tbody td:nth-child(2) {
+.admin-container .users-table--outgoing-journal tbody td:nth-child(2) {
     width: 24%;
 }
 
 .admin-container .outgoing-journal-table thead th:nth-child(3),
-.admin-container .outgoing-journal-table tbody td:nth-child(3) {
+.admin-container .users-table--outgoing-journal tbody td:nth-child(3) {
     width: 36%;
 }
 
 .admin-container .outgoing-journal-table thead th:nth-child(4),
-.admin-container .outgoing-journal-table tbody td:nth-child(4) {
+.admin-container .users-table--outgoing-journal tbody td:nth-child(4) {
     width: 20%;
 }
 
@@ -2277,7 +2355,7 @@ body {
 
 .admin-container .table-placeholder {
     text-align: center;
-    color: #64748b;
+    color: #E5DBE6;
     padding: 28px 18px !important;
 }
 
@@ -2291,7 +2369,7 @@ body {
 
 /* Основной текст в зоне контента */
 .admin-container {
-    color: #24324d;
+    color: #7692FF;
 }
 
 .admin-container .main-content > .card,
@@ -2299,8 +2377,8 @@ body {
 .admin-container .stats-summary-card,
 .admin-container .stats-visual-card,
 .admin-container .modal-content {
-    background: rgba(244, 248, 253, 0.94);
-    border: 1px solid #d8e3f3;
+    background: rgba(61, 67, 124, 0.94);
+    border: 1px solid rgba(229, 219, 230, 0.22);
     box-shadow: 0 14px 34px rgba(8, 18, 38, 0.12);
 }
 
@@ -2311,14 +2389,14 @@ body {
 .admin-container .tree-view-container,
 .admin-container .stats-chart-wrapper,
 .admin-container .stats-empty-state {
-    background: rgba(244, 248, 253, 0.94);
-    border: 1px solid #d8e3f3;
+    background: rgba(61, 67, 124, 0.94);
+    border: 1px solid rgba(229, 219, 230, 0.22);
     box-shadow: 0 14px 34px rgba(8, 18, 38, 0.10);
 }
 
 .admin-container .tree-view-container.directories-tree-panel {
-    background: rgba(244, 248, 253, 0.94);
-    border: 1px solid #d8e3f3;
+    background: rgba(61, 67, 124, 0.94);
+    border: 1px solid rgba(229, 219, 230, 0.22);
     box-shadow: 0 14px 34px rgba(8, 18, 38, 0.1);
 }
 
@@ -2328,7 +2406,7 @@ body {
 .admin-container .card-header h3,
 .admin-container .tree-node-name,
 .admin-container .stats-ranking-name {
-    color: #26324f;
+    color: #7692FF;
 }
 
 .admin-container .page-subtitle,
@@ -2339,7 +2417,7 @@ body {
 .admin-container .empty-tree p,
 .admin-container .loading-state,
 .admin-container .info-label {
-    color: #71809d;
+    color: #E5DBE6;
 }
 
 .admin-container .search-box input,
@@ -2350,8 +2428,8 @@ body {
 .admin-container textarea,
 .admin-container select {
     background: rgba(255, 255, 255, 0.96);
-    color: #23314f;
-    border: 1px solid #d8e3f3;
+    color: #7692FF;
+    border: 1px solid rgba(229, 219, 230, 0.22);
     border-radius: 10px;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
@@ -2359,7 +2437,7 @@ body {
 .admin-container .search-box input::placeholder,
 .admin-container .form-control::placeholder,
 .admin-container textarea::placeholder {
-    color: #96a2bc;
+    color: #E5DBE6;
 }
 
 .admin-container .search-box input:focus,
@@ -2368,15 +2446,15 @@ body {
 .admin-container textarea:focus,
 .admin-container select:focus {
     outline: none;
-    border-color: #2457a6;
+    border-color: #7692FF;
     box-shadow: 0 0 0 3px rgba(36, 87, 166, 0.12);
 }
 
 .admin-container .btn-primary,
 .modal-overlay .btn-primary,
 .admin-container .card .card-header .btn-sm.btn-primary {
-    color: #eff6ff;
-    background: linear-gradient(135deg, #163d77, #2457a6);
+    color: #ffffff;
+    background: linear-gradient(135deg, #7692FF, #5a78e8);
     border: 1px solid rgba(22, 61, 119, 0.35);
     box-shadow: 0 10px 22px rgba(22, 61, 119, 0.28);
 }
@@ -2384,7 +2462,7 @@ body {
 .admin-container .btn-primary:hover,
 .modal-overlay .btn-primary:hover,
 .admin-container .card .card-header .btn-sm.btn-primary:hover {
-    color: #eff6ff;
+    color: #ffffff;
     background: linear-gradient(135deg, #143665, #214d91);
     box-shadow: 0 12px 24px rgba(22, 61, 119, 0.32);
 }
@@ -2392,7 +2470,7 @@ body {
 .admin-container .btn-primary i,
 .modal-overlay .btn-primary i,
 .admin-container .card .card-header .btn-sm.btn-primary i {
-    color: #eff6ff;
+    color: #ffffff;
 }
 
 .admin-container .btn-secondary,
@@ -2402,7 +2480,7 @@ body {
 .admin-container .view-toggle-btn,
 .admin-container .status-filter-btn,
 .admin-container .quick-action-btn {
-    color: #eff6ff;
+    color: #ffffff;
     background: linear-gradient(135deg, #0f274e, #183b72);
     border: 1px solid rgba(15, 39, 78, 0.35);
     box-shadow: 0 10px 22px rgba(15, 39, 78, 0.24);
@@ -2415,15 +2493,15 @@ body {
 .admin-container .view-toggle-btn:hover,
 .admin-container .status-filter-btn:hover,
 .admin-container .quick-action-btn:hover {
-    color: #eff6ff;
+    color: #ffffff;
     background: linear-gradient(135deg, #0c203f, #15325f);
     border-color: rgba(15, 39, 78, 0.42);
 }
 
 .admin-container .status-filter-btn.active,
 .admin-container .view-toggle-btn.active {
-    color: #eff6ff;
-    background: linear-gradient(135deg, #163d77, #2457a6);
+    color: #ffffff;
+    background: linear-gradient(135deg, #7692FF, #5a78e8);
     border-color: rgba(22, 61, 119, 0.42);
 }
 
@@ -2433,7 +2511,7 @@ body {
 .admin-container .outgoing-journal-table,
 .admin-container .counterparties-table,
 .admin-container .status-logs-table {
-    background: rgba(244, 248, 253, 0.94);
+    background: rgba(61, 67, 124, 0.94);
     border-radius: 10px;
     overflow: hidden;
     border-collapse: collapse;
@@ -2443,11 +2521,11 @@ body {
 
 .admin-container table thead th {
     background: #f7fafc;
-    color: #4a5568;
+    color: rgba(255, 255, 255, 0.94);
     font-weight: 600;
     text-align: left;
     padding: 15px 20px;
-    border-bottom: 2px solid #e2e8f0;
+    border-bottom: 2px solid rgba(229, 219, 230, 0.22);
     font-size: 14px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -2456,19 +2534,19 @@ body {
 
 .admin-container table tbody td {
     padding: 15px 20px;
-    color: #4a5568;
+    color: rgba(255, 255, 255, 0.94);
     font-size: 15px;
     background: #ffffff;
-    border-bottom: 1px solid #edf2f7;
+    border-bottom: 1px solid rgba(229, 219, 230, 0.12);
     vertical-align: top;
 }
 
 .admin-container table tbody tr:nth-child(even) td {
-    background: #fafafa;
+    background: rgba(229, 219, 230, 0.06);
 }
 
 .admin-container table tbody tr:hover td {
-    background: #f8fafc;
+    background: rgba(229, 219, 230, 0.08);
 }
 
 .admin-container .table-container,
@@ -2477,7 +2555,7 @@ body {
 .admin-container .table-container.table-container--incoming-journal {
     border-radius: 10px;
     overflow: hidden;
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(229, 219, 230, 0.22);
     background: #ffffff;
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
 }
@@ -2489,66 +2567,196 @@ body {
 .admin-container .counterparties-table thead th,
 .admin-container .status-logs-table thead th {
     background: #f7fafc;
-    color: #4a5568;
-    border-bottom: 2px solid #e2e8f0;
+    color: rgba(255, 255, 255, 0.94);
+    border-bottom: 2px solid rgba(229, 219, 230, 0.22);
 }
 
 .admin-container .directories-table--modern tbody td,
 .admin-container .assignments-table--modern tbody td,
-.admin-container .incoming-journal-table tbody td,
-.admin-container .outgoing-journal-table tbody td,
+.admin-container .users-table--incoming-journal tbody td,
+.admin-container .users-table--outgoing-journal tbody td,
 .admin-container .counterparties-table tbody td,
 .admin-container .status-logs-table tbody td {
     background: #ffffff;
-    border-bottom: 1px solid #edf2f7;
+    border-bottom: 1px solid rgba(229, 219, 230, 0.12);
 }
 
 .admin-container .directories-table--modern tbody tr:nth-child(even) td,
 .admin-container .assignments-table--modern tbody tr:nth-child(even) td,
-.admin-container .incoming-journal-table tbody tr:nth-child(even) td,
-.admin-container .outgoing-journal-table tbody tr:nth-child(even) td,
+.admin-container .users-table--incoming-journal tbody tr:nth-child(even) td,
+.admin-container .users-table--outgoing-journal tbody tr:nth-child(even) td,
 .admin-container .counterparties-table tbody tr:nth-child(even) td,
 .admin-container .status-logs-table tbody tr:nth-child(even) td {
-    background: #fafafa;
+    background: rgba(229, 219, 230, 0.06);
 }
 
 .admin-container .directories-table--modern tbody tr:hover td,
 .admin-container .assignments-table--modern tbody tr:hover td,
-.admin-container .incoming-journal-table tbody tr:hover td,
-.admin-container .outgoing-journal-table tbody tr:hover td,
+.admin-container .users-table--incoming-journal tbody tr:hover td,
+.admin-container .users-table--outgoing-journal tbody tr:hover td,
 .admin-container .counterparties-table tbody tr:hover td,
 .admin-container .status-logs-table tbody tr:hover td {
-    background: #f8fafc;
+    background: rgba(229, 219, 230, 0.08);
 }
 
 .admin-container .directories-table--modern .dir-td-num,
 .admin-container .directories-table--modern .dir-td-muted,
 .admin-container .journal-secondary-text {
-    color: #718096;
+    color: #E5DBE6;
 }
 
 .admin-container .directories-table--modern .dir-name-line i,
 .admin-container .status-indicator,
 .admin-container .table-placeholder i {
-    color: #2457a6;
+    color: #7692FF;
+}
+
+/* Входящий журнал: читаемая тёмная таблица */
+.admin-container .users-table--incoming-journal {
+    background: rgba(24, 15, 61, 0.22) !important;
+}
+
+.admin-container .users-table--incoming-journal table {
+    min-width: 1320px;
+}
+
+.admin-container .users-table--incoming-journal th {
+    padding: 16px 18px !important;
+    line-height: 1.35 !important;
+    vertical-align: middle !important;
+}
+
+.admin-container .users-table--incoming-journal td {
+    padding: 16px 18px !important;
+    font-size: 14px !important;
+    line-height: 1.55 !important;
+    color: rgba(255, 255, 255, 0.94) !important;
+    border-color: rgba(229, 219, 230, 0.18) !important;
+    background: rgba(229, 219, 230, 0.045) !important;
+}
+
+.admin-container .users-table--incoming-journal tr.even td {
+    background: rgba(229, 219, 230, 0.075) !important;
+}
+
+.admin-container .users-table--incoming-journal tr:hover td {
+    background: rgba(118, 146, 255, 0.16) !important;
+}
+
+.admin-container .users-table--incoming-journal tbody tr.journal-row--draft td {
+    background: rgba(217, 119, 6, 0.16) !important;
+}
+
+.admin-container .users-table--incoming-journal tbody tr.journal-row--registered td {
+    background: rgba(118, 146, 255, 0.13) !important;
+}
+
+.admin-container .users-table--incoming-journal tbody tr.journal-row--registered.journal-row--due-passed td {
+    background: rgba(220, 38, 38, 0.18) !important;
+}
+
+.admin-container .users-table--incoming-journal tbody tr.journal-row--executed td {
+    background: rgba(5, 150, 105, 0.16) !important;
+}
+
+.admin-container .users-table--incoming-journal tbody tr.journal-row--archived td {
+    background: rgba(124, 58, 237, 0.16) !important;
+}
+
+.admin-container .users-table--incoming-journal tbody tr.journal-row--unknown td {
+    background: rgba(229, 219, 230, 0.06) !important;
+}
+
+.admin-container .users-table--incoming-journal tbody tr:hover td {
+    background: rgba(118, 146, 255, 0.22) !important;
+}
+
+.admin-container .users-table--incoming-journal .journal-cell-block {
+    gap: 8px;
+}
+
+.admin-container .users-table--incoming-journal .journal-primary-text {
+    color: #ffffff !important;
+    font-weight: 700;
+}
+
+.admin-container .users-table--incoming-journal .journal-main-text,
+.admin-container .users-table--incoming-journal .journal-resolution-text {
+    color: rgba(255, 255, 255, 0.94) !important;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.admin-container .users-table--incoming-journal .journal-secondary-text {
+    color: rgba(255, 255, 255, 0.78) !important;
+    font-size: 12px;
+}
+
+.admin-container .users-table--incoming-journal .journal-index-badge,
+.admin-container .users-table--incoming-journal .journal-date-pill,
+.admin-container .users-table--incoming-journal .journal-status-badge {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    border: 1px solid rgba(229, 219, 230, 0.22);
+}
+
+.admin-container .users-table--incoming-journal .journal-index-badge,
+.admin-container .users-table--incoming-journal .journal-date-pill {
+    background: rgba(229, 219, 230, 0.12);
+    color: #ffffff;
+}
+
+.admin-container .users-table--incoming-journal .journal-status-badge.status-draft {
+    background: rgba(217, 119, 6, 0.22);
+    color: #ffd89a;
+    border-color: rgba(217, 119, 6, 0.38);
+}
+
+.admin-container .users-table--incoming-journal .journal-status-badge.status-registered {
+    background: rgba(118, 146, 255, 0.24);
+    color: #dbe4ff;
+    border-color: rgba(118, 146, 255, 0.45);
+}
+
+.admin-container .users-table--incoming-journal .journal-status-badge.status-executed {
+    background: rgba(5, 150, 105, 0.22);
+    color: #b7f7dc;
+    border-color: rgba(5, 150, 105, 0.4);
+}
+
+.admin-container .users-table--incoming-journal .journal-status-badge.status-archived {
+    background: rgba(124, 58, 237, 0.24);
+    color: #eadcff;
+    border-color: rgba(124, 58, 237, 0.42);
+}
+
+.admin-container .users-table--incoming-journal .journal-status-badge.status-unknown {
+    background: rgba(229, 219, 230, 0.12);
+    color: rgba(255, 255, 255, 0.86);
 }
 
 .admin-container .table-placeholder,
 .admin-container .directories-table--modern td.loading-state,
 .admin-container .directories-table--modern td.empty-state {
     background: #ffffff !important;
-    color: #718096;
+    color: #E5DBE6;
 }
 
 .admin-container .stats-ranking-header {
     background: #edf3fb;
     color: #4b6280;
-    border: 1px solid #d8e3f3;
+    border: 1px solid rgba(229, 219, 230, 0.22);
 }
 
 .admin-container .stats-ranking-item {
-    background: rgba(244, 248, 253, 0.94);
-    border: 1px solid #d8e3f3;
+    background: rgba(61, 67, 124, 0.94);
+    border: 1px solid rgba(229, 219, 230, 0.22);
     box-shadow: 0 14px 30px rgba(8, 18, 38, 0.08);
 }
 
@@ -2558,18 +2766,18 @@ body {
 }
 
 .admin-container .stats-ranking-bar-wrap {
-    background: #e8f0fb;
-    border-color: #d8e3f3;
+    background: rgba(118, 146, 255, 0.12);
+    border-color: rgba(229, 219, 230, 0.22);
 }
 
 .admin-container .stats-ranking-bar {
-    background: linear-gradient(135deg, #163d77, #2457a6);
+    background: linear-gradient(135deg, #7692FF, #5a78e8);
 }
 
 .admin-container .stats-ranking-value,
 .admin-container .stat-value,
 .admin-container .info-value {
-    color: #24304e;
+    color: #7692FF;
 }
 
 .admin-container .stat-icon.stats-gradient-purple,
@@ -2587,7 +2795,7 @@ body {
 #changePasswordModal .modal-header,
 .admin-container .modal-header {
     background: rgba(232, 240, 251, 0.9);
-    border-bottom: 1px solid #d8e3f3;
+    border-bottom: 1px solid rgba(229, 219, 230, 0.22);
 }
 
 .admin-container .modal-header h3,
@@ -2600,221 +2808,297 @@ body {
     background: transparent;
 }
 
-/* ===== Final admin-like table override for editor pages ===== */
-.admin-container .table-container.table-container--directories,
-.admin-container .table-container.table-container--assignments,
-.admin-container .table-container.table-container--incoming-journal,
-.admin-container .table-container {
-    border-radius: 10px !important;
-    border: 1px solid #e2e8f0 !important;
-    background: #ffffff !important;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+/* ===== Таблицы редактора — как в админ-панели (.users-table) ===== */
+.admin-container .users-table {
+    overflow-x: auto;
+    margin-bottom: 24px;
+    border-radius: 10px;
+    border: 1px solid rgba(229, 219, 230, 0.22);
+    background: transparent;
 }
 
-.admin-container .directories-table.directories-table--modern,
-.admin-container .assignments-table.assignments-table--modern,
-.admin-container .incoming-journal-table,
-.admin-container .outgoing-journal-table,
-.admin-container .counterparties-table,
-.admin-container .status-logs-table {
+.admin-container .users-table table {
     width: 100%;
-    border-collapse: collapse !important;
-    border-spacing: 0 !important;
-    background: #ffffff !important;
+    border-collapse: collapse;
+    min-width: 720px;
 }
 
-.admin-container .directories-table--modern thead,
-.admin-container .assignments-table--modern thead,
-.admin-container .incoming-journal-table thead,
-.admin-container .outgoing-journal-table thead,
-.admin-container .counterparties-table thead,
-.admin-container .status-logs-table thead {
-    background: #f7fafc !important;
+.admin-container .users-table th {
+    background: rgba(24, 15, 61, 0.72);
+    color: #ffffff;
+    font-weight: 700;
+    text-align: left;
+    padding: 15px 20px;
+    border-bottom: 2px solid rgba(229, 219, 230, 0.22);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
-.admin-container .directories-table--modern thead th,
-.admin-container .assignments-table--modern thead th,
-.admin-container .incoming-journal-table thead th,
-.admin-container .outgoing-journal-table thead th,
-.admin-container .counterparties-table thead th,
-.admin-container .status-logs-table thead th {
-    background: #f7fafc !important;
-    color: #4a5568 !important;
-    border: none !important;
-    border-bottom: 2px solid #e2e8f0 !important;
-    border-right: 1px solid #e2e8f0 !important;
-    padding: 15px 20px !important;
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.5px !important;
-    text-align: left !important;
-    vertical-align: middle !important;
+.admin-container .users-table td {
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(229, 219, 230, 0.12);
+    color: rgba(255, 255, 255, 0.94);
+    font-size: 15px;
+    vertical-align: middle;
 }
 
-.admin-container .incoming-journal-table thead th,
-.admin-container .outgoing-journal-table thead th {
-    text-align: center !important;
+.admin-container .users-table tr.even {
+    background: rgba(229, 219, 230, 0.06);
 }
 
-.admin-container .directories-table--modern thead th:last-child,
-.admin-container .assignments-table--modern thead th:last-child,
-.admin-container .incoming-journal-table thead th:last-child,
-.admin-container .outgoing-journal-table thead th:last-child,
-.admin-container .counterparties-table thead th:last-child,
-.admin-container .status-logs-table thead th:last-child {
-    border-right: none !important;
+.admin-container .users-table tr:hover {
+    background: rgba(229, 219, 230, 0.1);
 }
 
-.admin-container .directories-table--modern tbody td,
-.admin-container .assignments-table--modern tbody td,
-.admin-container .incoming-journal-table tbody td,
-.admin-container .outgoing-journal-table tbody td,
-.admin-container .counterparties-table tbody td,
-.admin-container .status-logs-table tbody td {
-    background: #ffffff !important;
-    color: #4a5568 !important;
-    border-bottom: 1px solid #edf2f7 !important;
-    border-right: 1px solid #edf2f7 !important;
-    padding: 15px 20px !important;
-    font-size: 15px !important;
-    line-height: 1.45 !important;
-    vertical-align: top !important;
+.admin-container .users-table tr.even:hover {
+    background: rgba(229, 219, 230, 0.1);
 }
 
-.admin-container .directories-table--modern tbody td:last-child,
-.admin-container .assignments-table--modern tbody td:last-child,
-.admin-container .incoming-journal-table tbody td:last-child,
-.admin-container .outgoing-journal-table tbody td:last-child,
-.admin-container .counterparties-table tbody td:last-child,
-.admin-container .status-logs-table tbody td:last-child {
-    border-right: none !important;
+.admin-container .users-table .user-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-.admin-container .directories-table--modern tbody tr:nth-child(even) td,
-.admin-container .assignments-table--modern tbody tr:nth-child(even) td,
-.admin-container .incoming-journal-table tbody tr:nth-child(even) td,
-.admin-container .outgoing-journal-table tbody tr:nth-child(even) td,
-.admin-container .counterparties-table tbody tr:nth-child(even) td,
-.admin-container .status-logs-table tbody tr:nth-child(even) td {
-    background: #fafafa !important;
+.admin-container .users-table .user-avatar-small {
+    width: 36px;
+    height: 36px;
+    background: #7692FF;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
 }
 
-.admin-container .directories-table--modern tbody tr:hover td,
-.admin-container .assignments-table--modern tbody tr:hover td,
-.admin-container .incoming-journal-table tbody tr:hover td,
-.admin-container .outgoing-journal-table tbody tr:hover td,
-.admin-container .counterparties-table tbody tr:hover td,
-.admin-container .status-logs-table tbody tr:hover td {
-    background: #f8fafc !important;
+.admin-container .users-table .action-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+}
+
+.admin-container .users-table .btn-action {
+    background: rgba(229, 219, 230, 0.14);
+    color: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(229, 219, 230, 0.22);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-right: 0;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.admin-container .users-table .btn-action:hover {
+    background: rgba(118, 146, 255, 0.22);
+    border-color: rgba(118, 146, 255, 0.45);
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+.admin-container .users-table .btn-action-edit:hover {
+    background: rgba(237, 137, 54, 0.22);
+    border-color: rgba(237, 137, 54, 0.45);
+}
+
+.admin-container .users-table .btn-action-delete:hover {
+    background: rgba(229, 62, 62, 0.22);
+    border-color: rgba(229, 62, 62, 0.45);
+}
+
+.admin-container .users-table .btn-action i {
+    color: #7692FF;
+}
+
+.admin-container .users-table .btn-action:hover i {
+    color: #fff;
+}
+
+.admin-container .users-table .col-actions-header,
+.admin-container .users-table .dir-td-actions,
+.admin-container .users-table .assignments-actions-cell {
+    text-align: center;
+}
+
+.admin-container .users-table .assignments-actions-cell .action-buttons,
+.admin-container .users-table .dir-td-actions .action-buttons {
+    justify-content: center;
+}
+
+.admin-container .users-table .table-placeholder,
+.admin-container .users-table .empty-state,
+.admin-container .users-table .loading-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.admin-container .users-table--incoming-journal table,
+.admin-container .users-table--outgoing-journal table {
+    min-width: 1180px;
+    table-layout: fixed;
+}
+
+.admin-container .users-table--incoming-journal th,
+.admin-container .users-table--incoming-journal td,
+.admin-container .users-table--outgoing-journal th,
+.admin-container .users-table--outgoing-journal td {
+    vertical-align: top;
+    line-height: 1.45;
+}
+
+.admin-container .users-table--incoming-journal th,
+.admin-container .users-table--outgoing-journal th {
+    text-align: center;
+    white-space: normal;
+}
+
+.admin-container .users-table--incoming-journal th:nth-child(1),
+.admin-container .users-table--incoming-journal td:nth-child(1) { width: 14%; }
+.admin-container .users-table--incoming-journal th:nth-child(2),
+.admin-container .users-table--incoming-journal td:nth-child(2) { width: 20%; }
+.admin-container .users-table--incoming-journal th:nth-child(3),
+.admin-container .users-table--incoming-journal td:nth-child(3) { width: 22%; }
+.admin-container .users-table--incoming-journal th:nth-child(4),
+.admin-container .users-table--incoming-journal td:nth-child(4) { width: 22%; }
+.admin-container .users-table--incoming-journal th:nth-child(5),
+.admin-container .users-table--incoming-journal td:nth-child(5) { width: 10%; }
+.admin-container .users-table--incoming-journal th:nth-child(6),
+.admin-container .users-table--incoming-journal td:nth-child(6) { width: 12%; }
+
+.admin-container .users-table--outgoing-journal th:nth-child(1),
+.admin-container .users-table--outgoing-journal td:nth-child(1) { width: 18%; }
+.admin-container .users-table--outgoing-journal th:nth-child(2),
+.admin-container .users-table--outgoing-journal td:nth-child(2) { width: 22%; }
+.admin-container .users-table--outgoing-journal th:nth-child(3),
+.admin-container .users-table--outgoing-journal td:nth-child(3) { width: 42%; }
+.admin-container .users-table--outgoing-journal th:nth-child(4),
+.admin-container .users-table--outgoing-journal td:nth-child(4) { width: 18%; }
+
+.admin-container .users-table .dir-td-muted {
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.admin-container .users-table .dir-name-line i {
+    color: #7692FF;
 }
 
 /* Журналы входящей / исходящей документации (редактор): фон строки по статусу */
-.admin-container .incoming-journal-table tbody tr.journal-row--draft td,
-.admin-container .outgoing-journal-table tbody tr.journal-row--draft td {
+.admin-container .users-table--incoming-journal tbody tr.journal-row--draft td,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--draft td {
     background: rgba(254, 243, 199, 0.92) !important;
 }
 
-.admin-container .incoming-journal-table tbody tr.journal-row--draft:hover td,
-.admin-container .outgoing-journal-table tbody tr.journal-row--draft:hover td {
+.admin-container .users-table--incoming-journal tbody tr.journal-row--draft:hover td,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--draft:hover td {
     background: rgba(253, 230, 138, 0.98) !important;
 }
 
-.admin-container .incoming-journal-table tbody tr.journal-row--registered td,
-.admin-container .outgoing-journal-table tbody tr.journal-row--registered td {
-    background: rgba(219, 234, 254, 0.92) !important;
+.admin-container .users-table--incoming-journal tbody tr.journal-row--registered td,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--registered td {
+    background: rgba(229, 219, 230, 0.92) !important;
 }
 
-.admin-container .incoming-journal-table tbody tr.journal-row--registered:hover td,
-.admin-container .outgoing-journal-table tbody tr.journal-row--registered:hover td {
-    background: rgba(191, 219, 254, 0.98) !important;
+.admin-container .users-table--incoming-journal tbody tr.journal-row--registered:hover td,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--registered:hover td {
+    background: rgba(229, 219, 230, 0.98) !important;
 }
 
 /* В процессе + срок исполнения уже прошёл */
-.admin-container .incoming-journal-table tbody tr.journal-row--registered.journal-row--due-passed td,
-.admin-container .outgoing-journal-table tbody tr.journal-row--registered.journal-row--due-passed td {
+.admin-container .users-table--incoming-journal tbody tr.journal-row--registered.journal-row--due-passed td,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--registered.journal-row--due-passed td {
     background: rgba(254, 226, 226, 0.95) !important;
 }
 
-.admin-container .incoming-journal-table tbody tr.journal-row--registered.journal-row--due-passed:hover td,
-.admin-container .outgoing-journal-table tbody tr.journal-row--registered.journal-row--due-passed:hover td {
+.admin-container .users-table--incoming-journal tbody tr.journal-row--registered.journal-row--due-passed:hover td,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--registered.journal-row--due-passed:hover td {
     background: rgba(252, 165, 165, 0.55) !important;
 }
 
-.admin-container .incoming-journal-table tbody tr.journal-row--registered.journal-row--due-passed td:first-child,
-.admin-container .outgoing-journal-table tbody tr.journal-row--registered.journal-row--due-passed td:first-child {
+.admin-container .users-table--incoming-journal tbody tr.journal-row--registered.journal-row--due-passed td:first-child,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--registered.journal-row--due-passed td:first-child {
     box-shadow: inset 4px 0 0 0 #dc2626;
 }
 
-.admin-container .incoming-journal-table tbody tr.journal-row--executed td,
-.admin-container .outgoing-journal-table tbody tr.journal-row--executed td {
+.admin-container .users-table--incoming-journal tbody tr.journal-row--executed td,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--executed td {
     background: rgba(209, 250, 229, 0.92) !important;
 }
 
-.admin-container .incoming-journal-table tbody tr.journal-row--executed:hover td,
-.admin-container .outgoing-journal-table tbody tr.journal-row--executed:hover td {
+.admin-container .users-table--incoming-journal tbody tr.journal-row--executed:hover td,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--executed:hover td {
     background: rgba(167, 243, 208, 0.98) !important;
 }
 
-.admin-container .incoming-journal-table tbody tr.journal-row--archived td,
-.admin-container .outgoing-journal-table tbody tr.journal-row--archived td {
+.admin-container .users-table--incoming-journal tbody tr.journal-row--archived td,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--archived td {
     background: rgba(237, 233, 254, 0.88) !important;
 }
 
-.admin-container .incoming-journal-table tbody tr.journal-row--archived:hover td,
-.admin-container .outgoing-journal-table tbody tr.journal-row--archived:hover td {
+.admin-container .users-table--incoming-journal tbody tr.journal-row--archived:hover td,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--archived:hover td {
     background: rgba(221, 214, 254, 0.95) !important;
 }
 
-.admin-container .incoming-journal-table tbody tr.journal-row--unknown td,
-.admin-container .outgoing-journal-table tbody tr.journal-row--unknown td {
+.admin-container .users-table--incoming-journal tbody tr.journal-row--unknown td,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--unknown td {
     background: rgba(241, 245, 249, 0.92) !important;
 }
 
-.admin-container .incoming-journal-table tbody tr.journal-row--unknown:hover td,
-.admin-container .outgoing-journal-table tbody tr.journal-row--unknown:hover td {
+.admin-container .users-table--incoming-journal tbody tr.journal-row--unknown:hover td,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--unknown:hover td {
     background: rgba(226, 232, 240, 0.98) !important;
 }
 
-.admin-container .incoming-journal-table tbody tr.journal-row td:first-child,
-.admin-container .outgoing-journal-table tbody tr.journal-row td:first-child {
+.admin-container .users-table--incoming-journal tbody tr.journal-row td:first-child,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row td:first-child {
     box-shadow: inset 4px 0 0 0 transparent;
 }
 
-.admin-container .incoming-journal-table tbody tr.journal-row--draft td:first-child,
-.admin-container .outgoing-journal-table tbody tr.journal-row--draft td:first-child {
+.admin-container .users-table--incoming-journal tbody tr.journal-row--draft td:first-child,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--draft td:first-child {
     box-shadow: inset 4px 0 0 0 #d97706;
 }
 
-.admin-container .incoming-journal-table tbody tr.journal-row--registered td:first-child,
-.admin-container .outgoing-journal-table tbody tr.journal-row--registered td:first-child {
-    box-shadow: inset 4px 0 0 0 #2563eb;
+.admin-container .users-table--incoming-journal tbody tr.journal-row--registered td:first-child,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--registered td:first-child {
+    box-shadow: inset 4px 0 0 0 #7692FF;
 }
 
-.admin-container .incoming-journal-table tbody tr.journal-row--executed td:first-child,
-.admin-container .outgoing-journal-table tbody tr.journal-row--executed td:first-child {
+.admin-container .users-table--incoming-journal tbody tr.journal-row--executed td:first-child,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--executed td:first-child {
     box-shadow: inset 4px 0 0 0 #059669;
 }
 
-.admin-container .incoming-journal-table tbody tr.journal-row--archived td:first-child,
-.admin-container .outgoing-journal-table tbody tr.journal-row--archived td:first-child {
+.admin-container .users-table--incoming-journal tbody tr.journal-row--archived td:first-child,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--archived td:first-child {
     box-shadow: inset 4px 0 0 0 #7c3aed;
 }
 
-.admin-container .incoming-journal-table tbody tr.journal-row--unknown td:first-child,
-.admin-container .outgoing-journal-table tbody tr.journal-row--unknown td:first-child {
+.admin-container .users-table--incoming-journal tbody tr.journal-row--unknown td:first-child,
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--unknown td:first-child {
     box-shadow: inset 4px 0 0 0 #94a3b8;
 }
 
 .admin-container .directories-table--modern .dir-td-num,
 .admin-container .directories-table--modern .dir-td-muted,
 .admin-container .journal-secondary-text {
-    color: #718096 !important;
+    color: #E5DBE6 !important;
 }
 
 .admin-container .directories-table--modern .dir-name-line i,
 .admin-container .table-placeholder i {
-    color: #2457a6 !important;
+    color: #7692FF !important;
 }
 
 /* ===== Список каталогов: сетка, ячейки, пустые состояния (единый admin-вид) ===== */
@@ -2863,7 +3147,7 @@ body {
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
     font-weight: 600 !important;
-    color: #2d3748 !important;
+    color: #7692FF !important;
 }
 
 .admin-container .directories-table--modern .dir-name-line i {
@@ -2925,7 +3209,7 @@ body {
     padding: 44px 24px !important;
     text-align: center !important;
     vertical-align: middle !important;
-    background: #f8fafc !important;
+    background: rgba(229, 219, 230, 0.08) !important;
     border-right: none !important;
 }
 
@@ -2934,7 +3218,7 @@ body {
     display: block !important;
     margin: 0 auto 12px !important;
     font-size: 2.25rem !important;
-    color: #2457a6 !important;
+    color: #7692FF !important;
 }
 
 .admin-container .directories-table--modern td.empty-state--error i {
@@ -2945,14 +3229,14 @@ body {
     margin: 0 0 8px !important;
     font-size: 1.1rem !important;
     font-weight: 600 !important;
-    color: #2d3748 !important;
+    color: #7692FF !important;
 }
 
 .admin-container .directories-table--modern td.empty-state p {
     margin: 0 !important;
     font-size: 14px !important;
     line-height: 1.5 !important;
-    color: #718096 !important;
+    color: #E5DBE6 !important;
     max-width: 28rem !important;
     margin-left: auto !important;
     margin-right: auto !important;
@@ -2971,7 +3255,7 @@ body {
 .journal-export-hint {
     font-size: 13px;
     line-height: 1.5;
-    color: #4a5568;
+    color: rgba(255, 255, 255, 0.94);
     margin: 0 0 14px 0;
 }
 
@@ -2988,7 +3272,7 @@ body {
 }
 
 .journal-export-fieldset {
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(229, 219, 230, 0.22);
     border-radius: 8px;
     padding: 12px 14px 14px;
     margin: 16px 0 0 0;
@@ -2997,7 +3281,7 @@ body {
 .journal-export-fieldset legend {
     font-size: 13px;
     font-weight: 600;
-    color: #2d3748;
+    color: #7692FF;
     padding: 0 6px;
 }
 
@@ -3013,7 +3297,7 @@ body {
     gap: 10px;
     font-size: 14px;
     line-height: 1.4;
-    color: #2d3748;
+    color: #7692FF;
     cursor: pointer;
 }
 
@@ -3051,4 +3335,292 @@ body {
         width: 100%;
         min-width: 0;
     }
+}
+
+/* Мастер «Новое назначение» (редактор): два столбца + список документов */
+.modal-content--assignment-wizard {
+    max-width: 960px;
+    width: 96%;
+}
+
+.assignment-wizard-body {
+    padding: 0 4px;
+}
+
+.assignment-wizard-grid {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) minmax(300px, 1.1fr);
+    gap: 20px 24px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .assignment-wizard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.assignment-wizard-col--main .form-group {
+    margin-bottom: 16px;
+}
+
+.assignment-side-card {
+    background: rgba(229, 219, 230, 0.08);
+    border: 1px solid rgba(229, 219, 230, 0.22);
+    border-radius: 10px;
+    padding: 16px 16px 14px;
+}
+
+.assignment-side-title {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1a365d;
+}
+
+.assignment-side-hint {
+    margin: 0 0 14px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #E5DBE6;
+}
+
+.assignment-access-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.assignment-radio {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #E5DBE6;
+    cursor: pointer;
+}
+
+.assignment-radio input {
+    margin-top: 3px;
+    flex-shrink: 0;
+}
+
+.assignment-documents-panel {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px dashed #cbd5e1;
+}
+
+.assignment-documents-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.assignment-documents-toolbar .form-control-sm {
+    flex: 1;
+    min-width: 160px;
+}
+
+.assignment-documents-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.assignment-documents-note {
+    font-size: 12px;
+    color: #E5DBE6;
+    margin: 0 0 10px;
+    line-height: 1.4;
+}
+
+.assignment-documents-list {
+    max-height: 280px;
+    overflow: auto;
+    border: 1px solid rgba(229, 219, 230, 0.22);
+    border-radius: 8px;
+    background: #fff;
+    padding: 6px 4px;
+}
+
+.assignment-documents-empty {
+    font-size: 13px;
+    color: #E5DBE6;
+    margin: 8px 0 0;
+}
+
+.assignment-docs-loading {
+    padding: 12px;
+    text-align: center;
+    font-size: 13px;
+    color: #E5DBE6;
+}
+
+.assignment-doc-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.assignment-doc-row:hover {
+    background: rgba(229, 219, 230, 0.12);
+}
+
+.assignment-doc-cb {
+    margin-top: 3px;
+    flex-shrink: 0;
+}
+
+.assignment-doc-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.assignment-doc-meta strong {
+    font-weight: 600;
+    color: #1e293b;
+    word-break: break-word;
+}
+
+.assignment-doc-meta small {
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1.35;
+}
+
+/* Финальный override: читаемость входящего журнала поверх старых статусных цветов */
+.admin-container .users-table--incoming-journal table {
+    min-width: 1320px !important;
+}
+
+.admin-container .users-table--incoming-journal td {
+    padding: 16px 18px !important;
+    font-size: 14px !important;
+    line-height: 1.55 !important;
+    color: rgba(255, 255, 255, 0.94) !important;
+    border-color: rgba(229, 219, 230, 0.18) !important;
+    background: rgba(229, 219, 230, 0.045) !important;
+}
+
+.admin-container .users-table--incoming-journal tr.even td {
+    background: rgba(229, 219, 230, 0.075) !important;
+}
+
+.admin-container .users-table--incoming-journal tbody tr.journal-row--draft td {
+    background: rgba(217, 119, 6, 0.16) !important;
+}
+
+.admin-container .users-table--incoming-journal tbody tr.journal-row--registered td {
+    background: rgba(118, 146, 255, 0.13) !important;
+}
+
+.admin-container .users-table--incoming-journal tbody tr.journal-row--registered.journal-row--due-passed td {
+    background: rgba(220, 38, 38, 0.18) !important;
+}
+
+.admin-container .users-table--incoming-journal tbody tr.journal-row--executed td {
+    background: rgba(5, 150, 105, 0.16) !important;
+}
+
+.admin-container .users-table--incoming-journal tbody tr.journal-row--archived td {
+    background: rgba(124, 58, 237, 0.16) !important;
+}
+
+.admin-container .users-table--incoming-journal tbody tr.journal-row--unknown td {
+    background: rgba(229, 219, 230, 0.06) !important;
+}
+
+.admin-container .users-table--incoming-journal tbody tr:hover td {
+    background: rgba(118, 146, 255, 0.22) !important;
+}
+
+.admin-container .users-table--incoming-journal .journal-primary-text,
+.admin-container .users-table--incoming-journal .journal-main-text,
+.admin-container .users-table--incoming-journal .journal-resolution-text {
+    color: rgba(255, 255, 255, 0.94) !important;
+}
+
+.admin-container .users-table--incoming-journal .journal-secondary-text {
+    color: rgba(255, 255, 255, 0.78) !important;
+}
+
+/* Финальный override: читаемость исходящего журнала */
+.admin-container .users-table--outgoing-journal table {
+    min-width: 1040px !important;
+}
+
+.admin-container .users-table--outgoing-journal th {
+    white-space: normal !important;
+    line-height: 1.35 !important;
+    text-align: center !important;
+}
+
+.admin-container .users-table--outgoing-journal td {
+    padding: 16px 18px !important;
+    font-size: 14px !important;
+    line-height: 1.55 !important;
+    color: rgba(255, 255, 255, 0.94) !important;
+    border-color: rgba(229, 219, 230, 0.18) !important;
+    background: rgba(229, 219, 230, 0.045) !important;
+}
+
+.admin-container .users-table--outgoing-journal tr.even td {
+    background: rgba(229, 219, 230, 0.075) !important;
+}
+
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--draft td {
+    background: rgba(217, 119, 6, 0.16) !important;
+}
+
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--registered td {
+    background: rgba(118, 146, 255, 0.13) !important;
+}
+
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--registered.journal-row--due-passed td {
+    background: rgba(220, 38, 38, 0.18) !important;
+}
+
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--executed td {
+    background: rgba(5, 150, 105, 0.16) !important;
+}
+
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--archived td {
+    background: rgba(124, 58, 237, 0.16) !important;
+}
+
+.admin-container .users-table--outgoing-journal tbody tr.journal-row--unknown td {
+    background: rgba(229, 219, 230, 0.06) !important;
+}
+
+.admin-container .users-table--outgoing-journal tbody tr:hover td {
+    background: rgba(118, 146, 255, 0.22) !important;
+}
+
+.admin-container .users-table--outgoing-journal .journal-primary-text,
+.admin-container .users-table--outgoing-journal .journal-main-text {
+    color: rgba(255, 255, 255, 0.94) !important;
+}
+
+.admin-container .users-table--outgoing-journal .journal-secondary-text {
+    color: rgba(255, 255, 255, 0.78) !important;
+}
+
+.assignment-doc-reg {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #0369a1;
+    background: rgba(118, 146, 255, 0.12);
+    padding: 1px 6px;
+    border-radius: 4px;
 }

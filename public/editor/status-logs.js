@@ -76,14 +76,15 @@ class StatusLogsPage {
         }
         
         let html = '';
-        pageData.forEach(log => {
+        pageData.forEach((log, index) => {
             const receivedDate = new Date(log.receivedDate).toLocaleDateString('ru-RU');
             const changedAt = new Date(log.changedAt).toLocaleDateString('ru-RU');
             const previousStatusClass = `status-${log.previousStatus || 'new'}`;
             const currentStatusClass = `status-${log.currentStatus}`;
+            const rowClass = index % 2 === 0 ? 'even' : 'odd';
             
             html += `
-                <tr>
+                <tr class="${rowClass}">
                     <td>
                         <a href="#" onclick="statusLogsPage.showDetails(${log.letterId})" class="letter-link">
                             #${log.letterId}
@@ -102,7 +103,7 @@ class StatusLogsPage {
                     </td>
                     <td>${changedAt}</td>
                     <td>
-                        <div class="responsible-cell">
+                        <div class="user-cell">
                             <div class="user-avatar-small">${log.responsibleName?.charAt(0) || '—'}</div>
                             <span>${log.responsibleName || 'Не назначен'}</span>
                         </div>

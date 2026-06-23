@@ -1,4 +1,4 @@
-/* Общие сбросы */
+﻿/* Общие сбросы */
 * {
     margin: 0;
     padding: 0;
@@ -7,8 +7,9 @@
 
 body {
     font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #f8fafc;
-    color: #334155;
+    background: linear-gradient(180deg, #201a4f 0%, #41236f 48%, #180f3d 100%);
+    background-attachment: fixed;
+    color: #E5DBE6;
     line-height: 1.6;
     height: 100vh;
     display: flex;
@@ -17,7 +18,7 @@ body {
 
 /* Хэдер */
 .header {
-    background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+    background: linear-gradient(180deg, rgba(61, 67, 124, 0.88) 0%, rgba(39, 35, 79, 0.92) 100%);
     color: white;
     padding: 15px 30px;
     display: flex;
@@ -134,7 +135,7 @@ body {
 }
 
 .dropdown-content a {
-    color: #334155;
+    color: #E5DBE6;
     padding: 12px 16px;
     text-decoration: none;
     display: flex;
@@ -144,12 +145,12 @@ body {
 }
 
 .dropdown-content a:hover {
-    background: #f1f5f9;
+    background: rgba(229, 219, 230, 0.12);
 }
 
 .dropdown-content a i {
     width: 20px;
-    color: #5b86e5;
+    color: #7692FF;
 }
 
 /* Кнопка для открытия сайдбара на мобильных */
@@ -181,14 +182,14 @@ body {
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
     display: flex;
     flex-direction: column;
-    border-right: 1px solid #e2e8f0;
+    border-right: 1px solid rgba(229, 219, 230, 0.22);
 }
 
 /* Шапка сайдбара */
 .sidebar-header {
     padding: 20px;
-    border-bottom: 1px solid #e2e8f0;
-    background: #f8fafc;
+    border-bottom: 1px solid rgba(229, 219, 230, 0.22);
+    background: rgba(229, 219, 230, 0.08);
 }
 
 .sidebar-brand {
@@ -200,21 +201,21 @@ body {
 .sidebar-brand h2 {
     font-size: 16px;
     font-weight: 600;
-    color: #334155;
+    color: #E5DBE6;
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
 .sidebar-brand i {
-    color: #5b86e5;
+    color: #7692FF;
 }
 
 .close-sidebar-btn {
     display: none;
-    background: #e2e8f0;
+    background: rgba(229, 219, 230, 0.22);
     border: none;
-    color: #64748b;
+    color: #E5DBE6;
     width: 32px;
     height: 32px;
     border-radius: 6px;
@@ -256,13 +257,13 @@ body {
 }
 
 .sidebar-link:hover {
-    background: #f1f5f9;
-    color: #334155;
+    background: rgba(229, 219, 230, 0.12);
+    color: #E5DBE6;
     border-left-color: #cbd5e1;
 }
 
 .sidebar-link.active {
-    background: #e0f2fe;
+    background: rgba(118, 146, 255, 0.12);
     color: #0369a1;
     border-left-color: #0ea5e9;
 }
@@ -279,7 +280,7 @@ body {
     justify-content: center;
     margin-right: 12px;
     font-size: 16px;
-    color: #64748b;
+    color: #E5DBE6;
 }
 
 .sidebar-text {
@@ -299,8 +300,8 @@ body {
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.3s ease;
-    background: #f8fafc;
-    border-left: 3px solid #e2e8f0;
+    background: rgba(229, 219, 230, 0.08);
+    border-left: 3px solid rgba(229, 219, 230, 0.22);
     margin-left: 20px;
 }
 
@@ -316,7 +317,7 @@ body {
     display: flex;
     align-items: center;
     padding: 12px 20px 12px 56px;
-    color: #64748b;
+    color: #E5DBE6;
     text-decoration: none;
     font-size: 13px;
     font-weight: 400;
@@ -324,8 +325,8 @@ body {
 }
 
 .sidebar-submenu-link:hover {
-    background: #f1f5f9;
-    color: #334155;
+    background: rgba(229, 219, 230, 0.12);
+    color: #E5DBE6;
 }
 
 .sidebar-submenu-link i {
@@ -338,8 +339,8 @@ body {
 /* Футер сайдбара */
 .sidebar-footer {
     padding: 15px 20px;
-    border-top: 1px solid #e2e8f0;
-    background: #f8fafc;
+    border-top: 1px solid rgba(229, 219, 230, 0.22);
+    background: rgba(229, 219, 230, 0.08);
 }
 
 .sidebar-version {
@@ -355,7 +356,7 @@ body {
     transition: margin-left 0.3s ease;
     margin-left: 250px; /* Ширина сайдбара */
     margin-top: 74px; /* Высота хэдера */
-    background: #f8fafc;
+    background: rgba(229, 219, 230, 0.08);
     min-height: calc(100vh - 74px);
 }
 
@@ -375,7 +376,7 @@ body {
 }
 
 .page-header p {
-    color: #64748b;
+    color: #E5DBE6;
     font-size: 16px;
     line-height: 1.6;
 }
@@ -396,7 +397,7 @@ body {
     align-items: center;
     gap: 20px;
     transition: all 0.3s ease;
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(229, 219, 230, 0.22);
 }
 
 .stat-card:hover {
@@ -409,7 +410,7 @@ body {
     width: 60px;
     height: 60px;
     border-radius: 12px;
-    background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+    background: linear-gradient(135deg, #7692FF 0%, #7692FF 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -419,13 +420,13 @@ body {
 
 .stat-info h3 {
     font-size: 28px;
-    color: #1e293b;
+    color: rgba(255, 255, 255, 0.94);
     margin-bottom: 5px;
     font-weight: 600;
 }
 
 .stat-info p {
-    color: #64748b;
+    color: rgba(255, 255, 255, 0.82);
     font-size: 14px;
 }
 
@@ -435,7 +436,7 @@ body {
     border-radius: 12px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     margin-bottom: 30px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(229, 219, 230, 0.22);
 }
 
 .content-section h3 {
@@ -455,14 +456,14 @@ body {
     display: flex;
     align-items: center;
     padding: 20px;
-    background: #f8fafc;
+    background: rgba(229, 219, 230, 0.08);
     border-radius: 10px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(229, 219, 230, 0.22);
     transition: all 0.3s ease;
 }
 
 .action-item:hover {
-    background: #f1f5f9;
+    background: rgba(229, 219, 230, 0.12);
     border-color: #cbd5e1;
 }
 
@@ -502,7 +503,7 @@ body {
 }
 
 .action-details p {
-    color: #64748b;
+    color: #E5DBE6;
     margin-bottom: 5px;
     font-size: 14px;
 }
@@ -645,9 +646,9 @@ body {
 }
 
 .user-status.never-changed {
-    background: #dbeafe;
-    color: #1e40af;
-    border: 1px solid #bfdbfe;
+    background: rgba(118, 146, 255, 0.18);
+    color: #7692FF;
+    border: 1px solid rgba(229, 219, 230, 0.22);
 }
 
 .user-status.error {
@@ -769,7 +770,7 @@ body {
     align-items: center;
     margin-bottom: 20px;
     padding-bottom: 15px;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid rgba(229, 219, 230, 0.22);
 }
 
 .section-header h3 {
@@ -784,7 +785,7 @@ body {
 .section-actions .btn-sm {
     padding: 6px 12px;
     font-size: 13px;
-    background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+    background: linear-gradient(135deg, #7692FF 0%, #7692FF 100%);
     color: white;
     border: none;
     border-radius: 6px;
@@ -802,8 +803,8 @@ body {
 
 /* Добавьте в секцию стилей */
 .checkbox-group {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
+    background: rgba(229, 219, 230, 0.08);
+    border: 1px solid rgba(229, 219, 230, 0.22);
     border-radius: 8px;
     padding: 15px;
     margin-top: 10px;
@@ -823,20 +824,20 @@ body {
 }
 
 .checkbox-group i {
-    color: #4299e1;
+    color: #7692FF;
     font-size: 18px;
     margin-top: 2px;
 }
 
 .checkbox-group span {
     flex: 1;
-    color: #2d3748;
+    color: #7692FF;
     font-size: 14px;
 }
 
 .checkbox-group small {
     display: block;
-    color: #718096;
+    color: #E5DBE6;
     font-size: 12px;
     margin-top: 5px;
     line-height: 1.4;

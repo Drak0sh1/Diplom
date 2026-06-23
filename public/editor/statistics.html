@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -9,10 +9,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="editor.css">
     <link rel="stylesheet" href="../user/user-nav.css">
+    <link rel="stylesheet" href="../app-theme.css">
 </head>
 <body>
     <div class="admin-container">
-        <header class="header">
+        <header class="header header--editor-topbar">
             <div class="header-left">
                 <div class="logo">
                     <div class="logo-text">
@@ -342,7 +343,7 @@
                         data.documentsByType || [],
                         this.colorsForDocumentTypesChart(data.documentsByType || [])
                     );
-                    this.renderBarChart('catalogChart', data.documentsByCatalog || [], '#2563eb');
+                    this.renderBarChart('catalogChart', data.documentsByCatalog || [], '#7692FF');
                     this.renderTopUsers(data.topUsers || []);
                 } catch (error) {
                     console.error('Ошибка загрузки статистики:', error);
@@ -363,6 +364,15 @@
                 }
             }
 
+            getChartTheme() {
+                return {
+                    text: '#ffffff',
+                    muted: 'rgba(255, 255, 255, 0.82)',
+                    grid: 'rgba(229, 219, 230, 0.18)',
+                    tooltipBg: 'rgba(24, 15, 61, 0.94)'
+                };
+            }
+
             renderActivityChart(items) {
                 this.destroyChart('activityChart');
                 const canvas = document.getElementById('activityChart');
@@ -370,6 +380,7 @@
 
                 const labels = items.length ? items.map((item) => item.label) : ['Нет данных'];
                 const values = items.length ? items.map((item) => item.total) : [0];
+                const theme = this.getChartTheme();
 
                 this.charts.activityChart = new Chart(canvas, {
                     type: 'line',
@@ -378,11 +389,11 @@
                         datasets: [{
                             label: 'Количество действий',
                             data: values,
-                            borderColor: '#2563eb',
+                            borderColor: '#7692FF',
                             backgroundColor: 'rgba(37, 99, 235, 0.16)',
                             fill: true,
                             tension: 0.35,
-                            pointBackgroundColor: '#1e40af',
+                            pointBackgroundColor: '#7692FF',
                             pointRadius: 4
                         }]
                     },
@@ -390,13 +401,23 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
+                            x: {
+                                ticks: { color: theme.muted },
+                                grid: { color: theme.grid }
+                            },
                             y: {
                                 beginAtZero: true,
-                                ticks: { precision: 0 }
+                                ticks: { precision: 0, color: theme.muted },
+                                grid: { color: theme.grid }
                             }
                         },
                         plugins: {
-                            legend: { display: false }
+                            legend: { display: false },
+                            tooltip: {
+                                titleColor: theme.text,
+                                bodyColor: theme.text,
+                                backgroundColor: theme.tooltipBg
+                            }
                         }
                     }
                 });
@@ -423,6 +444,7 @@
 
                 const labels = items.length ? items.map((item) => item.label) : ['Нет данных'];
                 const values = items.length ? items.map((item) => item.value) : [1];
+                const theme = this.getChartTheme();
 
                 this.charts[canvasId] = new Chart(canvas, {
                     type: 'doughnut',
@@ -441,7 +463,17 @@
                         maintainAspectRatio: false,
                         plugins: {
                             legend: {
-                                position: 'bottom'
+                                position: 'bottom',
+                                labels: {
+                                    color: theme.text,
+                                    font: { weight: '600' },
+                                    padding: 16
+                                }
+                            },
+                            tooltip: {
+                                titleColor: theme.text,
+                                bodyColor: theme.text,
+                                backgroundColor: theme.tooltipBg
                             }
                         }
                     }
@@ -455,6 +487,7 @@
 
                 const labels = items.length ? items.map((item) => item.label) : ['Нет данных'];
                 const values = items.length ? items.map((item) => item.value) : [0];
+                const theme = this.getChartTheme();
 
                 this.charts[canvasId] = new Chart(canvas, {
                     type: 'bar',
@@ -474,11 +507,21 @@
                         scales: {
                             x: {
                                 beginAtZero: true,
-                                ticks: { precision: 0 }
+                                ticks: { precision: 0, color: theme.muted },
+                                grid: { color: theme.grid }
+                            },
+                            y: {
+                                ticks: { color: theme.text, font: { weight: '600' } },
+                                grid: { color: theme.grid }
                             }
                         },
                         plugins: {
-                            legend: { display: false }
+                            legend: { display: false },
+                            tooltip: {
+                                titleColor: theme.text,
+                                bodyColor: theme.text,
+                                backgroundColor: theme.tooltipBg
+                            }
                         }
                     }
                 });

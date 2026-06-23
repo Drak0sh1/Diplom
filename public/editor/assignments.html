@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -9,11 +9,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="editor.css">
     <link rel="stylesheet" href="../user/user-nav.css">
+    <link rel="stylesheet" href="../app-theme.css">
 </head>
 <body>
     <div class="admin-container">
         <!-- Шапка -->
-        <header class="header">
+        <header class="header header--editor-topbar">
             <div class="header-left">
                 <div class="logo">
                     <div class="logo-text">
@@ -103,8 +104,8 @@
                 </div>
 
                 <!-- Таблица назначений -->
-                <div class="table-container table-container--assignments">
-                    <table class="assignments-table assignments-table--modern">
+                <div class="users-table">
+                    <table>
                         <thead>
                             <tr>
                                 <th>Пользователь</th>
@@ -135,54 +136,82 @@
 
         <!-- Диалог: новое / редактирование назначения -->
         <div class="modal-overlay" id="assignmentFormModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="assignmentFormTitle">
-            <div class="modal-content modal-content--directory-form">
+            <div class="modal-content modal-content--assignment-wizard">
                 <div class="modal-header">
                     <h3 id="assignmentFormTitle"><i class="fas fa-user-plus"></i> <span id="formTitle">Новое назначение</span></h3>
                     <button type="button" class="close-btn" id="closeFormBtn" aria-label="Закрыть">&times;</button>
                 </div>
                 <form id="assignmentForm">
-                    <div class="modal-body directory-form-body">
+                    <div class="modal-body assignment-wizard-body">
                         <input type="hidden" id="assignmentId" value="">
                         <input type="hidden" id="assignDirectoryId" value="">
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="assignUser">
-                                    <i class="fas fa-user"></i> Пользователь *
-                                </label>
-                                <select id="assignUser" class="form-control" required>
-                                    <option value="">Выберите пользователя</option>
-                                </select>
-                            </div>
-                            <div class="form-group directory-input-wrapper">
-                                <label for="assignDirectoryInput">
-                                    <i class="fas fa-folder"></i> Каталог *
-                                </label>
-                                <input type="text" id="assignDirectoryInput" class="form-control"
-                                       placeholder="Начните вводить название каталога..."
-                                       autocomplete="off" required>
-                                <div id="directory-search-results" class="search-results"></div>
-                            </div>
-                        </div>
+                        <div class="assignment-wizard-grid">
+                            <div class="assignment-wizard-col assignment-wizard-col--main">
+                                <div class="form-group">
+                                    <label for="assignUser">
+                                        <i class="fas fa-user"></i> Пользователь *
+                                    </label>
+                                    <select id="assignUser" class="form-control" required>
+                                        <option value="">Выберите пользователя</option>
+                                    </select>
+                                </div>
 
-                        <div class="form-group" id="childrenOptions" style="display: none;">
-                            <div class="checkbox-group">
-                                <label>
-                                    <input type="checkbox" id="includeChildren" checked>
-                                    <i class="fas fa-folder-tree"></i>
-                                    <span><strong>Назначить права на все дочерние каталоги</strong></span>
-                                    <small style="display: block; color: #718096; margin-top: 5px;">
-                                        При включении этой опции пользователь получит те же права на все подкаталоги и документы внутри выбранного каталога
-                                    </small>
-                                </label>
-                            </div>
-                        </div>
+                                <div class="form-group directory-input-wrapper">
+                                    <label for="assignDirectoryInput">
+                                        <i class="fas fa-folder"></i> Каталог *
+                                    </label>
+                                    <input type="text" id="assignDirectoryInput" class="form-control"
+                                           placeholder="Начните вводить название каталога..."
+                                           autocomplete="off" required>
+                                    <div id="directory-search-results" class="search-results"></div>
+                                </div>
 
-                        <div class="form-group">
-                            <label for="assignNotes">
-                                <i class="fas fa-sticky-note"></i> Примечания
-                            </label>
-                            <textarea id="assignNotes" class="form-control" rows="3"></textarea>
+                                <div class="form-group">
+                                    <label for="assignNotes">
+                                        <i class="fas fa-sticky-note"></i> Примечания
+                                    </label>
+                                    <textarea id="assignNotes" class="form-control" rows="3" placeholder="Необязательно: цель доступа, срок и т.п."></textarea>
+                                </div>
+                            </div>
+
+                            <div class="assignment-wizard-col assignment-wizard-col--side" id="assignmentWizardExtra">
+                                <div class="assignment-side-card">
+                                    <h4 class="assignment-side-title"><i class="fas fa-sliders-h"></i> Область доступа</h4>
+                                    <p class="assignment-side-hint">Сначала выберите каталог слева — для режима «только выбранные каталоги» загрузится список его дочерних каталогов.</p>
+
+                                    <div class="assignment-access-options" id="assignmentAccessOptions">
+                                        <label class="assignment-radio">
+                                            <input type="radio" name="accessScope" value="all" checked>
+                                            <span><strong>Все дочерние каталоги</strong> — доступ ко всем вложенным каталогам</span>
+                                        </label>
+                                        <label class="assignment-radio">
+                                            <input type="radio" name="accessScope" value="folder">
+                                            <span><strong>Только этот каталог</strong> — без вложенных папок</span>
+                                        </label>
+                                        <label class="assignment-radio">
+                                            <input type="radio" name="accessScope" value="directories">
+                                            <span><strong>Только выбранные каталоги</strong> — родительский каталог назначится обязательно, ниже отметьте нужные дочерние</span>
+                                        </label>
+                                    </div>
+
+                                    <div id="assignmentDocumentsPanel" class="assignment-documents-panel" style="display: none;">
+                                        <div class="assignment-documents-toolbar">
+                                            <input type="search" id="assignmentDocFilter" class="form-control form-control-sm"
+                                                   placeholder="Фильтр по названию каталога…" autocomplete="off">
+                                            <div class="assignment-documents-actions">
+                                                <button type="button" class="btn-sm btn-secondary" id="assignmentDocSelectAll">Все</button>
+                                                <button type="button" class="btn-sm btn-secondary" id="assignmentDocClear">Снять</button>
+                                            </div>
+                                        </div>
+                                        <p class="assignment-documents-note">
+                                            Родительский каталог будет назначен обязательно. Ниже отметьте нужные дочерние каталоги.
+                                        </p>
+                                        <div id="assignmentDocumentsList" class="assignment-documents-list" role="group" aria-label="Каталоги для доступа"></div>
+                                        <p id="assignmentDocumentsEmpty" class="assignment-documents-empty" style="display: none;">У выбранного каталога нет дочерних каталогов. Выберите другой каталог или режим «только этот каталог».</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer directory-form-footer">
@@ -439,12 +468,23 @@
 
     async getAllChildDirectories(parentId) {
         try {
-            const response = await fetch(`/api/editor/directories/${parentId}/all-children`);
+            const response = await fetch(`/api/editor/directories/${encodeURIComponent(parentId)}/all-children`);
             if (!response.ok) throw new Error('Ошибка получения дочерних каталогов');
             return await response.json();
         } catch (error) {
             console.error('❌ Ошибка получения дочерних каталогов:', error);
             return { success: false, message: error.message };
+        }
+    },
+
+    async getTreeDocuments(rootFolderId) {
+        try {
+            const response = await fetch(`/api/editor/directories/${encodeURIComponent(rootFolderId)}/tree-documents`);
+            if (!response.ok) throw new Error('Ошибка получения списка документов');
+            return await response.json();
+        } catch (error) {
+            console.error('❌ Ошибка получения документов дерева:', error);
+            return { success: false, message: error.message, data: [] };
         }
     },
     
@@ -800,6 +840,10 @@
                 this.users = [];
                 this.directoriesHierarchy = [];
                 this.allDirectories = [];
+                this.assignmentTreeDocuments = [];
+                this.selectedAssignmentDocIds = new Set();
+                this.assignmentChildDirectories = [];
+                this.selectedAssignmentDirectoryIds = new Set();
                 this.init();
             }
             
@@ -826,6 +870,10 @@
                         this.loadUsers(),
                         this.loadDirectories()
                     ]);
+
+                    // Повторно применяем фильтры после загрузки справочников:
+                    // часть имён может восстанавливаться из списков пользователей/каталогов.
+                    this.filterAssignments();
                     
                 } catch (error) {
                     console.error('❌ Ошибка загрузки начальных данных:', error);
@@ -833,30 +881,165 @@
                 }
             }
             async checkDirectoryHasChildren(directoryId) {
-        try {
-            const response = await AssignmentsAPI.getAllChildDirectories(directoryId);
-            
-            if (response.success && response.data && response.data.length > 0) {
-                // Показываем блок с опциями
-                const childrenOptions = document.getElementById('childrenOptions');
-                if (childrenOptions) {
-                    childrenOptions.style.display = 'block';
-                    document.getElementById('includeChildren').checked = true;
+                try {
+                    const response = await AssignmentsAPI.getAllChildDirectories(directoryId);
+                    return !!(response.success && response.data && response.data.length > 0);
+                } catch (error) {
+                    console.error('❌ Ошибка проверки дочерних каталогов:', error);
+                    return false;
                 }
-                return true;
-            } else {
-                // Скрываем блок с опциями
-                const childrenOptions = document.getElementById('childrenOptions');
-                if (childrenOptions) {
-                    childrenOptions.style.display = 'none';
-                }
-                return false;
             }
-        } catch (error) {
-            console.error('❌ Ошибка проверки дочерних каталогов:', error);
-            return false;
-        }
-    }
+
+            getAccessScope() {
+                const r = document.querySelector('input[name="accessScope"]:checked');
+                return r ? r.value : 'all';
+            }
+
+            setAccessScope(value) {
+                const el = document.querySelector(`input[name="accessScope"][value="${value}"]`);
+                if (el) el.checked = true;
+                this.syncAssignmentAccessUI();
+            }
+
+            syncAssignmentAccessUI() {
+                const panel = document.getElementById('assignmentDocumentsPanel');
+                if (!panel) return;
+                panel.style.display = this.getAccessScope() === 'directories' ? 'block' : 'none';
+            }
+
+            escapeHtml(str) {
+                if (str == null || str === '') return '';
+                const d = document.createElement('div');
+                d.textContent = String(str);
+                return d.innerHTML;
+            }
+
+            async onAssignmentDirectorySelected(directory) {
+                const directoryInput = document.getElementById('assignDirectoryInput');
+                const directoryIdInput = document.getElementById('assignDirectoryId');
+                if (directoryInput) directoryInput.value = directory.name;
+                if (directoryIdInput) directoryIdInput.value = directory.id;
+                const searchResults = document.getElementById('directory-search-results');
+                if (searchResults) {
+                    searchResults.classList.remove('active');
+                    searchResults.innerHTML = '';
+                }
+                const editing = !!document.getElementById('assignmentId').value;
+                if (!editing) {
+                    const hasSubfolders = await this.checkDirectoryHasChildren(directory.id);
+                    this.setAccessScope(hasSubfolders ? 'all' : 'folder');
+                }
+                await this.loadChildDirectoriesForAssignment(directory.id);
+            }
+
+            async loadChildDirectoriesForAssignment(directoryId, options = {}) {
+                const { clearSelection = true, restoreIds = null } = options;
+                this.assignmentChildDirectories = [];
+                if (clearSelection) {
+                    this.selectedAssignmentDirectoryIds = new Set();
+                }
+
+                const list = document.getElementById('assignmentDocumentsList');
+                const empty = document.getElementById('assignmentDocumentsEmpty');
+                if (list) list.innerHTML = '<div class="assignment-docs-loading">Загрузка списка каталогов…</div>';
+                if (empty) empty.style.display = 'none';
+
+                try {
+                    const res = await AssignmentsAPI.getAllChildDirectories(directoryId);
+                    if (res && res.success && Array.isArray(res.data)) {
+                        this.assignmentChildDirectories = res.data;
+                    }
+                } catch (e) {
+                    console.error('Ошибка загрузки дочерних каталогов:', e);
+                }
+
+                if (Array.isArray(restoreIds) && restoreIds.length) {
+                    restoreIds.forEach((folderId) => {
+                        const n = parseInt(String(folderId), 10);
+                        if (Number.isFinite(n) && n > 0) this.selectedAssignmentDirectoryIds.add(n);
+                    });
+                }
+
+                this.renderAssignmentDirectoriesList();
+            }
+
+            async loadTreeDocumentsForAssignment(directoryId, options = {}) {
+                const { clearSelection = true, restoreIds = null } = options;
+                this.assignmentTreeDocuments = [];
+                if (clearSelection) {
+                    this.selectedAssignmentDocIds = new Set();
+                }
+                const list = document.getElementById('assignmentDocumentsList');
+                const empty = document.getElementById('assignmentDocumentsEmpty');
+                if (list) list.innerHTML = '<div class="assignment-docs-loading">Загрузка списка документов…</div>';
+                if (empty) empty.style.display = 'none';
+                try {
+                    const res = await AssignmentsAPI.getTreeDocuments(directoryId);
+                    if (res && res.success && Array.isArray(res.data)) {
+                        this.assignmentTreeDocuments = res.data;
+                    }
+                } catch (e) {
+                    console.error('Ошибка загрузки документов каталога:', e);
+                }
+                if (Array.isArray(restoreIds) && restoreIds.length) {
+                    restoreIds.forEach((fid) => {
+                        const n = parseInt(String(fid), 10);
+                        if (Number.isFinite(n) && n > 0) this.selectedAssignmentDocIds.add(n);
+                    });
+                }
+                this.renderAssignmentDocumentsList();
+            }
+
+            renderAssignmentDocumentsList() {
+                this.renderAssignmentDirectoriesList();
+            }
+
+            renderAssignmentDirectoriesList() {
+                const list = document.getElementById('assignmentDocumentsList');
+                const empty = document.getElementById('assignmentDocumentsEmpty');
+                const filterEl = document.getElementById('assignmentDocFilter');
+                if (!list) return;
+                const q = (filterEl && filterEl.value) ? filterEl.value.trim().toLowerCase() : '';
+                const rows = !q
+                    ? [...this.assignmentChildDirectories]
+                    : this.assignmentChildDirectories.filter((d) => {
+                        const name = String(d.name || d.Name || '').toLowerCase();
+                        const path = String(d.path || d.fullPath || d.fullDirectoryPath || '').toLowerCase();
+                        return name.includes(q) || path.includes(q);
+                    });
+                list.innerHTML = '';
+                if (!rows.length) {
+                    if (empty) {
+                        empty.style.display = 'block';
+                        empty.textContent = this.assignmentChildDirectories.length
+                            ? 'Ничего не найдено по фильтру.'
+                            : 'У выбранного каталога нет дочерних каталогов.';
+                    }
+                    return;
+                }
+                if (empty) empty.style.display = 'none';
+                rows.forEach((directory) => {
+                    const id = this.getDirectoryId(directory);
+                    if (!id) return;
+                    const wrap = document.createElement('label');
+                    wrap.className = 'assignment-doc-row';
+                    const checked = this.selectedAssignmentDirectoryIds.has(Number(id));
+                    const title = this.escapeHtml(directory.name || directory.Name || `Каталог ${id}`);
+                    const path = this.escapeHtml(directory.path || directory.fullPath || directory.fullDirectoryPath || '');
+                    const level = Number(directory.level);
+                    const meta = Number.isFinite(level) ? `<span class="assignment-doc-reg">Уровень ${level}</span>` : '';
+                    wrap.innerHTML = `
+                        <input type="checkbox" class="assignment-doc-cb" data-doc-id="${id}" ${checked ? 'checked' : ''}>
+                        <span class="assignment-doc-meta"><strong>${title}</strong>${meta}<small>${path}</small></span>`;
+                    const cb = wrap.querySelector('input');
+                    cb.addEventListener('change', () => {
+                        const numericId = Number(id);
+                        if (cb.checked) this.selectedAssignmentDirectoryIds.add(numericId);
+                        else this.selectedAssignmentDirectoryIds.delete(numericId);
+                    });
+                    list.appendChild(wrap);
+                });
+            }
 
             async loadAssignments() {
                 console.log('🔄 Начинаем загрузку назначений...');
@@ -867,8 +1050,7 @@
                     if (response && response.success) {
                         console.log('✅ Успешно загружено назначений:', response.data?.length || 0);
                         this.assignments = response.data || [];
-                        this.filteredAssignments = [...this.assignments];
-                        this.renderTable();
+                        this.filterAssignments();
                         
                         // Показываем уведомление если назначений нет
                         if (this.assignments.length === 0) {
@@ -955,6 +1137,15 @@ initDirectorySearch() {
             directoryIdInput.value = '';
             searchResults.classList.remove('active');
             searchResults.innerHTML = '';
+            this.assignmentChildDirectories = [];
+            this.selectedAssignmentDirectoryIds = new Set();
+            const list = document.getElementById('assignmentDocumentsList');
+            const empty = document.getElementById('assignmentDocumentsEmpty');
+            if (list) list.innerHTML = '';
+            if (empty) {
+                empty.style.display = 'block';
+                empty.textContent = 'Сначала выберите каталог.';
+            }
             return;
         }
         
@@ -975,26 +1166,7 @@ initDirectorySearch() {
                         
                         // Добавляем обработчик с проверкой дочерних каталогов
                         item.addEventListener('click', async () => {
-                            directoryInput.value = directory.name;
-                            directoryIdInput.value = directory.id;
-                            
-                            // После выбора каталога проверяем наличие дочерних каталогов
-                            if (this.checkDirectoryHasChildren) {
-                                const hasChildren = await this.checkDirectoryHasChildren(directory.id);
-                                
-                                // Показываем или скрываем опцию наследования
-                                const childrenOptions = document.getElementById('childrenOptions');
-                                if (childrenOptions) {
-                                    if (hasChildren) {
-                                        childrenOptions.style.display = 'block';
-                                    } else {
-                                        childrenOptions.style.display = 'none';
-                                    }
-                                }
-                            }
-                            
-                            searchResults.classList.remove('active');
-                            searchResults.innerHTML = '';
+                            await this.onAssignmentDirectorySelected(directory);
                         });
                         
                         searchResults.appendChild(item);
@@ -1031,26 +1203,7 @@ initDirectorySearch() {
                 
                 // Добавляем обработчик с проверкой дочерних каталогов
                 item.addEventListener('click', async () => {
-                    directoryInput.value = directory.name;
-                    directoryIdInput.value = directory.id;
-                    
-                    // После выбора каталога проверяем наличие дочерних каталогов
-                    if (this.checkDirectoryHasChildren) {
-                        const hasChildren = await this.checkDirectoryHasChildren(directory.id);
-                        
-                        // Показываем или скрываем опцию наследования
-                        const childrenOptions = document.getElementById('childrenOptions');
-                        if (childrenOptions) {
-                            if (hasChildren) {
-                                childrenOptions.style.display = 'block';
-                            } else {
-                                childrenOptions.style.display = 'none';
-                            }
-                        }
-                    }
-                    
-                    searchResults.classList.remove('active');
-                    searchResults.innerHTML = '';
+                    await this.onAssignmentDirectorySelected(directory);
                 });
                 
                 searchResults.appendChild(item);
@@ -1060,7 +1213,6 @@ initDirectorySearch() {
                 const moreItem = document.createElement('div');
                 moreItem.className = 'search-result-item';
                 moreItem.style.fontSize = '12px';
-                moreItem.style.color = '#718096';
                 moreItem.innerHTML = `<em>и еще ${this.allDirectories.length - 10} каталогов...</em>`;
                 searchResults.appendChild(moreItem);
             }
@@ -1069,21 +1221,11 @@ initDirectorySearch() {
         }
     });
     
-    // Также проверяем при загрузке формы редактирования
     if (directoryIdInput.value) {
-        // Если уже есть выбранный каталог (при редактировании), проверяем его
         setTimeout(async () => {
-            if (this.checkDirectoryHasChildren) {
-                const hasChildren = await this.checkDirectoryHasChildren(directoryIdInput.value);
-                
-                const childrenOptions = document.getElementById('childrenOptions');
-                if (childrenOptions) {
-                    if (hasChildren) {
-                        childrenOptions.style.display = 'block';
-                    } else {
-                        childrenOptions.style.display = 'none';
-                    }
-                }
+            const dir = this.allDirectories.find((d) => String(d.id) === String(directoryIdInput.value));
+            if (dir) {
+                await this.loadChildDirectoriesForAssignment(dir.id);
             }
         }, 100);
     }
@@ -1134,28 +1276,21 @@ initDirectorySearch() {
                 </td>
             </tr>
         `;
+        this.updatePagination();
         return;
     }
     
     let html = '';
-    pageData.forEach(assignment => {
+    pageData.forEach((assignment, index) => {
         console.log('👤 Рендерим назначение:', assignment);
+        const rowClass = index % 2 === 0 ? 'even' : 'odd';
         
         // ВАЖНО: Проверяем, какие поля есть в объекте assignment
         console.log('📊 Поля назначения:', Object.keys(assignment));
         console.log('🆔 userId:', assignment.userId, 'userName:', assignment.userName);
         
-        // Способ 1: Используем userName из данных назначения (если он есть)
-        const userName = assignment.userName || 'Неизвестный';
-        
-        // Способ 2: Ищем пользователя в списке users (резервный вариант)
-        const userFromList = this.users.find(u => u.id == assignment.userId);
-        const userNameFromList = userFromList ? userFromList.name : null;
-        
-        // Используем userName из данных назначения, если он есть, иначе из списка
-        const displayUserName = assignment.userName || userNameFromList || 'Неизвестный';
-        
-        const directoryName = assignment.directoryName || 'Неизвестный каталог';
+        const displayUserName = this.getAssignmentUserName(assignment) || 'Неизвестный';
+        const directoryName = this.getAssignmentDirectoryName(assignment) || 'Неизвестный каталог';
         const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString('ru-RU') : '—';
         
         // Определяем статус
@@ -1164,11 +1299,11 @@ initDirectorySearch() {
         const statusText = this.getStatusText(status);
         
         html += `
-            <tr>
+            <tr class="${rowClass}">
                 <td>
-                    <div class="user-info-small">
+                    <div class="user-cell">
                         <div class="user-avatar-small">${displayUserName.charAt(0)}</div>
-                        <div class="user-name-small">${displayUserName}</div>
+                        <span>${displayUserName}</span>
                     </div>
                 </td>
                 <td>
@@ -1232,18 +1367,21 @@ populateUserSelects() {
     }
     
     this.users.forEach(user => {
-        console.log(`👤 Добавляем пользователя: ID=${user.id}, Name=${user.name}`);
+        const userId = this.getUserId(user);
+        const userName = this.getUserName(user);
+        if (!userId) return;
+        console.log(`👤 Добавляем пользователя: ID=${userId}, Name=${userName}`);
         
         // Для фильтра
         const option1 = document.createElement('option');
-        option1.value = user.id;
-        option1.textContent = user.name;
+        option1.value = userId;
+        option1.textContent = userName;
         filterSelect.appendChild(option1);
         
         // Для формы
         const option2 = document.createElement('option');
-        option2.value = user.id;
-        option2.textContent = user.name;
+        option2.value = userId;
+        option2.textContent = userName;
         formSelect.appendChild(option2);
     });
 }
@@ -1258,14 +1396,13 @@ populateUserSelects() {
                 // Очищаем опции кроме первой
                 while (filterSelect.options.length > 1) filterSelect.remove(1);
                 
-                // Фильтруем только активные каталоги
-                const activeDirectories = this.allDirectories.filter(dir => (dir.status || 'active') === 'active');
-                
-                activeDirectories.forEach(dir => {
+                this.allDirectories.forEach(dir => {
+                    const directoryId = this.getDirectoryId(dir);
+                    if (!directoryId) return;
                     // Для фильтра
                     const option = document.createElement('option');
-                    option.value = dir.id;
-                    option.textContent = dir.name || `Каталог ${dir.id}`;
+                    option.value = directoryId;
+                    option.textContent = dir.fullPath || dir.fullDirectoryPath || dir.path || dir.name || `Каталог ${directoryId}`;
                     filterSelect.appendChild(option);
                 });
             }
@@ -1303,7 +1440,7 @@ async handleSubmit(e) {
     const directoryId = document.getElementById('assignDirectoryId').value;
     const permission = 'WRITE';
     const notes = document.getElementById('assignNotes').value.trim();
-    const includeChildren = document.getElementById('includeChildren')?.checked || false;
+    const accessScope = this.getAccessScope();
     
     if (!userId || !directoryId) {
         this.showNotification('Заполните обязательные поля', 'error');
@@ -1320,13 +1457,43 @@ async handleSubmit(e) {
         };
         
         if (id) {
-            // При обновлении передаем флаг updateChildren
-            data.updateChildren = includeChildren;
             response = await AssignmentsAPI.updateAssignment(id, data);
         } else {
-            // При создании передаем флаг includeChildren
-            data.includeChildren = includeChildren;
-            response = await AssignmentsAPI.createAssignment(data);
+            if (accessScope === 'all') {
+                data.includeChildren = true;
+            } else if (accessScope === 'folder') {
+                data.includeChildren = false;
+            } else if (accessScope === 'directories') {
+                const ids = [Number(directoryId), ...this.selectedAssignmentDirectoryIds]
+                    .filter((value, index, array) => Number.isFinite(value) && value > 0 && array.indexOf(value) === index);
+                if (!ids.length) {
+                    this.showNotification('Выберите родительский каталог или другой режим доступа', 'error');
+                    return;
+                }
+                const results = [];
+                for (const selectedDirectoryId of ids) {
+                    results.push(await AssignmentsAPI.createAssignment({
+                        userId,
+                        directoryId: selectedDirectoryId,
+                        permission,
+                        notes,
+                        includeChildren: false
+                    }));
+                }
+
+                const successful = results.filter((result) => result && result.success);
+                const failed = results.filter((result) => !result || !result.success);
+                response = {
+                    success: successful.length > 0,
+                    message: failed.length
+                        ? `Создано назначений: ${successful.length}. Не удалось: ${failed.length}`
+                        : `Создано назначений: ${successful.length}`,
+                    errors: failed.map((result) => result?.message || 'Ошибка создания назначения')
+                };
+            }
+            if (accessScope !== 'directories') {
+                response = await AssignmentsAPI.createAssignment(data);
+            }
         }
         
         if (response.success) {
@@ -1355,10 +1522,33 @@ async loadAssignmentData(id) {
             if (directory) {
                 document.getElementById('assignDirectoryInput').value = directory.name;
                 document.getElementById('assignDirectoryId').value = directory.id;
+            } else {
+                document.getElementById('assignDirectoryInput').value = assignment.directoryName || `Каталог ${assignment.directoryId}`;
+                document.getElementById('assignDirectoryId').value = assignment.directoryId;
             }
             
-            // Права всегда «чтение и запись» (WRITE), поле выбора убрано
             document.getElementById('assignNotes').value = assignment.notes || '';
+
+            const extra = document.getElementById('assignmentWizardExtra');
+            const editingHidden = extra && extra.style.display === 'none';
+
+            if (editingHidden) {
+                this.assignmentTreeDocuments = [];
+                this.selectedAssignmentDocIds = new Set();
+                this.assignmentChildDirectories = [];
+                this.selectedAssignmentDirectoryIds = new Set();
+            }
+
+            if (Array.isArray(assignment.allowedFileIds) && assignment.allowedFileIds.length) {
+                this.setAccessScope('folder');
+            } else {
+                this.setAccessScope(assignment.includesChildren ? 'all' : 'folder');
+            }
+            this.syncAssignmentAccessUI();
+
+            if (!editingHidden) {
+                await this.loadChildDirectoriesForAssignment(assignment.directoryId);
+            }
         } else {
             this.showNotification(response.message || 'Ошибка загрузки данных', 'error');
         }
@@ -1379,6 +1569,21 @@ resetForm() {
             searchResults.classList.remove('active');
             searchResults.innerHTML = '';
         }
+        this.assignmentTreeDocuments = [];
+        this.selectedAssignmentDocIds = new Set();
+        this.assignmentChildDirectories = [];
+        this.selectedAssignmentDirectoryIds = new Set();
+        const list = document.getElementById('assignmentDocumentsList');
+        const empty = document.getElementById('assignmentDocumentsEmpty');
+        const filterEl = document.getElementById('assignmentDocFilter');
+        if (list) list.innerHTML = '';
+        if (filterEl) filterEl.value = '';
+        if (empty) {
+            empty.style.display = 'block';
+            empty.textContent = 'Сначала выберите каталог.';
+        }
+        this.setAccessScope('all');
+        this.syncAssignmentAccessUI();
     }
 }
             
@@ -1425,6 +1630,27 @@ resetForm() {
                 if (form) {
                     form.addEventListener('submit', (e) => this.handleSubmit(e));
                 }
+
+                document.querySelectorAll('input[name="accessScope"]').forEach((el) => {
+                    el.addEventListener('change', () => this.syncAssignmentAccessUI());
+                });
+                const docFilter = document.getElementById('assignmentDocFilter');
+                if (docFilter) {
+                    docFilter.addEventListener('input', () => this.renderAssignmentDirectoriesList());
+                }
+                document.getElementById('assignmentDocSelectAll')?.addEventListener('click', (ev) => {
+                    ev.preventDefault();
+                    this.assignmentChildDirectories.forEach((d) => {
+                        const id = Number(this.getDirectoryId(d));
+                        if (Number.isFinite(id) && id > 0) this.selectedAssignmentDirectoryIds.add(id);
+                    });
+                    this.renderAssignmentDirectoriesList();
+                });
+                document.getElementById('assignmentDocClear')?.addEventListener('click', (ev) => {
+                    ev.preventDefault();
+                    this.selectedAssignmentDirectoryIds.clear();
+                    this.renderAssignmentDirectoriesList();
+                });
                 
                 // Поиск
                 const searchInput = document.getElementById('searchAssignments');
@@ -1499,38 +1725,91 @@ resetForm() {
                 console.log('✅ Все обработчики событий настроены');
             }
             
+            getUserId(user) {
+                return user?.id ?? user?.idUsers ?? user?.userId ?? user?.user_id ?? '';
+            }
+
+            getUserName(user) {
+                return user?.name ?? user?.username ?? user?.login ?? user?.userName ?? `Пользователь ${this.getUserId(user)}`;
+            }
+
+            getAssignmentUserId(assignment) {
+                return assignment?.userId ?? assignment?.user_id ?? assignment?.idUsers ?? assignment?.idUser ?? '';
+            }
+
+            getAssignmentDirectoryId(assignment) {
+                return assignment?.directoryId ?? assignment?.directory_id ?? assignment?.catalogId ?? assignment?.catalog_id ?? assignment?.idDirectory ?? '';
+            }
+
+            getDirectoryId(directory) {
+                return directory?.id ?? directory?.directoryId ?? directory?.idDirectory ?? directory?.idDirectories ?? directory?.catalogId ?? '';
+            }
+
+            getAssignmentUserName(assignment) {
+                const assignmentName = assignment?.userName ?? assignment?.username ?? assignment?.user ?? assignment?.login;
+                if (assignmentName) return String(assignmentName);
+
+                const userId = String(this.getAssignmentUserId(assignment));
+                const user = this.users.find((candidate) => String(this.getUserId(candidate)) === userId);
+                return user ? this.getUserName(user) : '';
+            }
+
+            getAssignmentDirectoryName(assignment) {
+                const directName = assignment?.directoryName ?? assignment?.catalogName ?? assignment?.folderName;
+                const directPath = assignment?.fullDirectoryPath ?? assignment?.directoryPath ?? assignment?.catalogPath ?? assignment?.path;
+                if (directName || directPath) {
+                    return [directName, directPath].filter(Boolean).join(' ');
+                }
+
+                const directoryId = String(this.getAssignmentDirectoryId(assignment));
+                const directory = this.allDirectories.find((candidate) => String(this.getDirectoryId(candidate)) === directoryId);
+                if (!directory) return '';
+                return [directory.name, directory.fullPath, directory.fullDirectoryPath, directory.path].filter(Boolean).join(' ');
+            }
+
+            normalizeForSearch(value) {
+                return String(value ?? '').toLowerCase().trim();
+            }
+
             filterAssignments() {
-                const searchTerm = document.getElementById('searchAssignments').value.toLowerCase();
-                const userFilter = document.getElementById('filterUser').value;
-                const directoryFilter = document.getElementById('filterDirectory').value;
+                const searchTerm = this.normalizeForSearch(document.getElementById('searchAssignments')?.value);
+                const userFilter = String(document.getElementById('filterUser')?.value || '');
+                const directoryFilter = String(document.getElementById('filterDirectory')?.value || '');
                 
-                this.filteredAssignments = this.assignments.filter(assignment => {
-                    // Поиск по пользователю и каталогу
-                    const user = this.users.find(u => u.id == assignment.userId);
-                    const userName = user ? user.username.toLowerCase() : '';
-                    const directoryName = assignment.directoryName ? assignment.directoryName.toLowerCase() : '';
-                    const directoryPath = assignment.fullDirectoryPath ? assignment.fullDirectoryPath.toLowerCase() : '';
+                this.filteredAssignments = this.assignments.filter((assignment) => {
+                    const assignmentUserId = String(this.getAssignmentUserId(assignment));
+                    const assignmentDirectoryId = String(this.getAssignmentDirectoryId(assignment));
+                    const userName = this.getAssignmentUserName(assignment);
+                    const directoryName = this.getAssignmentDirectoryName(assignment);
+                    const statusText = this.getStatusText(this.getAssignmentStatus(assignment));
+
+                    const searchableText = this.normalizeForSearch([
+                        userName,
+                        directoryName,
+                        statusText,
+                        assignmentUserId,
+                        assignmentDirectoryId,
+                        assignment?.notes,
+                        assignment?.permission
+                    ].filter(Boolean).join(' '));
                     
-                    const matchesSearch = !searchTerm || 
-                        userName.includes(searchTerm) ||
-                        directoryName.includes(searchTerm) ||
-                        directoryPath.includes(searchTerm);
-                    
-                    // Фильтр по пользователю
-                    const matchesUser = !userFilter || assignment.userId == userFilter;
-                    
-                    // Фильтр по каталогу
-                    const matchesDirectory = !directoryFilter || assignment.directoryId == directoryFilter;
+                    const matchesSearch = !searchTerm || searchableText.includes(searchTerm);
+                    const matchesUser = !userFilter || assignmentUserId === userFilter;
+                    const matchesDirectory = !directoryFilter || assignmentDirectoryId === directoryFilter;
                     
                     return matchesSearch && matchesUser && matchesDirectory;
                 });
                 
                 this.currentPage = 1;
+                this.totalPages = Math.max(1, Math.ceil(this.filteredAssignments.length / this.pageSize));
                 this.renderTable();
             }
             
             updatePagination() {
-                this.totalPages = Math.ceil(this.filteredAssignments.length / this.pageSize);
+                this.totalPages = Math.max(1, Math.ceil(this.filteredAssignments.length / this.pageSize));
+                if (this.currentPage > this.totalPages) {
+                    this.currentPage = this.totalPages;
+                }
                 
                 const prevBtn = document.getElementById('prevPage');
                 const nextBtn = document.getElementById('nextPage');
@@ -1541,7 +1820,7 @@ resetForm() {
                 }
                 
                 if (nextBtn) {
-                    nextBtn.disabled = this.currentPage === this.totalPages;
+                    nextBtn.disabled = this.currentPage >= this.totalPages;
                 }
                 
                 if (pageInfo) {
@@ -1567,6 +1846,7 @@ resetForm() {
                 const modal = document.getElementById('assignmentFormModal');
                 const formTitle = document.getElementById('formTitle');
                 const titleIcon = document.querySelector('#assignmentFormTitle > i');
+                const extra = document.getElementById('assignmentWizardExtra');
                 
                 if (!modal || !formTitle) return;
                 
@@ -1574,11 +1854,13 @@ resetForm() {
                     formTitle.textContent = 'Редактировать назначение';
                     if (titleIcon) titleIcon.className = 'fas fa-edit';
                     this.currentAssignmentId = assignmentId;
+                    if (extra) extra.style.display = 'none';
                     this.loadAssignmentData(assignmentId);
                 } else {
                     formTitle.textContent = 'Новое назначение';
                     if (titleIcon) titleIcon.className = 'fas fa-user-plus';
                     this.currentAssignmentId = null;
+                    if (extra) extra.style.display = '';
                     this.resetForm();
                 }
                 
